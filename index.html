@@ -175,6 +175,20 @@
       box-shadow: 0 4px 10px rgba(107, 114, 128, 0.3);
     }
 
+    /* Libur badge */
+    .libur-badge {
+      background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 10px rgba(107, 114, 128, 0.3);
+    }
+
     /* Modern input styles */
     .modern-input {
       background: rgba(255, 255, 255, 0.9);
@@ -190,6 +204,12 @@
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
       background: white;
+    }
+
+    .modern-input:disabled {
+      background: rgba(240, 240, 240, 0.9);
+      cursor: not-allowed;
+      opacity: 0.7;
     }
 
     /* Navigation buttons */
@@ -316,6 +336,41 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Day button styles */
+    .day-btn {
+      padding: 10px 16px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .day-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .day-btn.inactive {
+      background: rgba(255, 255, 255, 0.9);
+      color: #4b5563;
+      border: 1px solid rgba(102, 126, 234, 0.3);
+    }
+
+    .day-btn.inactive:hover {
+      background: rgba(255, 255, 255, 1);
+      border-color: #667eea;
+    }
+
+    .day-btn.sunday {
+      background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+      color: white;
+      cursor: default;
+      opacity: 0.8;
     }
 
     /* Print styles for rekap */
@@ -487,7 +542,7 @@
           </div>
         </div>
 
-        <!-- Date Settings -->
+        <!-- Date Settings and Day Navigation -->
         <div class="glass-card rounded-2xl p-8 mb-8 no-print fade-in">
           <h3 class="text-xl font-bold gradient-text mb-6 flex items-center">
             <i class="fas fa-calendar-alt mr-3 text-2xl"></i>
@@ -529,26 +584,45 @@
               </div>
             </div>
 
-            <!-- Class Filter -->
+            <!-- Day Navigation -->
             <div>
               <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
-                <i class="fas fa-filter text-blue-600 mr-2"></i>
-                Filter Kelas:
+                <i class="fas fa-chevron-circle-right text-blue-600 mr-2"></i>
+                Navigasi Berdasarkan Hari:
               </h4>
-              <div class="flex flex-wrap gap-2" id="classFilterContainer">
-                <button class="class-filter-btn active" data-class="all">Semua Kelas</button>
-                <button class="class-filter-btn" data-class="X IPA 1">X IPA 1</button>
-                <button class="class-filter-btn" data-class="X IPA 2">X IPA 2</button>
-                <button class="class-filter-btn" data-class="X IPS 1">X IPS 1</button>
-                <button class="class-filter-btn" data-class="XI IPA 1">XI IPA 1</button>
-                <button class="class-filter-btn" data-class="XI IPA 2">XI IPA 2</button>
-                <button class="class-filter-btn" data-class="XII IPA 1">XII IPA 1</button>
-                <button class="class-filter-btn" data-class="XII IPA 2">XII IPA 2</button>
+              <div class="flex flex-wrap gap-2" id="dayNavigation">
+                <button id="btnSenin" class="day-btn inactive px-4 py-2" onclick="goToDay('senin')">Senin</button>
+                <button id="btnSelasa" class="day-btn inactive px-4 py-2" onclick="goToDay('selasa')">Selasa</button>
+                <button id="btnRabu" class="day-btn inactive px-4 py-2" onclick="goToDay('rabu')">Rabu</button>
+                <button id="btnKamis" class="day-btn inactive px-4 py-2" onclick="goToDay('kamis')">Kamis</button>
+                <button id="btnJumat" class="day-btn inactive px-4 py-2" onclick="goToDay('jumat')">Jumat</button>
+                <button id="btnSabtu" class="day-btn inactive px-4 py-2" onclick="goToDay('sabtu')">Sabtu</button>
+                <button id="btnMinggu" class="day-btn sunday px-4 py-2" disabled>Minggu (Libur)</button>
               </div>
-              <p class="mt-3 text-xs text-gray-500 flex items-center">
-                <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                Pilih kelas untuk menampilkan siswa.
-              </p>
+              <div class="mt-3 flex items-center gap-2">
+                <div class="libur-badge text-sm py-2 px-4">
+                  <i class="fas fa-info-circle"></i>
+                  <span>Hari Minggu otomatis libur - Tidak dapat mengisi absensi</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Class Filter -->
+          <div class="mt-8 pt-6 border-t border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+              <i class="fas fa-filter text-blue-600 mr-2"></i>
+              Filter Kelas:
+            </h4>
+            <div class="flex flex-wrap gap-2" id="classFilterContainer">
+              <button class="class-filter-btn active" data-class="all">Semua Kelas</button>
+              <button class="class-filter-btn" data-class="X IPA 1">X IPA 1</button>
+              <button class="class-filter-btn" data-class="X IPA 2">X IPA 2</button>
+              <button class="class-filter-btn" data-class="X IPS 1">X IPS 1</button>
+              <button class="class-filter-btn" data-class="XI IPA 1">XI IPA 1</button>
+              <button class="class-filter-btn" data-class="XI IPA 2">XI IPA 2</button>
+              <button class="class-filter-btn" data-class="XII IPA 1">XII IPA 1</button>
+              <button class="class-filter-btn" data-class="XII IPA 2">XII IPA 2</button>
             </div>
           </div>
         </div>
@@ -1075,6 +1149,9 @@
         // Setup class filter listeners
         setupClassFilterListeners();
         
+        // Update day button styles
+        updateDayButtonStyles();
+        
         // Show default page
         showPage('absensi');
 
@@ -1178,6 +1255,23 @@
       });
     }
 
+    // Get day name from date
+    function getDayName(dateString) {
+      try {
+        const date = new Date(dateString);
+        const days = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+        return days[date.getDay()];
+      } catch (e) {
+        return 'senin';
+      }
+    }
+
+    // Check if date is Sunday
+    function isSunday(dateString) {
+      const dayName = getDayName(dateString);
+      return dayName === 'minggu';
+    }
+
     // Update date display
     function updateDateDisplay() {
       try {
@@ -1193,8 +1287,69 @@
           month: 'long',
           day: 'numeric'
         });
+        
+        updateDayButtonStyles();
       } catch (e) {
         console.warn('Date error:', e);
+      }
+    }
+
+    // Update day button styles to highlight current day
+    function updateDayButtonStyles() {
+      try {
+        const currentDayName = getDayName(currentDate);
+        const dayButtons = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
+        
+        dayButtons.forEach(day => {
+          const button = document.getElementById(`btn${day.charAt(0).toUpperCase() + day.slice(1)}`);
+          if (button) {
+            if (day === 'minggu') {
+              button.className = 'day-btn sunday px-4 py-2';
+              button.disabled = true;
+            } else if (day === currentDayName) {
+              button.className = 'day-btn active px-4 py-2';
+              button.disabled = false;
+            } else {
+              button.className = 'day-btn inactive px-4 py-2';
+              button.disabled = false;
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Day button style error:', e);
+      }
+    }
+
+    // Go to specific day in current week
+    function goToDay(targetDay) {
+      try {
+        const currentDateObj = new Date(currentDate);
+        const currentDayIndex = currentDateObj.getDay();
+        
+        const dayIndices = {
+          'minggu': 0,
+          'senin': 1,
+          'selasa': 2,
+          'rabu': 3,
+          'kamis': 4,
+          'jumat': 5,
+          'sabtu': 6
+        };
+        
+        const targetDayIndex = dayIndices[targetDay];
+        const dayDifference = targetDayIndex - currentDayIndex;
+        
+        const targetDateObj = new Date(currentDateObj);
+        targetDateObj.setDate(currentDateObj.getDate() + dayDifference);
+        
+        currentDate = targetDateObj.toISOString().split('T')[0];
+        document.getElementById('inputTanggal').value = currentDate;
+        
+        updateDateDisplay();
+        renderStudentTable();
+        showSaveIndicator();
+      } catch (e) {
+        console.warn('Go to day error:', e);
       }
     }
 
@@ -1486,6 +1641,7 @@
       
       const filteredStudents = getFilteredStudents();
       const todayAttendance = attendanceRecords.filter(record => record && record.tanggal === currentDate);
+      const isSundayToday = isSunday(currentDate);
       
       // Update total siswa display
       document.getElementById('totalSiswaDisplay').textContent = filteredStudents.length;
@@ -1497,6 +1653,24 @@
               <div class="text-5xl mb-4 text-gray-400">📚</div>
               <div class="text-lg text-gray-600 mb-2">Tidak ada data siswa</div>
               <div class="text-sm text-gray-500">Silakan tambah siswa baru di halaman Data Siswa</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      // If Sunday, show libur message
+      if (isSundayToday) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="px-4 py-12 text-center">
+              <div class="text-5xl mb-4 text-gray-400">😴</div>
+              <div class="text-lg text-gray-600 mb-2">Hari Minggu - Libur</div>
+              <div class="text-sm text-gray-500">Tidak dapat melakukan absensi pada hari Minggu</div>
+              <div class="mt-4 libur-badge text-sm py-2 px-4 inline-flex">
+                <i class="fas fa-info-circle mr-2"></i>
+                <span>Sekolah libur, absensi tidak tersedia</span>
+              </div>
             </td>
           </tr>
         `;
@@ -1556,6 +1730,14 @@
     // Update attendance status
     async function updateAttendanceStatus(studentId, status) {
       if (isLoading || !studentId) return;
+      
+      // Prevent attendance on Sunday
+      if (isSunday(currentDate)) {
+        showCustomAlert("Tidak dapat mengisi absensi pada hari Minggu (libur)");
+        renderStudentTable(); // Reset the select
+        return;
+      }
+      
       isLoading = true;
       
       const student = masterStudents.find(s => s && s.id === studentId);
@@ -1601,6 +1783,14 @@
     // Update attendance keterangan
     async function updateAttendanceKeterangan(studentId, keterangan) {
       if (isLoading || !studentId) return;
+      
+      // Prevent attendance on Sunday
+      if (isSunday(currentDate)) {
+        showCustomAlert("Tidak dapat mengisi absensi pada hari Minggu (libur)");
+        renderStudentTable(); // Reset the input
+        return;
+      }
+      
       isLoading = true;
       
       const student = masterStudents.find(s => s && s.id === studentId);
@@ -1657,6 +1847,13 @@
     // Mark all present
     async function markAllPresent() {
       if (isLoading) return;
+      
+      // Prevent on Sunday
+      if (isSunday(currentDate)) {
+        showCustomAlert("Tidak dapat mengisi absensi pada hari Minggu (libur)");
+        return;
+      }
+      
       isLoading = true;
       
       const btn = document.getElementById('btnHadirSemua');
@@ -2615,7 +2812,7 @@
             <p>Kepala Sekolah,</p>
             <div class="signature-line">
               <p class="signature-name">Muhammad Saidi, S.E., M.M.</p>
-              <p class="signature-title">NIP. - </p>
+              <p class="signature-title">NIP. 197506152005011012</p>
             </div>
           </div>
           
@@ -3001,7 +3198,7 @@
             <p>Kepala Sekolah,</p>
             <div class="signature-line">
               <p class="signature-name">Muhammad Saidi, S.E., M.M.</p>
-              <p class="signature-title">NIP. - </p>
+              <p class="signature-title">NIP. 197506152005011012</p>
             </div>
           </div>
           
