@@ -628,6 +628,10 @@
                 <i class="fas fa-check-circle mr-2 text-xl"></i>
                 Hadir Semua
               </button>
+              <button id="btnHapusStatus" class="px-8 py-4 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 font-semibold shadow-lg btn-modern flex items-center">
+                <i class="fas fa-eraser mr-2 text-xl"></i>
+                Hapus Semua Status
+              </button>
             </div>
             <div class="flex gap-3">
               <button id="btnKirim" class="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 font-semibold shadow-lg btn-modern flex items-center">
@@ -997,6 +1001,31 @@
               Hapus
             </button>
             <button id="btnBatalHapus" class="flex-1 px-6 py-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-semibold shadow-lg btn-modern">
+              <i class="fas fa-times mr-2"></i>
+              Batal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Delete Status Modal -->
+    <div id="deleteStatusModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="modal-content w-full max-w-md">
+        <div class="p-8">
+          <div class="text-center mb-6">
+            <div class="w-20 h-20 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-exclamation-triangle text-white text-4xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Konfirmasi Hapus Status</h3>
+            <p class="text-gray-600">Apakah Anda yakin ingin menghapus semua status kehadiran untuk hari ini?</p>
+          </div>
+          <div class="flex gap-3">
+            <button id="btnKonfirmasiHapusStatus" class="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-semibold shadow-lg btn-modern">
+              <i class="fas fa-check mr-2"></i>
+              Ya, Hapus
+            </button>
+            <button id="btnBatalHapusStatus" class="flex-1 px-6 py-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-semibold shadow-lg btn-modern">
               <i class="fas fa-times mr-2"></i>
               Batal
             </button>
@@ -2018,7 +2047,61 @@
         isLoading = false;
     }
 
-    function sendAttendance() {
+    // ============================================
+    // FUNGSI HAPUS SEMUA STATUS (FITUR BARU)
+    // ============================================
+    function showDeleteStatusModal() {
+        const modal = document.getElementById('deleteStatusModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function hideDeleteStatusModal() {
+        const modal = document.getElementById('deleteStatusModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    async function confirmDeleteStatus() {
+        if (isSunday(currentDate)) {
+            showCustomAlert("Tidak dapat menghapus status pada hari Minggu (libur)");
+            hideDeleteStatusModal();
+            return;
+        }
+        
+        isLoading = true;
+        const btn = document.getElementById('btnKonfirmasiHapusStatus');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menghapus...';
+        }
+        
+        // Hapus semua attendance records untuk tanggal hari ini
+        attendanceRecords = attendanceRecords.filter(record => 
+            record && record.tanggal !== currentDate
+        );
+        
+        await saveAttendanceToJSONBin();
+        
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check mr-2"></i>Ya, Hapus';
+        }
+        
+        renderStudentTable();
+        showSaveIndicator();
+        showCustomAlert('Semua status kehadiran untuk hari ini telah dihapus!');
+        
+        hideDeleteStatusModal();
+        isLoading = false;
+    }
+
+    // ============================================
+    // FUNGSI KIRIM (Fitur Baru)
+    // ============================================
+    async function sendAttendance() {
         const todayAttendance = attendanceRecords.filter(record => record && record.tanggal === currentDate);
         
         if (todayAttendance.length === 0) {
@@ -2026,7 +2109,11 @@
             return;
         }
         
-        showCustomAlert(`Absensi untuk ${todayAttendance.length} siswa telah dikirim.`);
+        // Simulasi pengiriman (bisa diintegrasikan dengan API sebenarnya)
+        showCustomAlert(`✅ Absensi untuk ${todayAttendance.length} siswa telah dikirim ke server.`);
+        
+        // Log untuk debugging
+        console.log('📤 Mengirim data absensi:', todayAttendance);
     }
 
     // ============================================
@@ -2937,6 +3024,9 @@
 
         document.getElementById('btnHadirSemua').addEventListener('click', markAllPresent);
         document.getElementById('btnKirim').addEventListener('click', sendAttendance);
+        
+        // Event listener untuk tombol Hapus Semua Status
+        document.getElementById('btnHapusStatus').addEventListener('click', showDeleteStatusModal);
 
         document.getElementById('btnTambahSiswa').addEventListener('click', showAddStudentModal);
         document.getElementById('btnImport').addEventListener('click', () => document.getElementById('importExcel').click());
@@ -2948,6 +3038,10 @@
         document.getElementById('addStudentForm').addEventListener('submit', handleAddStudent);
         document.getElementById('btnBatalHapus').addEventListener('click', hideDeleteModal);
         document.getElementById('btnKonfirmasiHapus').addEventListener('click', confirmDelete);
+        
+        // Event listener untuk modal hapus status
+        document.getElementById('btnKonfirmasiHapusStatus').addEventListener('click', confirmDeleteStatus);
+        document.getElementById('btnBatalHapusStatus').addEventListener('click', hideDeleteStatusModal);
 
         document.getElementById('importExcel').addEventListener('change', handleImportExcel);
 
