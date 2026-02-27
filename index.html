@@ -502,6 +502,60 @@
       .status-sakit-print { background-color: #ef4444; color: white; }
       .status-absen-print { background-color: #6b7280; color: white; }
     }
+
+    /* Perbaikan style untuk QR reader */
+#qr-reader {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    border: none !important;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+#qr-reader video {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 16px;
+}
+
+#qr-reader__scan_region {
+    background: transparent !important;
+    min-height: 300px;
+}
+
+#qr-reader__scan_region img {
+    display: none;
+}
+
+#qr-reader__dashboard_section_csr {
+    padding: 10px !important;
+    text-align: center !important;
+}
+
+#qr-reader__dashboard_section_csr button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 8px 16px !important;
+    border-radius: 30px !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    margin: 0 5px !important;
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3) !important;
+}
+
+#qr-reader__dashboard_section_csr button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4) !important;
+}
+
+#qr-reader__dashboard_section_csr span {
+    color: #4a5568 !important;
+    font-size: 14px !important;
+}
   </style>
 </head>
 <body class="font-sans antialiased">
@@ -1357,15 +1411,15 @@
     };
 
     // ============================================
-// KOORDINAT SEKOLAH (GANTI DENGAN LOKASI ANDA)
-// ============================================
-const SCHOOL_LOCATION = {
-    lat: -7.230605271005888,  // Latitude MA Ibnu Husain
-    lng: 112.74703617379582,  // Longitude MA Ibnu Husain
-    radius: 100,               // Radius dalam meter (100m)
-    nama: "MA Ibnu Husain",
-    alamat: "Jl. Irawati 1 No. 15-17, Sidotopo, Kec. Semampir, Surabaya"
-};
+    // KOORDINAT SEKOLAH (GANTI DENGAN LOKASI ANDA)
+    // ============================================
+    const SCHOOL_LOCATION = {
+        lat: -7.230605271005888,  // Latitude MA Ibnu Husain
+        lng: 112.74703617379582,  // Longitude MA Ibnu Husain
+        radius: 100,               // Radius dalam meter (100m)
+        nama: "MA Ibnu Husain",
+        alamat: "Jl. Irawati 1 No. 15-17, Sidotopo, Kec. Semampir, Surabaya"
+    };
 
     // ============================================
     // DEFAULT CONFIG & DATA
@@ -2637,48 +2691,139 @@ const SCHOOL_LOCATION = {
         }
     }
 
-    // ============================================
-    // FUNGSI QR SCANNER
-    // ============================================
-    function startQRScanner() {
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
+// ============================================
+// FUNGSI QR SCANNER - VERSI PERBAIKAN
+// ============================================
+function startQRScanner() {
+    // Cek izin kamera dulu
+    checkCameraPermission().then(status => {
+        if (status === 'denied') {
+            showCustomAlert(
+                "❌ Izin kamera ditolak. " +
+                "Mohon izinkan akses kamera di pengaturan browser."
+            );
+            return;
         }
         
-        html5QrcodeScanner = new Html5QrcodeScanner(
-            "qr-reader", 
-            { 
-                fps: 10, 
-                qrbox: 250,
-                rememberLastUsedCamera: true,
-                showTorchButtonIfSupported: true
-            }
-        );
-        
-        html5QrcodeScanner.render((decodedText, decodedResult) => {
-            console.log('QR Scanned:', decodedText);
-            document.getElementById('qr-reader-results').classList.remove('hidden');
-            document.getElementById('qr-result').textContent = decodedText;
-            
-            try {
-                const qrData = JSON.parse(decodedText);
-                processQRScan(qrData.nis);
-            } catch (e) {
-                processQRScan(decodedText);
-            }
-        }, (error) => {
-            // Abaikan error scanning
-        });
-        
-        showCustomAlert("Arahkan kamera ke QR Code siswa");
-    }
+        // Hentikan scanner jika sudah berjalan
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                html5QrcodeScanner = null;
+                initQRScanner();
+            }).catch(() => {
+                initQRScanner();
+            });
+        } else {
+            initQRScanner();
+        }
+    });
+}
 
-    function stopQRScanner() {
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
+function initQRScanner() {
+    // Cek ketersediaan kamera
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+            // Pilih kamera belakang jika ada
+            const cameraId = devices.find(d => d.label.toLowerCase().includes('back') || 
+                                              d.label.toLowerCase().includes('belakang'))?.id || devices[0].id;
+            
+            // Buat instance scanner baru
+            const html5QrCode = new Html5Qrcode("qr-reader");
+            
+            // Konfigurasi scanner
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                rememberLastUsedCamera: true,
+                showTorchButtonIfSupported: true,
+                aspectRatio: 1.0
+            };
+            
+            // Mulai scanning
+            html5QrCode.start(
+                cameraId,
+                config,
+                (decodedText, decodedResult) => {
+                    // Callback ketika QR berhasil di-scan
+                    console.log('QR Scanned:', decodedText);
+                    
+                    // Tampilkan hasil
+                    document.getElementById('qr-reader-results').classList.remove('hidden');
+                    document.getElementById('qr-result').textContent = decodedText;
+                    
+                    // Hentikan scanner setelah berhasil scan
+                    setTimeout(() => {
+                        html5QrCode.stop().then(() => {
+                            console.log('Scanner dihentikan setelah scan');
+                        }).catch(err => console.error(err));
+                    }, 1000);
+                    
+                    // Proses hasil scan
+                    try {
+                        const qrData = JSON.parse(decodedText);
+                        processQRScan(qrData.nis);
+                    } catch (e) {
+                        // Jika bukan JSON, anggap sebagai NIS langsung
+                        processQRScan(decodedText);
+                    }
+                },
+                (errorMessage) => {
+                    // Abaikan error scanning (selalu muncul saat tidak ada QR)
+                    // console.log('Scan error:', errorMessage);
+                }
+            ).then(() => {
+                showCustomAlert("✅ Kamera aktif. Arahkan ke QR Code siswa.");
+                // Simpan instance untuk bisa dihentikan nanti
+                html5QrcodeScanner = html5QrCode;
+            }).catch(err => {
+                console.error('Gagal memulai kamera:', err);
+                showCustomAlert("❌ Gagal memulai kamera. Pastikan izin kamera diberikan.");
+            });
+            
+        } else {
+            showCustomAlert("❌ Tidak ada kamera yang terdeteksi.");
+        }
+    }).catch(err => {
+        console.error('Error accessing cameras:', err);
+        showCustomAlert("❌ Gagal mengakses kamera. Periksa izin browser.");
+    });
+}
+
+function stopQRScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            console.log('Scanner dihentikan');
+            // Hapus elemen scanner
+            const readerElement = document.getElementById('qr-reader');
+            if (readerElement) {
+                readerElement.innerHTML = '';
+            }
             html5QrcodeScanner = null;
+            showCustomAlert("📷 Kamera dimatikan");
+        }).catch(err => {
+            console.error('Gagal menghentikan scanner:', err);
+        });
+    } else {
+        showCustomAlert("Tidak ada scanner yang aktif");
+    }
+}
+
+// Fungsi tambahan untuk cek izin kamera
+async function checkCameraPermission() {
+    try {
+        const permission = await navigator.permissions.query({ name: 'camera' });
+        return permission.state;
+    } catch (err) {
+        // Fallback: coba akses kamera langsung
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+            return 'granted';
+        } catch (err) {
+            return 'denied';
         }
     }
+}
 
     async function processQRScan(nis) {
         if (isSunday(currentDate)) {
