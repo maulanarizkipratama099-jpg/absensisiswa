@@ -2692,121 +2692,209 @@
     }
 
 // ============================================
-// FUNGSI QR SCANNER - VERSI PERBAIKAN
+// QR SCANNER - VERSI VERIFIED UNTUK VERCEL
 // ============================================
-function startQRScanner() {
-    // Cek izin kamera dulu
-    checkCameraPermission().then(status => {
-        if (status === 'denied') {
-            showCustomAlert(
-                "❌ Izin kamera ditolak. " +
-                "Mohon izinkan akses kamera di pengaturan browser."
-            );
-            return;
-        }
+let html5QrcodeScanner = null;
+
+// Pastikan fungsi tersedia di window
+window.startQRScanner = function() {
+    console.log('📷 Memulai QR Scanner...');
+    
+    // Cek library
+    if (typeof Html5Qrcode === 'undefined') {
+        alert('❌ Library QR Code tidak tersedia. Periksa koneksi internet Anda.');
+        return;
+    }
+    
+    const readerElement = document.getElementById('qr-reader');
+    if (!readerElement) {
+        alert('❌ Elemen QR reader tidak ditemukan');
+        return;
+    }
+    
+    // Bersihkan konten lama
+    readerElement.innerHTML = '';
+    readerElement.style.minHeight = '300px';
+    readerElement.style.background = '#000';
+    
+    try {
+        // Buat scanner baru
+        const html5QrCode = new Html5Qrcode("qr-reader");
         
-        // Hentikan scanner jika sudah berjalan
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.stop().then(() => {
-                html5QrcodeScanner = null;
-                initQRScanner();
-            }).catch(() => {
-                initQRScanner();
-            });
-        } else {
-            initQRScanner();
-        }
-    });
-}
-
-function initQRScanner() {
-    // Cek ketersediaan kamera
-    Html5Qrcode.getCameras().then(devices => {
-        if (devices && devices.length) {
-            // Pilih kamera belakang jika ada
-            const cameraId = devices.find(d => d.label.toLowerCase().includes('back') || 
-                                              d.label.toLowerCase().includes('belakang'))?.id || devices[0].id;
+        // Cek kamera
+        Html5Qrcode.getCameras().then(devices => {
+            console.log('📱 Kamera terdeteksi:', devices.length);
             
-            // Buat instance scanner baru
-            const html5QrCode = new Html5Qrcode("qr-reader");
-            
-            // Konfigurasi scanner
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                rememberLastUsedCamera: true,
-                showTorchButtonIfSupported: true,
-                aspectRatio: 1.0
-            };
-            
-            // Mulai scanning
-            html5QrCode.start(
-                cameraId,
-                config,
-                (decodedText, decodedResult) => {
-                    // Callback ketika QR berhasil di-scan
-                    console.log('QR Scanned:', decodedText);
-                    
-                    // Tampilkan hasil
-                    document.getElementById('qr-reader-results').classList.remove('hidden');
-                    document.getElementById('qr-result').textContent = decodedText;
-                    
-                    // Hentikan scanner setelah berhasil scan
-                    setTimeout(() => {
-                        html5QrCode.stop().then(() => {
-                            console.log('Scanner dihentikan setelah scan');
-                        }).catch(err => console.error(err));
-                    }, 1000);
-                    
-                    // Proses hasil scan
-                    try {
-                        const qrData = JSON.parse(decodedText);
-                        processQRScan(qrData.nis);
-                    } catch (e) {
-                        // Jika bukan JSON, anggap sebagai NIS langsung
-                        processQRScan(decodedText);
+            if (devices && devices.length > 0) {
+                // Pilih kamera belakang
+                let cameraId = devices[0].id;
+                for (let i = 0; i < devices.length; i++) {
+                    const label = devices[i].label.toLowerCase();
+                    if (label.includes('back') || label.includes('belakang') || label.includes('environment')) {
+                        cameraId = devices[i].id;
+                        break;
                     }
-                },
-                (errorMessage) => {
-                    // Abaikan error scanning (selalu muncul saat tidak ada QR)
-                    // console.log('Scan error:', errorMessage);
                 }
-            ).then(() => {
-                showCustomAlert("✅ Kamera aktif. Arahkan ke QR Code siswa.");
-                // Simpan instance untuk bisa dihentikan nanti
-                html5QrcodeScanner = html5QrCode;
-            }).catch(err => {
-                console.error('Gagal memulai kamera:', err);
-                showCustomAlert("❌ Gagal memulai kamera. Pastikan izin kamera diberikan.");
-            });
-            
-        } else {
-            showCustomAlert("❌ Tidak ada kamera yang terdeteksi.");
-        }
-    }).catch(err => {
-        console.error('Error accessing cameras:', err);
-        showCustomAlert("❌ Gagal mengakses kamera. Periksa izin browser.");
-    });
-}
+                
+                // Konfigurasi scanner
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    rememberLastUsedCamera: true,
+                    showTorchButtonIfSupported: true
+                };
+                
+                // Mulai scanning
+                html5QrCode.start(
+                    cameraId,
+                    config,
+                    // Success callback
+                    (decodedText) => {
+                        console.log('✅ QR ditemukan:', decodedText);
+                        
+                        // Tampilkan hasil
+                        const resultsDiv = document.getElementById('qr-reader-results');
+                        if (resultsDiv) {
+                            resultsDiv.classList.remove('hidden');
+                            document.getElementById('qr-result').textContent = decodedText;
+                        }
+                        
+                        // Hentikan scanner
+                        html5QrCode.stop().then(() => {
+                            console.log('Scanner berhenti');
+                            readerElement.innerHTML = '<div class="text-center p-8 text-green-600">✅ Scan berhasil! Klik "Mulai Kamera" untuk scan lagi.</div>';
+                        }).catch(console.error);
+                        
+                        // Proses NIS
+                        try {
+                            const qrData = JSON.parse(decodedText);
+                            if (qrData.nis) window.processQRScan(qrData.nis);
+                            else window.processQRScan(decodedText);
+                        } catch (e) {
+                            window.processQRScan(decodedText);
+                        }
+                    },
+                    // Error callback
+                    (error) => {
+                        // Abaikan error scanning (selalu muncul)
+                        // console.log('Scan error:', error);
+                    }
+                ).then(() => {
+                    console.log('✅ Scanner aktif');
+                    window.showCustomAlert('📷 Kamera aktif. Arahkan ke QR Code siswa.');
+                    html5QrcodeScanner = html5QrCode;
+                }).catch(err => {
+                    console.error('❌ Gagal memulai:', err);
+                    window.showCustomAlert('❌ Gagal memulai kamera. Periksa izin browser.');
+                    readerElement.innerHTML = '<div class="text-center p-8 text-red-600">❌ Gagal mengakses kamera</div>';
+                });
+                
+            } else {
+                window.showCustomAlert('❌ Tidak ada kamera terdeteksi');
+                readerElement.innerHTML = '<div class="text-center p-8 text-red-600">❌ Tidak ada kamera</div>';
+            }
+        }).catch(err => {
+            console.error('❌ Error akses kamera:', err);
+            window.showCustomAlert('❌ Gagal mengakses kamera. Izinkan akses kamera di browser.');
+            readerElement.innerHTML = '<div class="text-center p-8 text-red-600">❌ Izin kamera ditolak</div>';
+        });
+        
+    } catch (err) {
+        console.error('❌ Error:', err);
+        window.showCustomAlert('❌ Error: ' + err.message);
+    }
+};
 
-function stopQRScanner() {
+window.stopQRScanner = function() {
+    console.log('Menghentikan scanner...');
+    
     if (html5QrcodeScanner) {
         html5QrcodeScanner.stop().then(() => {
             console.log('Scanner dihentikan');
-            // Hapus elemen scanner
             const readerElement = document.getElementById('qr-reader');
             if (readerElement) {
-                readerElement.innerHTML = '';
+                readerElement.innerHTML = '<div class="text-center p-8 text-gray-500">📷 Kamera dimatikan</div>';
             }
             html5QrcodeScanner = null;
-            showCustomAlert("📷 Kamera dimatikan");
+            window.showCustomAlert('📷 Kamera dimatikan');
         }).catch(err => {
-            console.error('Gagal menghentikan scanner:', err);
+            console.error('Gagal menghentikan:', err);
         });
     } else {
-        showCustomAlert("Tidak ada scanner yang aktif");
+        window.showCustomAlert('Tidak ada scanner aktif');
     }
-}
+};
+
+window.processQRScan = async function(nis) {
+    console.log('Memproses NIS:', nis);
+    
+    if (!nis || nis.trim() === '') {
+        window.showCustomAlert('❌ NIS tidak valid');
+        return;
+    }
+    
+    // Cari siswa
+    const student = masterStudents.find(s => s && s.nis === nis.toString().trim());
+    if (!student) {
+        window.showCustomAlert(`❌ Siswa dengan NIS ${nis} tidak ditemukan`);
+        return;
+    }
+    
+    // Cek hari Minggu
+    const dayName = window.getDayName ? window.getDayName(currentDate) : '';
+    if (dayName === 'minggu') {
+        window.showCustomAlert('Tidak dapat absen pada hari Minggu (libur)');
+        return;
+    }
+    
+    // Simpan absensi
+    try {
+        let attendance = attendanceRecords.find(r => 
+            r && r.student_id === student.id && r.tanggal === currentDate
+        );
+        
+        const attendanceData = {
+            id: attendance ? attendance.id : generateId(),
+            type: 'attendance',
+            student_id: student.id,
+            student_nis: student.nis,
+            student_nama: student.nama,
+            student_kelas: student.kelas,
+            student_jurusan: student.jurusan,
+            status: 'hadir',
+            keterangan: 'Absen via QR',
+            tanggal: currentDate,
+            timestamp: Date.now(),
+            metode: 'qr'
+        };
+        
+        if (attendance) {
+            Object.assign(attendance, attendanceData);
+        } else {
+            attendanceRecords.push(attendanceData);
+        }
+        
+        await saveAttendanceToJSONBin();
+        
+        // Update UI
+        renderStudentTable();
+        renderTodayQRTable();
+        updateStatistics();
+        
+        // Tampilkan hasil
+        const lastScan = document.getElementById('lastScanResult');
+        if (lastScan) {
+            lastScan.classList.remove('hidden');
+            document.getElementById('lastScanDetail').textContent = `${student.nama} (${student.nis}) - ${student.kelas}`;
+        }
+        
+        window.showCustomAlert(`✅ Absensi berhasil untuk ${student.nama}`);
+        
+    } catch (error) {
+        console.error('Error saving attendance:', error);
+        window.showCustomAlert('❌ Gagal menyimpan absensi');
+    }
+};
 
 // Fungsi tambahan untuk cek izin kamera
 async function checkCameraPermission() {
@@ -4168,25 +4256,27 @@ async function checkCameraPermission() {
     });
 
     // Make functions available globally
-    window.goToDay = goToDay;
-    window.updateAttendanceStatus = updateAttendanceStatus;
-    window.updateAttendanceKeterangan = updateAttendanceKeterangan;
-    window.deleteStudent = deleteStudent;
-    window.updateStudentNis = updateStudentNis;
-    window.updateStudentNama = updateStudentNama;
-    window.updateStudentKelas = updateStudentKelas;
-    window.updateStudentJurusan = updateStudentJurusan;
-    window.updateStudentPassword = updateStudentPassword;
-    window.generateQRForStudent = generateQRForStudent;
-    window.closeQRModal = closeQRModal;
-    window.downloadQR = downloadQR;
-    window.submitManualNIS = submitManualNIS;
-    window.startQRScanner = startQRScanner;
-    window.stopQRScanner = stopQRScanner;
-    window.showEditFotoModal = showEditFotoModal;
-    window.closeEditFotoModal = closeEditFotoModal;
-    window.showDetailLocation = showDetailLocation;
-    window.closeDetailLokasiModal = closeDetailLokasiModal;
+window.goToDay = goToDay;
+window.updateAttendanceStatus = updateAttendanceStatus;
+window.updateAttendanceKeterangan = updateAttendanceKeterangan;
+window.deleteStudent = deleteStudent;
+window.updateStudentNis = updateStudentNis;
+window.updateStudentNama = updateStudentNama;
+window.updateStudentKelas = updateStudentKelas;
+window.updateStudentJurusan = updateStudentJurusan;
+window.updateStudentPassword = updateStudentPassword;
+window.generateQRForStudent = generateQRForStudent;
+window.closeQRModal = closeQRModal;
+window.downloadQR = downloadQR;
+window.submitManualNIS = submitManualNIS;
+window.showEditFotoModal = showEditFotoModal;
+window.closeEditFotoModal = closeEditFotoModal;
+window.showDetailLocation = showDetailLocation;
+window.closeDetailLokasiModal = closeDetailLokasiModal;
+window.startQRScanner = startQRScanner;        // <-- PASTIKAN INI ADA
+window.stopQRScanner = stopQRScanner;          // <-- PASTIKAN INI ADA
+window.processQRScan = processQRScan;          // <-- PASTIKAN INI ADA
+window.getDayName = getDayName;                // <-- PASTIKAN INI ADA
   </script>
 </body>
 </html>
