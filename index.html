@@ -3,12 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>✨ Absensi Siswa | MAS IBNU HUSAIN</title>
+  <title>✨ Absensi Siswa | MAS IBNU HUSAIN (Admin)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/_sdk/data_sdk.js"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Google Maps API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
@@ -373,6 +377,75 @@
       opacity: 0.8;
     }
 
+    /* QR Code styles */
+    .qr-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background: white;
+      border-radius: 16px;
+      margin: 10px 0;
+    }
+
+    #qr-reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    #qr-reader__scan_region {
+      background: white;
+    }
+
+    #qr-reader__scan_region img {
+      display: none;
+    }
+
+    #qr-reader__dashboard_section_csr span {
+      margin-right: 10px;
+    }
+
+    /* Foto siswa styles */
+    .student-photo {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #667eea;
+    }
+
+    .student-photo-large {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #667eea;
+    }
+
+    .photo-preview {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 12px;
+      margin-top: 10px;
+    }
+
+    /* Map styles */
+    #locationMap {
+      width: 100%;
+      height: 300px;
+      border-radius: 16px;
+      margin-top: 10px;
+    }
+
+    .location-info {
+      background: #f3f4f6;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
     /* Print styles for rekap */
     @media print {
       .print-header {
@@ -468,7 +541,7 @@
               <input type="file" id="logoUpload" accept="image/*" class="hidden">
               <div>
                 <h1 id="namaSekolahNav" class="text-xl font-bold gradient-text">MAS IBNU HUSAIN</h1>
-                <p class="text-sm text-gray-600">Absensi Siswa Digital</p>
+                <p class="text-sm text-gray-600">Absensi Siswa Digital (Admin)</p>
               </div>
             </div>
 
@@ -485,6 +558,10 @@
               <button id="btnRekap" class="nav-btn flex items-center space-x-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-white text-gray-700 hover:bg-gray-50">
                 <i class="fas fa-chart-bar"></i>
                 <span>Rekap Siswa</span>
+              </button>
+              <button id="btnQRAbsensi" class="nav-btn flex items-center space-x-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-purple-600 text-white hover:bg-purple-700">
+                <i class="fas fa-qrcode"></i>
+                <span>QR Absensi</span>
               </button>
             </div>
           </div>
@@ -664,12 +741,14 @@
               <thead>
                 <tr>
                   <th class="text-center">No</th>
+                  <th>Foto</th>
                   <th>NIS</th>
                   <th>Nama Siswa</th>
                   <th>Kelas</th>
                   <th>Jurusan</th>
                   <th class="text-center">Status</th>
                   <th>Keterangan</th>
+                  <th class="text-center">QR</th>
                   <th class="text-center no-print">Aksi</th>
                 </tr>
               </thead>
@@ -689,7 +768,7 @@
             <i class="fas fa-user-graduate mr-3"></i>
             Manajemen Data Siswa
           </h2>
-          <p class="text-gray-600 mb-6">Kelola data siswa, tambah siswa baru, import data dari Excel/CSV, dan atur informasi siswa secara terpusat.</p>
+          <p class="text-gray-600 mb-6">Kelola data siswa, tambah siswa baru, upload foto, import data dari Excel/CSV, generate QR Code, dan atur informasi siswa secara terpusat.</p>
 
           <div class="flex flex-wrap gap-4 mb-6">
             <button id="btnTambahSiswa" class="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg btn-modern flex items-center">
@@ -700,6 +779,10 @@
             <button id="btnImport" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-semibold shadow-lg btn-modern flex items-center">
               <i class="fas fa-file-import mr-2"></i>
               Import Excel/CSV
+            </button>
+            <button id="btnGenerateAllQR" class="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold shadow-lg btn-modern flex items-center">
+              <i class="fas fa-qrcode mr-2"></i>
+              Generate Semua QR
             </button>
             <button id="btnHapusSemuaSiswa" class="px-8 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-semibold shadow-lg btn-modern flex items-center">
               <i class="fas fa-trash-alt mr-2"></i>
@@ -725,7 +808,7 @@
         </div>
 
         <!-- Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div class="stat-card hover:shadow-2xl transition-all duration-300">
             <div class="text-4xl mb-3 text-blue-600">
               <i class="fas fa-users"></i>
@@ -742,17 +825,24 @@
           </div>
           <div class="stat-card hover:shadow-2xl transition-all duration-300">
             <div class="text-4xl mb-3 text-green-600">
-              <i class="fas fa-flask"></i>
+              <i class="fas fa-qrcode"></i>
             </div>
-            <div class="text-3xl font-bold text-green-600" id="totalIPACount">0</div>
-            <div class="text-sm text-gray-600 font-medium">Siswa IPA</div>
+            <div class="text-3xl font-bold text-green-600" id="totalQRCount">0</div>
+            <div class="text-sm text-gray-600 font-medium">Siswa dengan QR</div>
           </div>
           <div class="stat-card hover:shadow-2xl transition-all duration-300">
             <div class="text-4xl mb-3 text-yellow-600">
-              <i class="fas fa-globe"></i>
+              <i class="fas fa-id-card"></i>
             </div>
-            <div class="text-3xl font-bold text-yellow-600" id="totalIPSCount">0</div>
-            <div class="text-sm text-gray-600 font-medium">Siswa IPS</div>
+            <div class="text-3xl font-bold text-yellow-600" id="totalWaliCount">0</div>
+            <div class="text-sm text-gray-600 font-medium">Wali Terdaftar</div>
+          </div>
+          <div class="stat-card hover:shadow-2xl transition-all duration-300">
+            <div class="text-4xl mb-3 text-indigo-600">
+              <i class="fas fa-camera"></i>
+            </div>
+            <div class="text-3xl font-bold text-indigo-600" id="totalFotoCount">0</div>
+            <div class="text-sm text-gray-600 font-medium">Dengan Foto</div>
           </div>
         </div>
 
@@ -769,11 +859,14 @@
               <thead>
                 <tr>
                   <th class="text-center">No</th>
+                  <th>Foto</th>
                   <th>NIS</th>
                   <th>Nama Siswa</th>
                   <th>Kelas</th>
                   <th>Jurusan</th>
-                  <th class="text-center">Tanggal Ditambah</th>
+                  <th class="text-center">QR</th>
+                  <th class="text-center">Password</th>
+                  <th class="text-center">Tanggal</th>
                   <th class="text-center">Aksi</th>
                 </tr>
               </thead>
@@ -915,11 +1008,116 @@
                   <th>Kelas</th>
                   <th>Jurusan</th>
                   <th class="text-center">Status</th>
+                  <th>Lokasi</th>
                   <th>Keterangan</th>
                 </tr>
               </thead>
               <tbody id="rekapTableBody">
                 <!-- Rekap data will be populated here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page 4: QR Absensi -->
+      <div id="pageQRAbsensi" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="glass-card rounded-2xl p-8 mb-8 fade-in">
+          <h2 class="text-3xl font-bold gradient-text mb-6 flex items-center">
+            <i class="fas fa-qrcode mr-3"></i>
+            Absensi via QR Code
+          </h2>
+          <p class="text-gray-600 mb-6">Arahkan kamera ke QR Code siswa untuk melakukan absensi secara otomatis.</p>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- QR Scanner -->
+            <div>
+              <div class="bg-white rounded-xl p-4 shadow-sm">
+                <div class="flex justify-center mb-4">
+                  <button onclick="startQRScanner()" class="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold shadow-lg btn-modern">
+                    <i class="fas fa-camera mr-2"></i>
+                    Mulai Kamera
+                  </button>
+                  <button onclick="stopQRScanner()" class="ml-2 px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-semibold shadow-lg btn-modern">
+                    <i class="fas fa-stop mr-2"></i>
+                    Hentikan
+                  </button>
+                </div>
+                <div id="qr-reader" style="width: 100%"></div>
+                <div id="qr-reader-results" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                  <p class="font-medium text-gray-700">Hasil Scan:</p>
+                  <p id="qr-result" class="text-lg font-bold text-green-600"></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Manual Input & Location Info -->
+            <div>
+              <div class="bg-white rounded-xl p-6 shadow-sm mb-4">
+                <h3 class="font-semibold text-gray-800 mb-4">Atau Masukkan NIS Manual</h3>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">NIS Siswa</label>
+                    <input type="text" id="manualNIS" class="modern-input w-full" placeholder="Masukkan NIS">
+                  </div>
+                  <button onclick="submitManualNIS()" class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Submit Absensi
+                  </button>
+                </div>
+              </div>
+
+              <!-- Location Status -->
+              <div id="locationStatus" class="bg-white rounded-xl p-6 shadow-sm hidden">
+                <h3 class="font-semibold text-gray-800 mb-4 flex items-center">
+                  <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                  Lokasi Absensi
+                </h3>
+                <div id="locationInfo" class="location-info"></div>
+                <div id="locationMap" class="rounded-xl overflow-hidden"></div>
+              </div>
+
+              <!-- Last Scan Result -->
+              <div id="lastScanResult" class="mt-4 hidden">
+                <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-800">Absensi Berhasil!</p>
+                      <p id="lastScanDetail" class="text-sm text-gray-600"></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Attendance with Location -->
+        <div class="glass-card rounded-2xl overflow-hidden fade-in">
+          <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <h3 class="text-lg font-bold gradient-text flex items-center">
+              <i class="fas fa-calendar-day mr-2"></i>
+              Absensi Hari Ini (dengan Lokasi)
+            </h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="modern-table w-full">
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>NIS</th>
+                  <th>Nama Siswa</th>
+                  <th>Kelas</th>
+                  <th>Lokasi</th>
+                  <th>Akurasi</th>
+                  <th>Metode</th>
+                </tr>
+              </thead>
+              <tbody id="todayQRTableBody">
+                <!-- Today's QR attendance will be populated here -->
               </tbody>
             </table>
           </div>
@@ -968,6 +1166,19 @@
                 <option value="Bahasa">Bahasa</option>
               </select>
             </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Foto Siswa</label>
+              <input type="file" id="newFoto" accept="image/jpeg,image/jpg,image/png" class="modern-input w-full">
+              <p class="text-xs text-gray-500 mt-1">Format: JPG, JPEG, PNG. Maksimal 2MB.</p>
+              <div id="fotoPreview" class="mt-2 hidden">
+                <img src="" alt="Preview" class="photo-preview">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Password Wali Murid</label>
+              <input type="text" id="newPassword" class="modern-input w-full" placeholder="Kosongkan untuk menggunakan NIS sebagai password">
+              <p class="text-xs text-gray-500 mt-1">Default: NIS</p>
+            </div>
 
             <div class="flex gap-3 pt-4">
               <button type="submit" id="btnSimpanSiswa" class="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg btn-modern">
@@ -980,6 +1191,86 @@
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Foto Modal -->
+    <div id="editFotoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="modal-content w-full max-w-md">
+        <div class="p-8">
+          <h3 class="text-2xl font-bold gradient-text mb-6 flex items-center">
+            <i class="fas fa-camera mr-3 text-blue-600"></i>
+            Edit Foto Siswa
+          </h3>
+          <form id="editFotoForm" class="space-y-4">
+            <input type="hidden" id="editFotoStudentId">
+            <div class="text-center mb-4">
+              <img id="currentFoto" src="" alt="Foto Siswa" class="student-photo-large mx-auto">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Upload Foto Baru</label>
+              <input type="file" id="editFotoFile" accept="image/jpeg,image/jpg,image/png" class="modern-input w-full" required>
+              <p class="text-xs text-gray-500 mt-1">Format: JPG, JPEG, PNG. Maksimal 2MB.</p>
+              <div id="editFotoPreview" class="mt-2 hidden">
+                <img src="" alt="Preview" class="photo-preview">
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+              <button type="submit" id="btnUpdateFoto" class="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg btn-modern">
+                <i class="fas fa-save mr-2"></i>
+                Update Foto
+              </button>
+              <button type="button" onclick="closeEditFotoModal()" class="flex-1 px-6 py-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-semibold shadow-lg btn-modern">
+                <i class="fas fa-times mr-2"></i>
+                Batal
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Lokasi Modal -->
+    <div id="detailLokasiModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="modal-content w-full max-w-2xl">
+        <div class="p-8">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-2xl font-bold gradient-text">Detail Lokasi Absensi</h3>
+            <button onclick="closeDetailLokasiModal()" class="text-gray-500 hover:text-gray-700">
+              <i class="fas fa-times text-xl"></i>
+            </button>
+          </div>
+          <div id="detailLokasiContent" class="space-y-4">
+            <div id="detailMap" style="width:100%; height:400px;" class="rounded-xl"></div>
+            <div id="detailInfo" class="location-info"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="modal-content w-full max-w-md">
+        <div class="p-8">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-2xl font-bold gradient-text">QR Code Siswa</h3>
+            <button onclick="closeQRModal()" class="text-gray-500 hover:text-gray-700">
+              <i class="fas fa-times text-xl"></i>
+            </button>
+          </div>
+          <div id="qrCodeContainer" class="qr-container"></div>
+          <div class="text-center mt-4">
+            <p id="qrStudentInfo" class="text-gray-700 font-medium"></p>
+            <p class="text-sm text-gray-500 mt-1">Scan QR ini untuk absensi</p>
+          </div>
+          <div class="flex justify-center mt-6">
+            <button onclick="downloadQR()" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg btn-modern">
+              <i class="fas fa-download mr-2"></i>
+              Download QR
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1048,6 +1339,10 @@
     let dateRangeFilter = { start: null, end: null };
     let sdkInitialized = false;
     let currentClassFilter = 'all';
+    let html5QrcodeScanner = null;
+    let currentQRStudent = null;
+    let currentMap = null;
+    let currentMarker = null;
 
     // ============================================
     // KONFIGURASI JSONBIN.IO
@@ -1062,27 +1357,102 @@
     };
 
     // ============================================
+// KOORDINAT SEKOLAH (GANTI DENGAN LOKASI ANDA)
+// ============================================
+const SCHOOL_LOCATION = {
+    lat: -7.230605271005888,  // Latitude MA Ibnu Husain
+    lng: 112.74703617379582,  // Longitude MA Ibnu Husain
+    radius: 100,               // Radius dalam meter (100m)
+    nama: "MA Ibnu Husain",
+    alamat: "Jl. Irawati 1 No. 15-17, Sidotopo, Kec. Semampir, Surabaya"
+};
+
+    // ============================================
     // DEFAULT CONFIG & DATA
     // ============================================
     const defaultConfig = {
         logo_sekolah: "🏫",
         nama_sekolah: "MAS IBNU HUSAIN",
         npsn: "60728117",
-        alamat: "JL. Irawati 1 No. 15-17",
+        alamat: SCHOOL_LOCATION.alamat,
         kelurahan: "SIDOTOPO",
         kecamatan: "KEC. SEMAMPIR",
         kota: "KOTA SURABAYA"
     };
 
     const defaultStudents = [
-        { nis: "2024001", nama: "Ahmad Fauzi", kelas: "X IPA 1", jurusan: "IPA" },
-        { nis: "2024002", nama: "Budi Santoso", kelas: "X IPA 1", jurusan: "IPA" },
-        { nis: "2024003", nama: "Citra Dewi", kelas: "X IPA 2", jurusan: "IPA" },
-        { nis: "2024004", nama: "Dian Purnama", kelas: "X IPS 1", jurusan: "IPS" },
-        { nis: "2024005", nama: "Eka Putri", kelas: "XI IPA 1", jurusan: "IPA" },
-        { nis: "2024006", nama: "Fajar Hidayat", kelas: "XI IPA 2", jurusan: "IPA" },
-        { nis: "2024007", nama: "Gita Lestari", kelas: "XII IPA 1", jurusan: "IPA" },
-        { nis: "2024008", nama: "Hadi Wijaya", kelas: "XII IPA 2", jurusan: "IPA" }
+        { 
+          nis: "2024001", 
+          nama: "Ahmad Fauzi", 
+          kelas: "X IPA 1", 
+          jurusan: "IPA", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024001" 
+        },
+        { 
+          nis: "2024002", 
+          nama: "Budi Santoso", 
+          kelas: "X IPA 1", 
+          jurusan: "IPA", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024002" 
+        },
+        { 
+          nis: "2024003", 
+          nama: "Citra Dewi", 
+          kelas: "X IPA 2", 
+          jurusan: "IPA", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024003" 
+        },
+        { 
+          nis: "2024004", 
+          nama: "Dian Purnama", 
+          kelas: "X IPS 1", 
+          jurusan: "IPS", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024004" 
+        },
+        { 
+          nis: "2024005", 
+          nama: "Eka Putri", 
+          kelas: "XI IPA 1", 
+          jurusan: "IPA", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024005" 
+        },
+        { 
+          nis: "2024006", 
+          nama: "Fajar Hidayat", 
+          kelas: "XI IPA 2", 
+          jurusan: "IPA", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024006" 
+        },
+        { 
+          nis: "2024007", 
+          nama: "Gita Lestari", 
+          kelas: "XII IPA 1", 
+          jurusan: "IPA", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024007" 
+        },
+        { 
+          nis: "2024008", 
+          nama: "Hadi Wijaya", 
+          kelas: "XII IPA 2", 
+          jurusan: "IPA", 
+          foto: "",
+          qr_code: "", 
+          parent_password: "2024008" 
+        }
     ];
 
     // ============================================
@@ -1187,7 +1557,244 @@
     }
 
     // ============================================
-    // LOAD ALL DATA
+    // FUNGSI LOKASI
+    // ============================================
+    function getCurrentLocation() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation tidak didukung'));
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: position.timestamp
+                    });
+                },
+                (error) => {
+                    reject(error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Radius bumi dalam meter
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // Jarak dalam meter
+    }
+
+    function isWithinSchool(lat, lng) {
+        const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
+        return distance <= SCHOOL_LOCATION.radius;
+    }
+
+    async function reverseGeocode(lat, lng) {
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+            );
+            const data = await response.json();
+            return data.display_name || `${lat}, ${lng}`;
+        } catch (error) {
+            console.error('Reverse geocode error:', error);
+            return `${lat}, ${lng}`;
+        }
+    }
+
+    function showLocationOnMap(lat, lng, title) {
+        if (!currentMap) {
+            currentMap = new google.maps.Map(document.getElementById('locationMap'), {
+                center: { lat, lng },
+                zoom: 18
+            });
+        } else {
+            currentMap.setCenter({ lat, lng });
+        }
+        
+        if (currentMarker) {
+            currentMarker.setMap(null);
+        }
+        
+        currentMarker = new google.maps.Marker({
+            position: { lat, lng },
+            map: currentMap,
+            title: title,
+            animation: google.maps.Animation.DROP
+        });
+        
+        // Tambahkan circle untuk radius sekolah
+        new google.maps.Circle({
+            strokeColor: '#667eea',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#667eea',
+            fillOpacity: 0.1,
+            map: currentMap,
+            center: SCHOOL_LOCATION,
+            radius: SCHOOL_LOCATION.radius
+        });
+    }
+
+    function showDetailLocation(lat, lng, info) {
+        const modal = document.getElementById('detailLokasiModal');
+        const mapContainer = document.getElementById('detailMap');
+        
+        // Buat map baru di modal
+        const map = new google.maps.Map(mapContainer, {
+            center: { lat, lng },
+            zoom: 18
+        });
+        
+        new google.maps.Marker({
+            position: { lat, lng },
+            map: map,
+            title: 'Lokasi Absensi'
+        });
+        
+        new google.maps.Circle({
+            strokeColor: '#667eea',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#667eea',
+            fillOpacity: 0.1,
+            map: map,
+            center: SCHOOL_LOCATION,
+            radius: SCHOOL_LOCATION.radius
+        });
+        
+        document.getElementById('detailInfo').innerHTML = info;
+        modal.classList.remove('hidden');
+    }
+
+    function closeDetailLokasiModal() {
+        document.getElementById('detailLokasiModal').classList.add('hidden');
+    }
+
+    // ============================================
+    // FUNGSI UPLOAD FOTO
+    // ============================================
+    function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function setupFotoPreview(inputId, previewId) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        
+        if (input) {
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (!file) {
+                    preview.classList.add('hidden');
+                    return;
+                }
+                
+                // Validasi tipe file
+                if (!file.type.match('image.*')) {
+                    showCustomAlert('Harap pilih file gambar (JPG, JPEG, PNG)');
+                    this.value = '';
+                    preview.classList.add('hidden');
+                    return;
+                }
+                
+                // Validasi ukuran (2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    showCustomAlert('Ukuran file maksimal 2MB');
+                    this.value = '';
+                    preview.classList.add('hidden');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="photo-preview">`;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    function showEditFotoModal(studentId) {
+        const student = masterStudents.find(s => s.id === studentId);
+        if (!student) return;
+        
+        document.getElementById('editFotoStudentId').value = studentId;
+        document.getElementById('currentFoto').src = student.foto || 'https://via.placeholder.com/100';
+        document.getElementById('editFotoModal').classList.remove('hidden');
+    }
+
+    function closeEditFotoModal() {
+        document.getElementById('editFotoModal').classList.add('hidden');
+        document.getElementById('editFotoFile').value = '';
+        document.getElementById('editFotoPreview').classList.add('hidden');
+    }
+
+    async function handleEditFoto(e) {
+        e.preventDefault();
+        
+        const studentId = document.getElementById('editFotoStudentId').value;
+        const file = document.getElementById('editFotoFile').files[0];
+        
+        if (!file) {
+            showCustomAlert('Pilih file foto terlebih dahulu');
+            return;
+        }
+        
+        isLoading = true;
+        const btn = document.getElementById('btnUpdateFoto');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Mengupload...';
+        
+        try {
+            const base64 = await readFileAsBase64(file);
+            
+            const studentIndex = masterStudents.findIndex(s => s.id === studentId);
+            if (studentIndex !== -1) {
+                masterStudents[studentIndex].foto = base64;
+                await saveStudentsToJSONBin();
+                
+                renderStudentTable();
+                renderSiswaManagementTable();
+                showCustomAlert('Foto berhasil diperbarui!');
+                closeEditFotoModal();
+            }
+        } catch (error) {
+            console.error('Error uploading foto:', error);
+            showCustomAlert('Gagal mengupload foto');
+        }
+        
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save mr-2"></i>Update Foto';
+        isLoading = false;
+    }
+
+    // ============================================
+    // FUNGSI LOAD ALL DATA
     // ============================================
     async function loadAllData() {
         try {
@@ -1213,20 +1820,21 @@
                     nama: student.nama,
                     kelas: student.kelas,
                     jurusan: student.jurusan,
+                    foto: "",
+                    qr_code: "",
+                    parent_password: student.nis,
                     timestamp: Date.now() - index * 1000
                 }));
                 await saveStudentsToJSONBin();
             }
             
             renderStudentTable();
+            renderSiswaManagementTable();
             renderRekapTable();
             updateStatistics();
+            updateSiswaStatistics();
             updateClassFilter();
-            
-            if (currentPage === 'dataSiswa') {
-                renderSiswaManagementTable();
-                updateSiswaStatistics();
-            }
+            renderTodayQRTable();
             
             setTimeout(() => {
                 document.getElementById('loading').classList.add('hidden');
@@ -1254,20 +1862,21 @@
             nama: student.nama,
             kelas: student.kelas,
             jurusan: student.jurusan,
+            foto: "",
+            qr_code: "",
+            parent_password: student.nis,
             timestamp: Date.now() - index * 1000
         }));
         
         attendanceRecords = [];
         
         renderStudentTable();
+        renderSiswaManagementTable();
         renderRekapTable();
         updateStatistics();
+        updateSiswaStatistics();
         updateClassFilter();
-        
-        if (currentPage === 'dataSiswa') {
-            renderSiswaManagementTable();
-            updateSiswaStatistics();
-        }
+        renderTodayQRTable();
         
         setTimeout(() => {
             document.getElementById('loading').classList.add('hidden');
@@ -1310,6 +1919,63 @@
     // ============================================
     function generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    }
+
+    function generateQRCode(text, elementId) {
+        QRCode.toDataURL(text, { width: 200 }, function(err, url) {
+            if (err) {
+                console.error('Error generating QR:', err);
+                return;
+            }
+            document.getElementById(elementId).innerHTML = `<img src="${url}" alt="QR Code" class="mx-auto">`;
+        });
+    }
+
+    function generateQRForStudent(studentId) {
+        const student = masterStudents.find(s => s.id === studentId);
+        if (!student) return;
+        
+        const qrContent = JSON.stringify({
+            nis: student.nis,
+            nama: student.nama,
+            timestamp: Date.now()
+        });
+        
+        student.qr_code = qrContent;
+        
+        document.getElementById('qrStudentInfo').textContent = `${student.nama} (${student.nis})`;
+        generateQRCode(qrContent, 'qrCodeContainer');
+        
+        document.getElementById('qrModal').classList.remove('hidden');
+        currentQRStudent = student;
+    }
+
+    function generateAllQR() {
+        masterStudents.forEach(student => {
+            const qrContent = JSON.stringify({
+                nis: student.nis,
+                nama: student.nama,
+                timestamp: Date.now()
+            });
+            student.qr_code = qrContent;
+        });
+        saveStudentsToJSONBin();
+        renderSiswaManagementTable();
+        showCustomAlert('✅ Semua QR Code berhasil digenerate!');
+    }
+
+    function closeQRModal() {
+        document.getElementById('qrModal').classList.add('hidden');
+    }
+
+    function downloadQR() {
+        const canvas = document.querySelector('#qrCodeContainer canvas');
+        if (!canvas) return;
+        
+        const link = document.createElement('a');
+        link.download = `QR_${currentQRStudent.nis}_${currentQRStudent.nama}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
     }
 
     function updateLogo(logoValue) {
@@ -1649,7 +2315,7 @@
         if (!filteredStudents || filteredStudents.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="px-4 py-12 text-center">
+                    <td colspan="10" class="px-4 py-12 text-center">
                         <div class="text-5xl mb-4 text-gray-400">📚</div>
                         <div class="text-lg text-gray-600 mb-2">Tidak ada data siswa</div>
                         <div class="text-sm text-gray-500">Silakan tambah siswa baru di halaman Data Siswa</div>
@@ -1662,7 +2328,7 @@
         if (isSundayToday) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="px-4 py-12 text-center">
+                    <td colspan="10" class="px-4 py-12 text-center">
                         <div class="text-5xl mb-4 text-gray-400">😴</div>
                         <div class="text-lg text-gray-600 mb-2">Hari Minggu - Libur</div>
                         <div class="text-sm text-gray-500">Tidak dapat melakukan absensi pada hari Minggu</div>
@@ -1683,6 +2349,13 @@
             return `
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-4 text-sm text-gray-900 text-center">${index + 1}</td>
+                    <td class="px-4 py-4">
+                        <img src="${student.foto || 'https://via.placeholder.com/50'}" 
+                             alt="Foto" 
+                             class="student-photo"
+                             onclick="showEditFotoModal('${student.id}')"
+                             style="cursor: pointer;">
+                    </td>
                     <td class="px-4 py-4 text-sm text-gray-900">${student.nis || ''}</td>
                     <td class="px-4 py-4 text-sm font-medium text-gray-900">${student.nama || ''}</td>
                     <td class="px-4 py-4 text-sm text-gray-900">${student.kelas || ''}</td>
@@ -1703,6 +2376,17 @@
                                onchange="updateAttendanceKeterangan('${student.id}', this.value)"
                                placeholder="Keterangan...">
                     </td>
+                    <td class="px-4 py-4 text-center">
+                        ${student.qr_code ? `
+                            <button onclick="generateQRForStudent('${student.id}')" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title="Lihat QR">
+                                <i class="fas fa-qrcode text-lg"></i>
+                            </button>
+                        ` : `
+                            <button onclick="generateQRForStudent('${student.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Generate QR">
+                                <i class="fas fa-plus-circle text-lg"></i>
+                            </button>
+                        `}
+                    </td>
                     <td class="px-4 py-4 text-center no-print">
                         <button onclick="deleteStudent('${student.id}')" 
                                 class="px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white text-sm rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 shadow-md btn-modern">
@@ -1722,7 +2406,7 @@
         if (!masterStudents || masterStudents.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-4 py-12 text-center">
+                    <td colspan="10" class="px-4 py-12 text-center">
                         <div class="text-5xl mb-4 text-gray-400">👥</div>
                         <div class="text-lg text-gray-600 mb-2">Belum ada data siswa</div>
                         <div class="text-sm text-gray-500">Silakan tambah siswa baru atau import dari Excel/CSV</div>
@@ -1738,6 +2422,13 @@
             return `
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-4 text-sm text-gray-900 text-center">${index + 1}</td>
+                    <td class="px-4 py-4">
+                        <img src="${student.foto || 'https://via.placeholder.com/50'}" 
+                             alt="Foto" 
+                             class="student-photo"
+                             onclick="showEditFotoModal('${student.id}')"
+                             style="cursor: pointer;">
+                    </td>
                     <td class="px-4 py-4">
                         <input type="text" value="${student.nis || ''}" 
                                class="modern-input w-full"
@@ -1767,6 +2458,22 @@
                             <option value="IPS" ${student.jurusan === 'IPS' ? 'selected' : ''}>IPS</option>
                             <option value="Bahasa" ${student.jurusan === 'Bahasa' ? 'selected' : ''}>Bahasa</option>
                         </select>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        ${student.qr_code ? `
+                            <button onclick="generateQRForStudent('${student.id}')" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title="Lihat QR">
+                                <i class="fas fa-qrcode text-lg"></i>
+                            </button>
+                        ` : `
+                            <button onclick="generateQRForStudent('${student.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Generate QR">
+                                <i class="fas fa-plus-circle text-lg"></i>
+                            </button>
+                        `}
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <input type="text" value="${student.parent_password || student.nis}" 
+                               class="modern-input w-24 text-center"
+                               onchange="updateStudentPassword('${student.id}', this.value)">
                     </td>
                     <td class="px-4 py-4 text-center text-sm text-gray-500">
                         ${student.timestamp ? new Date(student.timestamp).toLocaleDateString('id-ID') : '-'}
@@ -1816,7 +2523,7 @@
         if (filteredData.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-4 py-12 text-center">
+                    <td colspan="8" class="px-4 py-12 text-center">
                         <div class="text-5xl mb-4 text-gray-400">📊</div>
                         <div class="text-lg text-gray-600">Tidak ada data kehadiran untuk periode ini</div>
                     </td>
@@ -1825,6 +2532,16 @@
         } else {
             tbody.innerHTML = filteredData.map(record => {
                 if (!record) return '';
+                
+                let locationText = '-';
+                if (record.lokasi) {
+                    const distance = calculateDistance(
+                        record.lokasi.lat, record.lokasi.lng,
+                        SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng
+                    ).toFixed(0);
+                    locationText = `${distance}m dari sekolah`;
+                }
+                
                 return `
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-4 text-sm text-gray-900">${record.tanggal ? new Date(record.tanggal).toLocaleDateString('id-ID') : '-'}</td>
@@ -1837,11 +2554,67 @@
                                 ${record.status === 'hadir' ? '✅' : record.status === 'izin' ? '📝' : record.status === 'sakit' ? '🏥' : '❌'} ${(record.status || '').toUpperCase()}
                             </span>
                         </td>
+                        <td class="px-4 py-4">
+                            ${record.lokasi ? `
+                                <button onclick="showDetailLocation(${record.lokasi.lat}, ${record.lokasi.lng}, 'Lokasi: ${record.lokasi.alamat || '-'}<br>Akurasi: ${record.lokasi.akurat || '-'}m')" 
+                                        class="text-blue-600 hover:underline text-sm">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    Lihat
+                                </button>
+                            ` : '-'}
+                        </td>
                         <td class="px-4 py-4 text-sm text-gray-900">${record.keterangan || '-'}</td>
                     </tr>
                 `;
             }).join('');
         }
+    }
+
+    function renderTodayQRTable() {
+        const tbody = document.getElementById('todayQRTableBody');
+        if (!tbody) return;
+        
+        const todayAttendance = attendanceRecords.filter(record => 
+            record && record.tanggal === currentDate && record.status === 'hadir'
+        );
+        
+        if (todayAttendance.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                        <i class="fas fa-qrcode text-3xl mb-2 text-gray-400"></i>
+                        <p>Belum ada absensi via QR hari ini</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = todayAttendance.map(record => {
+            let locationText = '-';
+            let accuracyText = '-';
+            
+            if (record.lokasi) {
+                const distance = calculateDistance(
+                    record.lokasi.lat, record.lokasi.lng,
+                    SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng
+                ).toFixed(0);
+                locationText = `${distance}m dari sekolah`;
+                accuracyText = `${record.lokasi.akurat || '-'}m`;
+            }
+            
+            return `
+                <tr>
+                    <td class="px-4 py-3 text-sm text-gray-600">${new Date(record.timestamp).toLocaleTimeString('id-ID')}</td>
+                    <td class="px-4 py-3 text-sm text-gray-800">${record.student_nis}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900">${record.student_nama}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${record.student_kelas}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${locationText}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${accuracyText}</td>
+                    <td class="px-4 py-3"><span class="badge badge-hadir">${record.metode || 'QR'}</span></td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function getStatusColor(status) {
@@ -1862,6 +2635,151 @@
                 indicator.classList.add('hidden');
             }, 3000);
         }
+    }
+
+    // ============================================
+    // FUNGSI QR SCANNER
+    // ============================================
+    function startQRScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+        }
+        
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader", 
+            { 
+                fps: 10, 
+                qrbox: 250,
+                rememberLastUsedCamera: true,
+                showTorchButtonIfSupported: true
+            }
+        );
+        
+        html5QrcodeScanner.render((decodedText, decodedResult) => {
+            console.log('QR Scanned:', decodedText);
+            document.getElementById('qr-reader-results').classList.remove('hidden');
+            document.getElementById('qr-result').textContent = decodedText;
+            
+            try {
+                const qrData = JSON.parse(decodedText);
+                processQRScan(qrData.nis);
+            } catch (e) {
+                processQRScan(decodedText);
+            }
+        }, (error) => {
+            // Abaikan error scanning
+        });
+        
+        showCustomAlert("Arahkan kamera ke QR Code siswa");
+    }
+
+    function stopQRScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+            html5QrcodeScanner = null;
+        }
+    }
+
+    async function processQRScan(nis) {
+        if (isSunday(currentDate)) {
+            showCustomAlert("Tidak dapat melakukan absensi pada hari Minggu (libur)");
+            return;
+        }
+        
+        const student = masterStudents.find(s => s.nis === nis);
+        if (!student) {
+            showCustomAlert("❌ Siswa dengan NIS tersebut tidak ditemukan!");
+            return;
+        }
+        
+        // Ambil lokasi
+        let location = null;
+        try {
+            const pos = await getCurrentLocation();
+            const alamat = await reverseGeocode(pos.lat, pos.lng);
+            const dalamSekolah = isWithinSchool(pos.lat, pos.lng);
+            
+            location = {
+                lat: pos.lat,
+                lng: pos.lng,
+                akurat: pos.accuracy,
+                alamat: alamat,
+                dalam_sekolah: dalamSekolah
+            };
+            
+            // Tampilkan lokasi di UI
+            document.getElementById('locationStatus').classList.remove('hidden');
+            document.getElementById('locationInfo').innerHTML = `
+                <strong>Lokasi:</strong> ${alamat}<br>
+                <strong>Akurasi:</strong> ${pos.accuracy.toFixed(0)}m<br>
+                <strong>Status:</strong> ${dalamSekolah ? '✅ Dalam area sekolah' : '❌ Di luar area sekolah'}
+            `;
+            
+            showLocationOnMap(pos.lat, pos.lng, student.nama);
+            
+            if (!dalamSekolah) {
+                const confirm = await showCustomConfirm(
+                    'Peringatan Lokasi',
+                    'Siswa berada di luar area sekolah. Tetap lanjutkan absensi?'
+                );
+                if (!confirm) return;
+            }
+            
+        } catch (error) {
+            console.error('Gagal mendapatkan lokasi:', error);
+            showCustomAlert('Gagal mendapatkan lokasi. Pastikan GPS aktif.');
+            return;
+        }
+        
+        // Cek apakah sudah absen hari ini
+        let attendance = attendanceRecords.find(record => 
+            record && record.student_id === student.id && record.tanggal === currentDate
+        );
+        
+        const attendanceData = {
+            id: attendance ? attendance.id : generateId(),
+            type: 'attendance',
+            student_id: student.id,
+            student_nis: student.nis,
+            student_nama: student.nama,
+            student_kelas: student.kelas,
+            student_jurusan: student.jurusan,
+            status: 'hadir',
+            keterangan: location.dalam_sekolah ? 'Absen via QR' : 'Absen via QR (luar area)',
+            tanggal: currentDate,
+            timestamp: Date.now(),
+            lokasi: location,
+            metode: 'qr'
+        };
+        
+        if (attendance) {
+            Object.assign(attendance, attendanceData);
+            await saveAttendanceToJSONBin();
+        } else {
+            attendanceRecords.push(attendanceData);
+            await saveAttendanceToJSONBin();
+        }
+        
+        // Tampilkan hasil
+        document.getElementById('lastScanResult').classList.remove('hidden');
+        document.getElementById('lastScanDetail').textContent = `${student.nama} (${student.nis}) - ${student.kelas}`;
+        
+        renderStudentTable();
+        renderTodayQRTable();
+        updateStatistics();
+        
+        showCustomAlert(`✅ Absensi berhasil untuk ${student.nama}`);
+    }
+
+    async function submitManualNIS() {
+        const nis = document.getElementById('manualNIS').value.trim();
+        if (!nis) {
+            showCustomAlert("Masukkan NIS terlebih dahulu!");
+            return;
+        }
+        
+        await processQRScan(nis);
+        document.getElementById('manualNIS').value = '';
     }
 
     // ============================================
@@ -1899,23 +2817,21 @@
             status: status,
             keterangan: attendance ? attendance.keterangan : '',
             tanggal: currentDate,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            metode: 'manual'
         };
         
         if (attendance) {
             Object.assign(attendance, attendanceData);
             await saveAttendanceToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.update(attendance);
-            }
         } else {
             attendanceRecords.push(attendanceData);
             await saveAttendanceToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.create(attendanceData);
-            }
         }
         
+        renderStudentTable();
+        renderTodayQRTable();
+        updateStatistics();
         showSaveIndicator();
         isLoading = false;
     }
@@ -1944,9 +2860,6 @@
         if (attendance) {
             attendance.keterangan = keterangan;
             await saveAttendanceToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.update(attendance);
-            }
         } else if (keterangan.trim()) {
             const newAttendance = {
                 id: generateId(),
@@ -1959,14 +2872,12 @@
                 status: '',
                 keterangan: keterangan,
                 tanggal: currentDate,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                metode: 'manual'
             };
             
             attendanceRecords.push(newAttendance);
             await saveAttendanceToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.create(newAttendance);
-            }
         }
         
         showSaveIndicator();
@@ -2019,19 +2930,14 @@
                 status: 'hadir',
                 keterangan: attendance ? attendance.keterangan : '',
                 tanggal: currentDate,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                metode: 'bulk'
             };
             
             if (attendance) {
                 Object.assign(attendance, attendanceData);
-                if (window.dataSdk && sdkInitialized) {
-                    await window.dataSdk.update(attendance);
-                }
             } else {
                 attendanceRecords.push(attendanceData);
-                if (window.dataSdk && sdkInitialized) {
-                    await window.dataSdk.create(attendanceData);
-                }
             }
         }
         
@@ -2043,12 +2949,14 @@
         }
         
         renderStudentTable();
+        renderTodayQRTable();
+        updateStatistics();
         showSaveIndicator();
         isLoading = false;
     }
 
     // ============================================
-    // FUNGSI HAPUS SEMUA STATUS (FITUR BARU)
+    // FUNGSI HAPUS SEMUA STATUS
     // ============================================
     function showDeleteStatusModal() {
         const modal = document.getElementById('deleteStatusModal');
@@ -2078,7 +2986,6 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menghapus...';
         }
         
-        // Hapus semua attendance records untuk tanggal hari ini
         attendanceRecords = attendanceRecords.filter(record => 
             record && record.tanggal !== currentDate
         );
@@ -2091,6 +2998,8 @@
         }
         
         renderStudentTable();
+        renderTodayQRTable();
+        updateStatistics();
         showSaveIndicator();
         showCustomAlert('Semua status kehadiran untuk hari ini telah dihapus!');
         
@@ -2099,7 +3008,7 @@
     }
 
     // ============================================
-    // FUNGSI KIRIM (Fitur Baru)
+    // FUNGSI KIRIM
     // ============================================
     async function sendAttendance() {
         const todayAttendance = attendanceRecords.filter(record => record && record.tanggal === currentDate);
@@ -2109,10 +3018,7 @@
             return;
         }
         
-        // Simulasi pengiriman (bisa diintegrasikan dengan API sebenarnya)
         showCustomAlert(`✅ Absensi untuk ${todayAttendance.length} siswa telah dikirim ke server.`);
-        
-        // Log untuk debugging
         console.log('📤 Mengirim data absensi:', todayAttendance);
     }
 
@@ -2133,6 +3039,7 @@
         const form = document.getElementById('addStudentForm');
         if (modal) modal.classList.add('hidden');
         if (form) form.reset();
+        document.getElementById('fotoPreview').classList.add('hidden');
     }
 
     async function handleAddStudent(e) {
@@ -2155,6 +3062,8 @@
         const nama = document.getElementById('newNama')?.value || '';
         const kelas = document.getElementById('newKelas')?.value || '';
         const jurusan = document.getElementById('newJurusan')?.value || '';
+        const password = document.getElementById('newPassword')?.value || nis;
+        const fotoFile = document.getElementById('newFoto')?.files[0];
         
         if (!nis || !nama || !kelas || !jurusan) {
             showCustomAlert("Harap isi semua field yang wajib diisi.");
@@ -2166,6 +3075,22 @@
             return;
         }
         
+        let fotoBase64 = "";
+        if (fotoFile) {
+            try {
+                fotoBase64 = await readFileAsBase64(fotoFile);
+            } catch (error) {
+                console.error('Error reading foto:', error);
+                showCustomAlert('Gagal membaca file foto');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save mr-2"></i>Simpan';
+                }
+                isLoading = false;
+                return;
+            }
+        }
+        
         const studentData = {
             id: generateId(),
             type: 'student',
@@ -2173,15 +3098,14 @@
             nama: nama,
             kelas: kelas,
             jurusan: jurusan,
+            foto: fotoBase64,
+            qr_code: "",
+            parent_password: password,
             timestamp: Date.now()
         };
         
         masterStudents.push(studentData);
         await saveStudentsToJSONBin();
-        
-        if (window.dataSdk && sdkInitialized) {
-            await window.dataSdk.create(studentData);
-        }
         
         hideAddStudentModal();
         renderStudentTable();
@@ -2224,16 +3148,11 @@
         if (studentIndex !== -1) {
             const student = masterStudents[studentIndex];
             
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.delete(student);
-            }
-            
             masterStudents.splice(studentIndex, 1);
             await saveStudentsToJSONBin();
             
             attendanceRecords = attendanceRecords.filter(record => {
                 if (record && record.student_id === studentToDelete) {
-                    if (window.dataSdk && sdkInitialized) window.dataSdk.delete(record);
                     return false;
                 }
                 return true;
@@ -2245,6 +3164,7 @@
             renderSiswaManagementTable();
             updateSiswaStatistics();
             updateClassFilter();
+            renderTodayQRTable();
             showSaveIndicator();
             showCustomAlert('Data siswa berhasil dihapus!');
         }
@@ -2266,9 +3186,6 @@
         if (student) {
             student.nis = nis;
             await saveStudentsToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.update(student);
-            }
             showSaveIndicator();
         }
     }
@@ -2280,9 +3197,6 @@
         if (student) {
             student.nama = nama;
             await saveStudentsToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.update(student);
-            }
             showSaveIndicator();
         }
     }
@@ -2294,9 +3208,6 @@
         if (student) {
             student.kelas = kelas;
             await saveStudentsToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.update(student);
-            }
             showSaveIndicator();
             updateClassFilter();
         }
@@ -2309,9 +3220,17 @@
         if (student) {
             student.jurusan = jurusan;
             await saveStudentsToJSONBin();
-            if (window.dataSdk && sdkInitialized) {
-                await window.dataSdk.update(student);
-            }
+            showSaveIndicator();
+        }
+    }
+
+    async function updateStudentPassword(studentId, password) {
+        if (isLoading || !studentId) return;
+        
+        const student = masterStudents.find(s => s && s.id === studentId);
+        if (student) {
+            student.parent_password = password;
+            await saveStudentsToJSONBin();
             showSaveIndicator();
         }
     }
@@ -2322,13 +3241,15 @@
     function updateSiswaStatistics() {
         const totalSiswa = (masterStudents || []).length;
         const totalKelas = [...new Set(masterStudents.map(s => s.kelas).filter(k => k))].length;
-        const totalIPA = (masterStudents || []).filter(s => s.jurusan === 'IPA').length;
-        const totalIPS = (masterStudents || []).filter(s => s.jurusan === 'IPS').length;
+        const totalQR = (masterStudents || []).filter(s => s.qr_code).length;
+        const totalWali = (masterStudents || []).filter(s => s.parent_password).length;
+        const totalFoto = (masterStudents || []).filter(s => s.foto).length;
         
         document.getElementById('totalSiswaCount').textContent = totalSiswa;
         document.getElementById('totalKelasCount').textContent = totalKelas;
-        document.getElementById('totalIPACount').textContent = totalIPA;
-        document.getElementById('totalIPSCount').textContent = totalIPS;
+        document.getElementById('totalQRCount').textContent = totalQR;
+        document.getElementById('totalWaliCount').textContent = totalWali;
+        document.getElementById('totalFotoCount').textContent = totalFoto;
     }
 
     function updateStatistics() {
@@ -2392,18 +3313,6 @@
         }
         
         try {
-            for (const student of masterStudents) {
-                if (student && window.dataSdk && sdkInitialized) {
-                    await window.dataSdk.delete(student);
-                }
-            }
-            
-            for (const attendance of attendanceRecords) {
-                if (attendance && window.dataSdk && sdkInitialized) {
-                    await window.dataSdk.delete(attendance);
-                }
-            }
-            
             masterStudents = [];
             attendanceRecords = [];
             
@@ -2413,6 +3322,7 @@
             renderStudentTable();
             renderSiswaManagementTable();
             renderRekapTable();
+            renderTodayQRTable();
             updateSiswaStatistics();
             updateStatistics();
             updateClassFilter();
@@ -2454,16 +3364,11 @@
         }
         
         try {
-            for (const attendance of attendanceRecords) {
-                if (attendance && window.dataSdk && sdkInitialized) {
-                    await window.dataSdk.delete(attendance);
-                }
-            }
-            
             attendanceRecords = [];
             await saveAttendanceToJSONBin();
             
             renderRekapTable();
+            renderTodayQRTable();
             updateStatistics();
             showSaveIndicator();
             showCustomAlert('Berhasil menghapus semua data kehadiran.');
@@ -2648,6 +3553,9 @@
                 nama: studentData.nama,
                 kelas: studentData.kelas,
                 jurusan: studentData.jurusan,
+                foto: "",
+                qr_code: "",
+                parent_password: studentData.nis,
                 timestamp: Date.now()
             };
             
@@ -2855,7 +3763,7 @@
     }
 
     function printDetailedReport() {
-        printReport(); // Sementara sama dengan print biasa
+        printReport();
     }
 
     // ============================================
@@ -2945,14 +3853,12 @@
             }
             
             renderStudentTable();
+            renderSiswaManagementTable();
             renderRekapTable();
+            renderTodayQRTable();
             updateStatistics();
+            updateSiswaStatistics();
             updateClassFilter();
-            
-            if (currentPage === 'dataSiswa') {
-                renderSiswaManagementTable();
-                updateSiswaStatistics();
-            }
             
             if (!sdkInitialized) {
                 sdkInitialized = true;
@@ -3009,6 +3915,8 @@
             
             initializeDateRangeFilter();
             setupEventListeners();
+            setupFotoPreview('newFoto', 'fotoPreview');
+            setupFotoPreview('editFotoFile', 'editFotoPreview');
             showPage('absensi');
 
         } catch (error) {
@@ -3021,12 +3929,12 @@
         document.getElementById('btnAbsensi').addEventListener('click', () => showPage('absensi'));
         document.getElementById('btnDataSiswa').addEventListener('click', () => showPage('dataSiswa'));
         document.getElementById('btnRekap').addEventListener('click', () => showPage('rekap'));
+        document.getElementById('btnQRAbsensi').addEventListener('click', () => showPage('qrabsensi'));
 
         document.getElementById('btnHadirSemua').addEventListener('click', markAllPresent);
         document.getElementById('btnKirim').addEventListener('click', sendAttendance);
-        
-        // Event listener untuk tombol Hapus Semua Status
         document.getElementById('btnHapusStatus').addEventListener('click', showDeleteStatusModal);
+        document.getElementById('btnGenerateAllQR').addEventListener('click', generateAllQR);
 
         document.getElementById('btnTambahSiswa').addEventListener('click', showAddStudentModal);
         document.getElementById('btnImport').addEventListener('click', () => document.getElementById('importExcel').click());
@@ -3036,10 +3944,10 @@
 
         document.getElementById('btnBatalTambah').addEventListener('click', hideAddStudentModal);
         document.getElementById('addStudentForm').addEventListener('submit', handleAddStudent);
+        document.getElementById('editFotoForm').addEventListener('submit', handleEditFoto);
         document.getElementById('btnBatalHapus').addEventListener('click', hideDeleteModal);
         document.getElementById('btnKonfirmasiHapus').addEventListener('click', confirmDelete);
         
-        // Event listener untuk modal hapus status
         document.getElementById('btnKonfirmasiHapusStatus').addEventListener('click', confirmDeleteStatus);
         document.getElementById('btnBatalHapusStatus').addEventListener('click', hideDeleteStatusModal);
 
@@ -3074,11 +3982,13 @@
         document.getElementById('pageAbsensi').classList.toggle('hidden', page !== 'absensi');
         document.getElementById('pageDataSiswa').classList.toggle('hidden', page !== 'dataSiswa');
         document.getElementById('pageRekap').classList.toggle('hidden', page !== 'rekap');
+        document.getElementById('pageQRAbsensi').classList.toggle('hidden', page !== 'qrabsensi');
         
         const navButtons = {
             'absensi': 'btnAbsensi',
             'dataSiswa': 'btnDataSiswa',
-            'rekap': 'btnRekap'
+            'rekap': 'btnRekap',
+            'qrabsensi': 'btnQRAbsensi'
         };
 
         Object.keys(navButtons).forEach(key => {
@@ -3100,6 +4010,8 @@
             updateSiswaStatistics();
         } else if (page === 'absensi') {
             renderStudentTable();
+        } else if (page === 'qrabsensi') {
+            renderTodayQRTable();
         }
     }
 
@@ -3119,6 +4031,17 @@
     window.updateStudentNama = updateStudentNama;
     window.updateStudentKelas = updateStudentKelas;
     window.updateStudentJurusan = updateStudentJurusan;
+    window.updateStudentPassword = updateStudentPassword;
+    window.generateQRForStudent = generateQRForStudent;
+    window.closeQRModal = closeQRModal;
+    window.downloadQR = downloadQR;
+    window.submitManualNIS = submitManualNIS;
+    window.startQRScanner = startQRScanner;
+    window.stopQRScanner = stopQRScanner;
+    window.showEditFotoModal = showEditFotoModal;
+    window.closeEditFotoModal = closeEditFotoModal;
+    window.showDetailLocation = showDetailLocation;
+    window.closeDetailLokasiModal = closeDetailLokasiModal;
   </script>
 </body>
 </html>
