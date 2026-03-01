@@ -1127,6 +1127,7 @@
             }
         }
 
+        // 🔥 PERBAIKAN: Fungsi savePelanggaran dengan log lebih detail
         async function savePelanggaran() {
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}`, {
@@ -1137,12 +1138,17 @@
                     },
                     body: JSON.stringify(pelanggaranRecords)
                 });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Gagal simpan pelanggaran, status:', response.status, 'response:', errorText);
+                    showToast(`Gagal simpan pelanggaran (${response.status})`, 'error');
+                    return false;
+                }
                 console.log('✅ Pelanggaran saved');
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran:', error);
-                showToast('Gagal simpan pelanggaran', 'error');
+                showToast('Gagal simpan pelanggaran: ' + error.message, 'error');
                 return false;
             }
         }
@@ -1391,16 +1397,19 @@
                     } else {
                         // Jika gagal simpan, reload data dari server untuk mengembalikan keadaan
                         await loadPelanggaran();
+                        renderPelanggaranTable();
+                        updatePelanggaranStats();
                         showToast('❌ Gagal menyimpan ke database, data dikembalikan', 'error');
                     }
                 } catch (error) {
                     console.error('Error saving pelanggaran:', error);
                     showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
-                    await loadPelanggaran(); // reload untuk konsistensi
+                    await loadPelanggaran();
+                    renderPelanggaranTable();
+                    updatePelanggaranStats();
                 }
 
-                renderPelanggaranTable(); // render ulang untuk jaga-jaga
-                updatePelanggaranStats();
+                // render ulang untuk jaga-jaga (sudah di dalam if)
             }
 
             hideLoading();
