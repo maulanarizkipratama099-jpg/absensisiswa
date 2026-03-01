@@ -218,6 +218,20 @@
         .nav-tab:hover:not(.active) {
             background: rgba(255,255,255,0.8);
         }
+
+        /* Style untuk map container */
+        .map-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #e5e7eb;
+        }
+
+        .location-info {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+        }
     </style>
 </head>
 <body>
@@ -343,6 +357,7 @@
                                     <th>Kelas</th>
                                     <th>Jurusan</th>
                                     <th>Status</th>
+                                    <th>Lokasi</th>
                                     <th>Keterangan</th>
                                 </tr>
                             </thead>
@@ -655,13 +670,10 @@
                     </div>
                 </div>
 
-                <!-- Tabel Rekap -->
+                <!-- Tabel Rekap (TANPA TOMBOL HAPUS SEMUA) -->
                 <div class="glass-card rounded-2xl overflow-hidden">
-                    <div class="p-8 border-b flex justify-between items-center">
+                    <div class="p-8 border-b">
                         <h3 class="text-xl font-bold">Detail Kehadiran</h3>
-                        <button onclick="deleteAllAttendanceRecords()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
-                            <i class="fas fa-trash-alt mr-2"></i>Hapus Semua
-                        </button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="modern-table w-full">
@@ -673,6 +685,7 @@
                                     <th>Kelas</th>
                                     <th>Status</th>
                                     <th>Metode</th>
+                                    <th>Lokasi</th>
                                     <th>Keterangan</th>
                                 </tr>
                             </thead>
@@ -680,6 +693,21 @@
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOKASI DETAIL -->
+    <div id="lokasiModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="modal-content w-full max-w-2xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Lokasi Absensi</h3>
+                <button onclick="closeLokasiModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="lokasiDetail" class="space-y-4">
+                <!-- Akan diisi JavaScript -->
             </div>
         </div>
     </div>
@@ -889,6 +917,13 @@
     <div id="toastContainer"></div>
 
     <script>
+        // ==================== KONSTANTA ====================
+        const SCHOOL_LOCATION = {
+            lat: -7.230610592775489,
+            lng: 112.7470361749994,
+            name: "MA Ibnu Husain"
+        };
+
         // ==================== KONFIGURASI JSONBIN ====================
         const JSONBIN_CONFIG = {
             API_KEY: "$2a$10$uIB7UH1hUV6kFv7v4l21puJBjd.1.r9SYqT8XT94RkJyHCyzGQQFm",
@@ -896,8 +931,7 @@
                 STUDENTS: "699ffd15ae596e708f4b42a4",
                 ATTENDANCE: "699ffd3c43b1c97be99f754c",
                 CONFIG: "699e9aead0ea881f40d72ba1",
-                PELANGGARAN: "69a3f6e5d0ea881f40e42434", // Bin ID untuk pelanggaran
-                KATEGORI: "69a3f6e5d0ea881f40e42434_kategori" // Kita akan simpan di bin yang sama dengan prefix
+                PELANGGARAN: "69a3f6e5d0ea881f40e42434"
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
@@ -1085,6 +1119,46 @@
             }
         }
 
+        async function saveStudents() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(students)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                console.log('✅ Students saved');
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan siswa:', error);
+                showToast('Gagal simpan siswa', 'error');
+                return false;
+            }
+        }
+
+        async function saveAttendance() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(attendanceRecords)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                console.log('✅ Attendance saved');
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan absensi:', error);
+                showToast('Gagal simpan absensi', 'error');
+                return false;
+            }
+        }
+
         // ==================== FUNGSI PELANGGARAN ====================
         async function loadPelanggaran() {
             try {
@@ -1094,7 +1168,6 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    // Data bisa berupa object dengan properti pelanggaran dan kategori
                     if (data.pelanggaran) {
                         pelanggaranRecords = Array.isArray(data.pelanggaran) ? data.pelanggaran : [];
                     } else {
@@ -1123,7 +1196,6 @@
 
         async function savePelanggaran() {
             try {
-                // Data yang akan disimpan (gabungan pelanggaran dan kategori)
                 const dataToSave = {
                     pelanggaran: pelanggaranRecords,
                     kategori: kategoriPelanggaran,
@@ -1187,7 +1259,91 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // ==================== FUNGSI MODAL & FOTO ====================
+        // ==================== FUNGSI MODAL LOKASI ====================
+        function openLokasiModal(attendance) {
+            const modal = document.getElementById('lokasiModal');
+            const detail = document.getElementById('lokasiDetail');
+            
+            if (!attendance.location) {
+                detail.innerHTML = '<p class="text-gray-500 text-center py-4">Tidak ada data lokasi</p>';
+                modal.classList.remove('hidden');
+                return;
+            }
+            
+            const date = new Date(attendance.tanggal).toLocaleDateString('id-ID', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+            
+            const time = new Date(attendance.timestamp).toLocaleTimeString('id-ID', {
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            // Hitung jarak dari sekolah
+            const distance = calculateDistance(
+                attendance.location.lat, attendance.location.lng,
+                SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng
+            );
+            
+            detail.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 text-sm">
+                        <i class="fas fa-user text-blue-600"></i>
+                        <span class="font-medium">${attendance.student_nama}</span>
+                        <span class="text-gray-500">(${attendance.student_nis})</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <i class="fas fa-calendar text-blue-600"></i>
+                        <span>${date} • ${time}</span>
+                    </div>
+                    <div class="location-info p-3 rounded-lg">
+                        <div class="flex items-center gap-2 text-sm mb-2">
+                            <i class="fas fa-map-marker-alt text-blue-600"></i>
+                            <span class="font-medium">Lokasi Absensi</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div>Latitude: ${attendance.location.lat.toFixed(6)}</div>
+                            <div>Longitude: ${attendance.location.lng.toFixed(6)}</div>
+                            <div class="col-span-2">Jarak dari sekolah: <span class="font-bold">${distance.toFixed(2)} km</span></div>
+                        </div>
+                    </div>
+                    <div class="map-container">
+                        <iframe
+                            width="100%"
+                            height="200"
+                            frameborder="0"
+                            style="border:0"
+                            src="https://www.google.com/maps/embed/v1/place?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&q=${attendance.location.lat},${attendance.location.lng}&zoom=15"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Lokasi ini diambil saat siswa melakukan scan QR
+                    </p>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeLokasiModal() {
+            document.getElementById('lokasiModal').classList.add('hidden');
+        }
+
+        // Hitung jarak antara dua koordinat (Haversine formula)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius bumi dalam km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // ==================== FUNGSI MODAL SISWA ====================
         function openTambahSiswaModal() {
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
@@ -1255,14 +1411,9 @@
             document.getElementById('pelanggaranModalTitle').textContent = 'Tambah Pelanggaran';
             document.getElementById('pelanggaranForm').reset();
             document.getElementById('pelanggaranId').value = '';
-            
-            // Set default tanggal ke hari ini
             document.getElementById('pelanggaranTanggal').value = formatDate(new Date());
             
-            // Isi dropdown siswa
             updateSiswaSelect();
-            
-            // Isi dropdown kategori
             updateKategoriSelect();
             
             document.getElementById('pelanggaranModal').classList.remove('hidden');
@@ -1364,13 +1515,11 @@
             };
             
             if (pelanggaranId) {
-                // Update
                 const index = pelanggaranRecords.findIndex(p => p.id === pelanggaranId);
                 if (index !== -1) {
                     pelanggaranRecords[index] = pelanggaranData;
                 }
             } else {
-                // Create
                 pelanggaranRecords.push(pelanggaranData);
             }
             
@@ -1433,13 +1582,11 @@
             };
             
             if (kategoriId) {
-                // Update
                 const index = kategoriPelanggaran.findIndex(k => k.id === kategoriId);
                 if (index !== -1) {
                     kategoriPelanggaran[index] = kategoriData;
                 }
             } else {
-                // Create
                 kategoriPelanggaran.push(kategoriData);
             }
             
@@ -1466,7 +1613,6 @@
 
         async function confirmDelete() {
             if (studentToDelete) {
-                // Delete siswa
                 showLoading('Menghapus data siswa...');
                 
                 students = students.filter(s => s.id !== studentToDelete);
@@ -1489,7 +1635,6 @@
                 showToast('Data siswa berhasil dihapus');
                 
             } else if (pelanggaranToDelete) {
-                // Delete pelanggaran
                 showLoading('Menghapus pelanggaran...');
                 
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.id !== pelanggaranToDelete);
@@ -1503,7 +1648,6 @@
                 showToast('Pelanggaran berhasil dihapus');
                 
             } else if (kategoriToDelete) {
-                // Delete kategori
                 showLoading('Menghapus kategori...');
                 
                 kategoriPelanggaran = kategoriPelanggaran.filter(k => k.id !== kategoriToDelete);
@@ -1547,7 +1691,6 @@
             }
             
             tbody.innerHTML = filtered.map((p, index) => {
-                // Tentukan kelas badge berdasarkan poin
                 let badgeClass = 'pelanggaran-ringan';
                 if (p.poin >= 20) badgeClass = 'pelanggaran-berat';
                 else if (p.poin >= 10) badgeClass = 'pelanggaran-sedang';
@@ -1638,7 +1781,6 @@
             const totalPoin = filtered.reduce((sum, p) => sum + p.poin, 0);
             const siswaTerlibat = new Set(filtered.map(p => p.student_id)).size;
             
-            // Hitung pelanggaran bulan ini
             const now = new Date();
             const bulanIni = String(now.getMonth() + 1).padStart(2, '0');
             const tahunIni = now.getFullYear().toString();
@@ -1653,10 +1795,7 @@
             document.getElementById('siswaTerlibat').textContent = siswaTerlibat;
             document.getElementById('pelanggaranBulanIni').textContent = pelanggaranBulanIni;
             
-            // Update filter tahun
             updatePelanggaranYearFilter();
-            
-            // Update filter kelas
             updatePelanggaranKelasFilter();
         }
 
@@ -1699,7 +1838,6 @@
         }
 
         function updatePelanggaranCharts() {
-            // Kategori Chart
             const kategoriCount = {};
             pelanggaranRecords.forEach(p => {
                 const kat = p.kategori_nama || 'Lainnya';
@@ -1733,7 +1871,6 @@
                 kategoriChart.innerHTML = html || '<p class="text-gray-500">Belum ada data</p>';
             }
             
-            // Kelas Chart
             const kelasCount = {};
             pelanggaranRecords.forEach(p => {
                 const kelas = p.student_kelas || 'Tanpa Kelas';
@@ -1764,7 +1901,6 @@
                 kelasChart.innerHTML = html || '<p class="text-gray-500">Belum ada data</p>';
             }
             
-            // Top 5 Siswa
             const siswaPoin = {};
             pelanggaranRecords.forEach(p => {
                 const key = p.student_id;
@@ -1819,12 +1955,27 @@
             const filteredStudents = getFilteredStudents();
             
             if (filteredStudents.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12">Tidak ada data siswa</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12">Tidak ada data siswa</td></tr>';
                 return;
             }
             
             tbody.innerHTML = filteredStudents.map((student, index) => {
                 const attendance = attendanceRecords.find(r => r.student_id === student.id && r.tanggal === currentDate);
+                
+                let locationHtml = '-';
+                if (attendance && attendance.location) {
+                    const distance = calculateDistance(
+                        attendance.location.lat, attendance.location.lng,
+                        SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng
+                    );
+                    locationHtml = `
+                        <button onclick='openLokasiModal(${JSON.stringify(attendance).replace(/'/g, "\\'")})' 
+                                class="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${distance.toFixed(2)} km</span>
+                        </button>
+                    `;
+                }
                 
                 return `
                     <tr>
@@ -1848,6 +1999,7 @@
                                 <option value="absen" ${attendance?.status === 'absen' ? 'selected' : ''}>❌ Absen</option>
                             </select>
                         </td>
+                        <td class="px-4 py-4">${locationHtml}</td>
                         <td class="px-4 py-4">
                             <input type="text" value="${attendance?.keterangan || ''}" 
                                    class="border rounded-lg px-3 py-2 w-full"
@@ -1946,11 +2098,26 @@
             document.getElementById('totalAbsenRekap').textContent = stats.absen;
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12">Tidak ada data kehadiran</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12">Tidak ada data kehadiran</td></tr>';
                 return;
             }
             
             tbody.innerHTML = filtered.map(record => {
+                let locationHtml = '-';
+                if (record.location) {
+                    const distance = calculateDistance(
+                        record.location.lat, record.location.lng,
+                        SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng
+                    );
+                    locationHtml = `
+                        <button onclick='openLokasiModal(${JSON.stringify(record).replace(/'/g, "\\'")})' 
+                                class="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${distance.toFixed(2)} km</span>
+                        </button>
+                    `;
+                }
+                
                 return `
                     <tr>
                         <td class="px-4 py-4">${formatDateID(record.tanggal)}</td>
@@ -1968,6 +2135,7 @@
                             <span class="status-badge ${record.status}">${record.status.toUpperCase()}</span>
                         </td>
                         <td class="px-4 py-4">${record.metode}</td>
+                        <td class="px-4 py-4">${locationHtml}</td>
                         <td class="px-4 py-4">${record.keterangan || '-'}</td>
                     </tr>
                 `;
@@ -2272,6 +2440,7 @@
                     student_photo: student.photo || '',
                     status: status,
                     metode: 'manual',
+                    location: null, // Tidak ada lokasi untuk input manual
                     keterangan: '',
                     tanggal: currentDate,
                     timestamp: Date.now()
@@ -2305,6 +2474,7 @@
                         student_photo: student.photo || '',
                         status: '',
                         metode: 'manual',
+                        location: null,
                         keterangan: keterangan,
                         tanggal: currentDate,
                         timestamp: Date.now()
@@ -2337,6 +2507,7 @@
                         student_photo: student.photo || '',
                         status: 'hadir',
                         metode: 'manual',
+                        location: null,
                         keterangan: '',
                         tanggal: currentDate,
                         timestamp: Date.now()
@@ -2768,21 +2939,8 @@
             printWindow.print();
         }
 
-        async function deleteAllAttendanceRecords() {
-            if (attendanceRecords.length === 0) {
-                showToast('Tidak ada data kehadiran', 'error');
-                return;
-            }
-            
-            if (!confirm('Hapus semua data kehadiran?')) return;
-            
-            showLoading('Menghapus semua data...');
-            attendanceRecords = [];
-            await saveAttendance();
-            renderRekapTable();
-            hideLoading();
-            showToast('Semua data kehadiran dihapus');
-        }
+        // ==================== FUNGSI HAPUS SEMUA (DIHAPUS - TIDAK DIGUNAKAN) ====================
+        // Fungsi deleteAllAttendanceRecords dihapus sesuai permintaan
 
         // ==================== PAGE NAVIGATION ====================
         function showPage(page) {
@@ -2795,7 +2953,6 @@
             
             document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`).classList.remove('hidden');
             
-            // Tampilkan/sembunyikan tab navigasi untuk pelanggaran
             if (page === 'pelanggaran') {
                 document.getElementById('pelanggaranTabs').style.display = 'flex';
                 switchPelanggaranTab('list');
@@ -2815,7 +2972,6 @@
         function switchPelanggaranTab(tab) {
             currentPelanggaranTab = tab;
             
-            // Update tab buttons
             document.querySelectorAll('#pelanggaranTabs .nav-tab').forEach(el => {
                 el.classList.remove('active');
             });
@@ -2913,7 +3069,6 @@
         window.applyBulanFilter = applyBulanFilter;
         window.printReport = printReport;
         window.printDetailedReport = printDetailedReport;
-        window.deleteAllAttendanceRecords = deleteAllAttendanceRecords;
         window.handleLogoUpload = handleLogoUpload;
         window.openTambahPelanggaranModal = openTambahPelanggaranModal;
         window.openEditPelanggaranModal = openEditPelanggaranModal;
@@ -2928,6 +3083,8 @@
         window.deleteKategori = deleteKategori;
         window.updatePoinFromKategori = updatePoinFromKategori;
         window.loadPelanggaran = loadPelanggaran;
+        window.openLokasiModal = openLokasiModal;
+        window.closeLokasiModal = closeLokasiModal;
     </script>
 </body>
 </html>
