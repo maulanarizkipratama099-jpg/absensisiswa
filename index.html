@@ -66,6 +66,15 @@
             color: white;
         }
 
+        .poin-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
         .modern-table th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -223,6 +232,9 @@
                         <button onclick="showPage('dataSiswa')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-700 hover:bg-gray-50">
                             <i class="fas fa-user-graduate mr-2"></i>Data Siswa
                         </button>
+                        <button onclick="showPage('pelanggaran')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-700 hover:bg-gray-50">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Pelanggaran
+                        </button>
                         <button onclick="showPage('rekap')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-700 hover:bg-gray-50">
                             <i class="fas fa-chart-bar mr-2"></i>Rekap
                         </button>
@@ -230,8 +242,9 @@
                 </div>
             </nav>
 
-            <!-- ========== PAGE ABSENSI ========== -->
+            <!-- ========== PAGE ABSENSI (SAMA) ========== -->
             <div id="pageAbsensi" class="max-w-7xl mx-auto px-4 py-8 hidden">
+                <!-- Kode Absensi sama persis seperti sebelumnya -->
                 <div class="glass-card rounded-2xl p-8 mb-8">
                     <h1 class="text-4xl font-bold text-center mb-4" id="schoolNameHeader">MAS IBNU HUSAIN</h1>
                     <div class="grid grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -295,7 +308,7 @@
                 </div>
             </div>
 
-            <!-- ========== PAGE DATA SISWA ========== -->
+            <!-- ========== PAGE DATA SISWA (SAMA) ========== -->
             <div id="pageDataSiswa" class="max-w-7xl mx-auto px-4 py-8 hidden">
                 <div class="glass-card rounded-2xl p-8 mb-8">
                     <h2 class="text-3xl font-bold mb-4">Manajemen Data Siswa</h2>
@@ -346,8 +359,141 @@
                 </div>
             </div>
 
-            <!-- ========== PAGE REKAP ========== -->
+            <!-- ========== PAGE PELANGGARAN (BARU) ========== -->
+            <div id="pagePelanggaran" class="max-w-7xl mx-auto px-4 py-8 hidden">
+                <div class="glass-card rounded-2xl p-8 mb-8">
+                    <h2 class="text-3xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                        Poin Pelanggaran Siswa
+                    </h2>
+                    <p class="text-gray-600 mb-6">Kelola poin pelanggaran siswa. Setiap pelanggaran akan tercatat dan dapat dipantau oleh wali murid.</p>
+
+                    <!-- Form Tambah Pelanggaran -->
+                    <div class="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-6 mb-8 border border-red-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-plus-circle text-red-500 mr-2"></i>
+                            Tambah Pelanggaran Baru
+                        </h3>
+                        <form id="pelanggaranForm" onsubmit="handlePelanggaranSubmit(event)" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Siswa *</label>
+                                    <select id="pelanggaranSiswa" required class="w-full px-4 py-3 border rounded-lg">
+                                        <option value="">-- Pilih Siswa --</option>
+                                        <!-- Akan diisi JavaScript -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal *</label>
+                                    <input type="date" id="pelanggaranTanggal" required class="w-full px-4 py-3 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Poin *</label>
+                                    <input type="number" id="pelanggaranPoin" required min="1" max="100" class="w-full px-4 py-3 border rounded-lg" placeholder="Contoh: 5">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan Pelanggaran *</label>
+                                <textarea id="pelanggaranKeterangan" rows="2" required class="w-full px-4 py-3 border rounded-lg" placeholder="Contoh: Terlambat, Tidak memakai atribut lengkap, dll."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tindakan / Sanksi</label>
+                                <input type="text" id="pelanggaranSanksi" class="w-full px-4 py-3 border rounded-lg" placeholder="Contoh: Membaca istighfar, Membersihkan kelas">
+                            </div>
+                            <div class="flex gap-4">
+                                <button type="submit" class="btn-modern px-8 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                                    <i class="fas fa-save mr-2"></i>Simpan Pelanggaran
+                                </button>
+                                <button type="button" onclick="resetPelanggaranForm()" class="btn-modern px-8 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition">
+                                    <i class="fas fa-undo mr-2"></i>Reset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Ringkasan Poin per Kelas -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500">
+                            <div class="text-sm text-gray-600">Total Pelanggaran</div>
+                            <div class="text-2xl font-bold" id="totalPelanggaran">0</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-orange-500">
+                            <div class="text-sm text-gray-600">Total Poin</div>
+                            <div class="text-2xl font-bold" id="totalPoin">0</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-yellow-500">
+                            <div class="text-sm text-gray-600">Siswa Terlibat</div>
+                            <div class="text-2xl font-bold" id="totalSiswaTerlibat">0</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500">
+                            <div class="text-sm text-gray-600">Rata-rata Poin</div>
+                            <div class="text-2xl font-bold" id="rataPoin">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Pelanggaran -->
+                    <div class="bg-white rounded-xl p-4 mb-6 shadow-sm">
+                        <div class="flex flex-wrap gap-4 items-end">
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Filter Kelas</label>
+                                <select id="filterKelasPelanggaran" class="w-full px-4 py-2 border rounded-lg">
+                                    <option value="">Semua Kelas</option>
+                                    <!-- Akan diisi JavaScript -->
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Filter Siswa</label>
+                                <select id="filterSiswaPelanggaran" class="w-full px-4 py-2 border rounded-lg">
+                                    <option value="">Semua Siswa</option>
+                                    <!-- Akan diisi JavaScript -->
+                                </select>
+                            </div>
+                            <div>
+                                <button onclick="applyPelanggaranFilter()" class="btn-modern px-6 py-2 bg-blue-600 text-white rounded-lg">
+                                    <i class="fas fa-filter mr-2"></i>Filter
+                                </button>
+                                <button onclick="resetPelanggaranFilter()" class="btn-modern px-6 py-2 bg-gray-600 text-white rounded-lg ml-2">
+                                    <i class="fas fa-undo mr-2"></i>Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabel Riwayat Pelanggaran -->
+                    <div class="glass-card rounded-2xl overflow-hidden">
+                        <div class="p-8 border-b flex justify-between items-center">
+                            <h3 class="text-xl font-bold">Riwayat Pelanggaran Siswa</h3>
+                            <button onclick="exportPelanggaran()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition">
+                                <i class="fas fa-download mr-2"></i>Export Excel
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="modern-table w-full">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Tanggal</th>
+                                        <th>NIS</th>
+                                        <th>Nama</th>
+                                        <th>Kelas</th>
+                                        <th>Poin</th>
+                                        <th>Pelanggaran</th>
+                                        <th>Sanksi</th>
+                                        <th class="text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pelanggaranTableBody">
+                                    <!-- Akan diisi JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== PAGE REKAP (SAMA) ========== -->
             <div id="pageRekap" class="max-w-7xl mx-auto px-4 py-8 hidden">
+                <!-- Kode Rekap sama persis seperti sebelumnya -->
                 <div class="glass-card rounded-2xl p-8 mb-8">
                     <h2 class="text-3xl font-bold mb-6">Rekapitulasi Kehadiran</h2>
 
@@ -476,7 +622,7 @@
         </div>
     </div>
 
-    <!-- MODAL TAMBAH/EDIT SISWA -->
+    <!-- MODAL TAMBAH/EDIT SISWA (SAMA) -->
     <div id="studentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="modal-content w-full max-w-2xl p-8">
             <h3 id="modalTitle" class="text-2xl font-bold mb-6">Tambah Siswa Baru</h3>
@@ -534,6 +680,47 @@
                     </button>
                     <button type="button" onclick="closeStudentModal()" class="flex-1 btn-modern py-4 bg-gray-600 text-white rounded-xl font-semibold">
                         Batal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT PELANGGARAN -->
+    <div id="editPelanggaranModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="modal-content w-full max-w-2xl p-8">
+            <h3 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fas fa-edit text-red-500 mr-3"></i>
+                Edit Pelanggaran
+            </h3>
+            <form id="editPelanggaranForm" onsubmit="handleEditPelanggaranSubmit(event)">
+                <input type="hidden" id="editPelanggaranId">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal *</label>
+                        <input type="date" id="editTanggal" required class="w-full px-4 py-3 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Poin *</label>
+                        <input type="number" id="editPoin" required min="1" max="100" class="w-full px-4 py-3 border rounded-lg">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan Pelanggaran *</label>
+                    <textarea id="editKeterangan" rows="2" required class="w-full px-4 py-3 border rounded-lg"></textarea>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tindakan / Sanksi</label>
+                    <input type="text" id="editSanksi" class="w-full px-4 py-3 border rounded-lg">
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 btn-modern py-4 bg-blue-600 text-white rounded-xl font-semibold">
+                        <i class="fas fa-save mr-2"></i>Update
+                    </button>
+                    <button type="button" onclick="closeEditPelanggaranModal()" class="flex-1 btn-modern py-4 bg-gray-600 text-white rounded-xl font-semibold">
+                        <i class="fas fa-times mr-2"></i>Batal
                     </button>
                 </div>
             </form>
@@ -598,7 +785,8 @@
             BINS: {
                 STUDENTS: "699ffd15ae596e708f4b42a4",
                 ATTENDANCE: "699ffd3c43b1c97be99f754c",
-                CONFIG: "699e9aead0ea881f40d72ba1" // Untuk logo & konfigurasi
+                PELANGGARAN: "69a3c051d0ea881f40e3c36e", // 🔥 GANTI DENGAN ID BIN BARU ANDA
+                CONFIG: "699e9aead0ea881f40d72ba1"
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
@@ -606,11 +794,13 @@
         // ==================== STATE ====================
         let students = [];
         let attendanceRecords = [];
+        let pelanggaranRecords = [];
         let configData = { school_logo: '' };
         let currentPage = 'absensi';
         let currentDate = new Date().toISOString().split('T')[0];
         let currentClassFilter = 'all';
-        let studentToDelete = null;
+        let itemToDelete = null; // Untuk hapus (bisa student atau pelanggaran)
+        let deleteType = null; // 'student' atau 'pelanggaran'
         let currentQRStudent = null;
         let isLoading = false;
         let dateRangeFilter = { start: null, end: null };
@@ -777,42 +967,39 @@
             }
         }
 
-        async function saveStudents() {
+        // ==================== FUNGSI PELANGGARAN ====================
+        async function loadPelanggaran() {
             try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(students)
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}/latest`, {
+                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                console.log('✅ Students saved');
-                return true;
+                const data = await response.json();
+                pelanggaranRecords = Array.isArray(data) ? data : [];
+                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
+                return pelanggaranRecords;
             } catch (error) {
-                console.error('❌ Gagal simpan siswa:', error);
-                showToast('Gagal simpan siswa', 'error');
-                return false;
+                console.error('❌ Gagal load pelanggaran:', error);
+                return [];
             }
         }
 
-        async function saveAttendance() {
+        async function savePelanggaran() {
             try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}`, {
                     method: 'PUT',
                     headers: {
                         'X-Master-Key': JSONBIN_CONFIG.API_KEY,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(attendanceRecords)
+                    body: JSON.stringify(pelanggaranRecords)
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                console.log('✅ Attendance saved');
+                console.log('✅ Pelanggaran saved');
                 return true;
             } catch (error) {
-                console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
+                console.error('❌ Gagal simpan pelanggaran:', error);
+                showToast('Gagal simpan pelanggaran', 'error');
                 return false;
             }
         }
@@ -835,6 +1022,11 @@
             return date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
+        function formatTanggal(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -844,7 +1036,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // ==================== FUNGSI MODAL & FOTO ====================
+        // ==================== FUNGSI MODAL SISWA ====================
         function openTambahSiswaModal() {
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
@@ -966,44 +1158,72 @@
                 await saveAttendance();
             }
             
+            // Update juga di pelanggaran jika ada
+            if (studentId) {
+                pelanggaranRecords.forEach(p => {
+                    if (p.student_id === studentId) {
+                        p.student_nis = nis;
+                        p.student_nama = nama;
+                        p.student_kelas = kelas;
+                    }
+                });
+                await savePelanggaran();
+            }
+            
             hideLoading();
             closeStudentModal();
             renderStudentTable();
             renderSiswaManagementTable();
             renderRekapTable();
+            renderPelanggaranTable();
             updateClassFilter();
+            updatePelanggaranFilters();
             showToast('Data siswa berhasil disimpan');
             
             document.getElementById('studentPhoto').dataset.compressed = '';
         }
 
         function deleteStudent(id) {
-            studentToDelete = id;
+            itemToDelete = id;
+            deleteType = 'student';
             document.getElementById('deleteModal').classList.remove('hidden');
         }
 
         function closeDeleteModal() {
             document.getElementById('deleteModal').classList.add('hidden');
-            studentToDelete = null;
+            itemToDelete = null;
+            deleteType = null;
         }
 
         async function confirmDelete() {
-            if (!studentToDelete) return;
+            if (!itemToDelete) return;
             
             showLoading('Menghapus data...');
             
-            students = students.filter(s => s.id !== studentToDelete);
-            attendanceRecords = attendanceRecords.filter(r => r.student_id !== studentToDelete);
-            
-            await saveStudents();
-            await saveAttendance();
+            if (deleteType === 'student') {
+                students = students.filter(s => s.id !== itemToDelete);
+                attendanceRecords = attendanceRecords.filter(r => r.student_id !== itemToDelete);
+                pelanggaranRecords = pelanggaranRecords.filter(p => p.student_id !== itemToDelete);
+                
+                await saveStudents();
+                await saveAttendance();
+                await savePelanggaran();
+                
+                renderStudentTable();
+                renderSiswaManagementTable();
+                renderRekapTable();
+                renderPelanggaranTable();
+                updateClassFilter();
+                updatePelanggaranFilters();
+            } else if (deleteType === 'pelanggaran') {
+                pelanggaranRecords = pelanggaranRecords.filter(p => p.id !== itemToDelete);
+                await savePelanggaran();
+                renderPelanggaranTable();
+                updatePelanggaranStats();
+            }
             
             hideLoading();
             closeDeleteModal();
-            renderStudentTable();
-            renderSiswaManagementTable();
-            renderRekapTable();
-            updateClassFilter();
             showToast('Data berhasil dihapus');
         }
 
@@ -1121,7 +1341,243 @@
             printWindow.print();
         }
 
-        // ==================== ABSENSI FUNCTIONS ====================
+        // ==================== FUNGSI PELANGGARAN ====================
+        function updatePelanggaranFilters() {
+            // Update pilihan siswa di form
+            const siswaSelect = document.getElementById('pelanggaranSiswa');
+            if (siswaSelect) {
+                let options = '<option value="">-- Pilih Siswa --</option>';
+                students.forEach(s => {
+                    options += `<option value="${s.id}">${s.nis} - ${s.nama} (${s.kelas})</option>`;
+                });
+                siswaSelect.innerHTML = options;
+            }
+
+            // Update filter kelas
+            const kelasUnik = [...new Set(students.map(s => s.kelas).filter(k => k))].sort();
+            const filterKelas = document.getElementById('filterKelasPelanggaran');
+            if (filterKelas) {
+                let options = '<option value="">Semua Kelas</option>';
+                kelasUnik.forEach(kelas => {
+                    options += `<option value="${kelas}">${kelas}</option>`;
+                });
+                filterKelas.innerHTML = options;
+            }
+
+            // Set default tanggal ke hari ini
+            const today = formatDate(new Date());
+            document.getElementById('pelanggaranTanggal').value = today;
+        }
+
+        function updatePelanggaranStats() {
+            const totalPelanggaran = pelanggaranRecords.length;
+            const totalPoin = pelanggaranRecords.reduce((sum, p) => sum + (p.poin || 0), 0);
+            const siswaTerlibat = new Set(pelanggaranRecords.map(p => p.student_id)).size;
+            const rataPoin = totalPelanggaran > 0 ? (totalPoin / totalPelanggaran).toFixed(1) : 0;
+
+            document.getElementById('totalPelanggaran').textContent = totalPelanggaran;
+            document.getElementById('totalPoin').textContent = totalPoin;
+            document.getElementById('totalSiswaTerlibat').textContent = siswaTerlibat;
+            document.getElementById('rataPoin').textContent = rataPoin;
+        }
+
+        async function handlePelanggaranSubmit(event) {
+            event.preventDefault();
+            
+            const studentId = document.getElementById('pelanggaranSiswa').value;
+            const tanggal = document.getElementById('pelanggaranTanggal').value;
+            const poin = parseInt(document.getElementById('pelanggaranPoin').value);
+            const keterangan = document.getElementById('pelanggaranKeterangan').value.trim();
+            const sanksi = document.getElementById('pelanggaranSanksi').value.trim();
+
+            if (!studentId || !tanggal || !poin || !keterangan) {
+                showToast('Harap isi semua field wajib', 'error');
+                return;
+            }
+
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                showToast('Siswa tidak ditemukan', 'error');
+                return;
+            }
+
+            showLoading('Menyimpan pelanggaran...');
+
+            const newPelanggaran = {
+                id: generateId(),
+                student_id: studentId,
+                student_nis: student.nis,
+                student_nama: student.nama,
+                student_kelas: student.kelas,
+                tanggal: tanggal,
+                poin: poin,
+                keterangan: keterangan,
+                sanksi: sanksi || '',
+                created_at: Date.now()
+            };
+
+            pelanggaranRecords.push(newPelanggaran);
+            await savePelanggaran();
+
+            hideLoading();
+            resetPelanggaranForm();
+            renderPelanggaranTable();
+            updatePelanggaranStats();
+            showToast('Pelanggaran berhasil dicatat');
+        }
+
+        function resetPelanggaranForm() {
+            document.getElementById('pelanggaranForm').reset();
+            const today = formatDate(new Date());
+            document.getElementById('pelanggaranTanggal').value = today;
+        }
+
+        function openEditPelanggaranModal(pelanggaran) {
+            document.getElementById('editPelanggaranId').value = pelanggaran.id;
+            document.getElementById('editTanggal').value = pelanggaran.tanggal;
+            document.getElementById('editPoin').value = pelanggaran.poin;
+            document.getElementById('editKeterangan').value = pelanggaran.keterangan;
+            document.getElementById('editSanksi').value = pelanggaran.sanksi || '';
+            
+            document.getElementById('editPelanggaranModal').classList.remove('hidden');
+        }
+
+        function closeEditPelanggaranModal() {
+            document.getElementById('editPelanggaranModal').classList.add('hidden');
+        }
+
+        async function handleEditPelanggaranSubmit(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('editPelanggaranId').value;
+            const tanggal = document.getElementById('editTanggal').value;
+            const poin = parseInt(document.getElementById('editPoin').value);
+            const keterangan = document.getElementById('editKeterangan').value.trim();
+            const sanksi = document.getElementById('editSanksi').value.trim();
+
+            const index = pelanggaranRecords.findIndex(p => p.id === id);
+            if (index === -1) {
+                showToast('Data tidak ditemukan', 'error');
+                return;
+            }
+
+            showLoading('Mengupdate pelanggaran...');
+
+            pelanggaranRecords[index] = {
+                ...pelanggaranRecords[index],
+                tanggal,
+                poin,
+                keterangan,
+                sanksi
+            };
+
+            await savePelanggaran();
+
+            hideLoading();
+            closeEditPelanggaranModal();
+            renderPelanggaranTable();
+            updatePelanggaranStats();
+            showToast('Pelanggaran berhasil diupdate');
+        }
+
+        function deletePelanggaran(id) {
+            itemToDelete = id;
+            deleteType = 'pelanggaran';
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function renderPelanggaranTable() {
+            const tbody = document.getElementById('pelanggaranTableBody');
+            if (!tbody) return;
+
+            const filterKelas = document.getElementById('filterKelasPelanggaran')?.value || '';
+            const filterSiswa = document.getElementById('filterSiswaPelanggaran')?.value || '';
+
+            let filtered = [...pelanggaranRecords];
+
+            if (filterKelas) {
+                filtered = filtered.filter(p => p.student_kelas === filterKelas);
+            }
+
+            if (filterSiswa) {
+                filtered = filtered.filter(p => p.student_id === filterSiswa);
+            }
+
+            // Update filter siswa berdasarkan kelas yang dipilih
+            const siswaFilter = document.getElementById('filterSiswaPelanggaran');
+            if (siswaFilter) {
+                let siswaOptions = '<option value="">Semua Siswa</option>';
+                const filteredStudents = filterKelas 
+                    ? students.filter(s => s.kelas === filterKelas)
+                    : students;
+                
+                filteredStudents.forEach(s => {
+                    siswaOptions += `<option value="${s.id}">${s.nama}</option>`;
+                });
+                siswaFilter.innerHTML = siswaOptions;
+            }
+
+            filtered.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12">Tidak ada data pelanggaran</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((p, index) => `
+                <tr>
+                    <td class="px-4 py-4 text-center">${index + 1}</td>
+                    <td class="px-4 py-4">${formatTanggal(p.tanggal)}</td>
+                    <td class="px-4 py-4">${p.student_nis}</td>
+                    <td class="px-4 py-4 font-medium">${p.student_nama}</td>
+                    <td class="px-4 py-4">${p.student_kelas}</td>
+                    <td class="px-4 py-4"><span class="poin-badge">${p.poin} Poin</span></td>
+                    <td class="px-4 py-4">${p.keterangan}</td>
+                    <td class="px-4 py-4">${p.sanksi || '-'}</td>
+                    <td class="px-4 py-4 text-center">
+                        <div class="flex gap-2 justify-center">
+                            <button onclick='openEditPelanggaranModal(${JSON.stringify(p).replace(/'/g, "\\'")})' class="px-3 py-2 bg-yellow-600 text-white rounded-lg text-sm">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deletePelanggaran('${p.id}')" class="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            updatePelanggaranStats();
+        }
+
+        function applyPelanggaranFilter() {
+            renderPelanggaranTable();
+        }
+
+        function resetPelanggaranFilter() {
+            document.getElementById('filterKelasPelanggaran').value = '';
+            document.getElementById('filterSiswaPelanggaran').value = '';
+            renderPelanggaranTable();
+        }
+
+        function exportPelanggaran() {
+            const filtered = pelanggaranRecords.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+            
+            let csv = "No,Tanggal,NIS,Nama,Kelas,Poin,Keterangan,Sanksi\n";
+            filtered.forEach((p, i) => {
+                csv += `${i+1},${p.tanggal},${p.student_nis},${p.student_nama},${p.student_kelas},${p.poin},"${p.keterangan}","${p.sanksi || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pelanggaran_${formatDate(new Date())}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // ==================== FUNGSI ABSENSI ====================
         async function updateAttendanceStatus(studentId, status) {
             if (!studentId) return;
             
@@ -1351,17 +1807,14 @@
             
             let filtered = [...attendanceRecords];
             
-            // Filter by date range
             if (dateRangeFilter.start && dateRangeFilter.end) {
                 filtered = filtered.filter(r => r.tanggal >= dateRangeFilter.start && r.tanggal <= dateRangeFilter.end);
             }
             
-            // Filter by month
             if (filterBulan) {
                 filtered = filtered.filter(r => r.tanggal && r.tanggal.split('-')[1] === filterBulan);
             }
             
-            // Filter by class
             if (filterKelas) {
                 filtered = filtered.filter(r => r.student_kelas === filterKelas);
             }
@@ -1424,12 +1877,23 @@
                     }
                 });
                 
+                pelanggaranRecords.forEach(p => {
+                    if (p.student_id === studentId) {
+                        if (field === 'nis') p.student_nis = value;
+                        if (field === 'nama') p.student_nama = value;
+                        if (field === 'kelas') p.student_kelas = value;
+                    }
+                });
+                
                 await saveAttendance();
+                await savePelanggaran();
                 
                 renderStudentTable();
                 renderSiswaManagementTable();
                 renderRekapTable();
+                renderPelanggaranTable();
                 updateClassFilter();
+                updatePelanggaranFilters();
                 showToast('Data diperbarui');
             }
         }
@@ -1496,7 +1960,7 @@
             if (start && end) {
                 dateRangeFilter.start = start;
                 dateRangeFilter.end = end;
-                document.getElementById('filterBulan').value = ''; // Reset bulan
+                document.getElementById('filterBulan').value = '';
                 renderRekapTable();
                 showToast('Filter diterapkan');
             } else {
@@ -1543,7 +2007,6 @@
                 filteredData = filteredData.filter(r => r.student_kelas === filterKelas);
             }
             
-            // Group data by student
             const studentStats = {};
             filteredData.forEach(record => {
                 if (!record) return;
@@ -1686,7 +2149,6 @@
             
             filteredData.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
             
-            // Group by date
             const byDate = {};
             filteredData.forEach(r => {
                 if (!byDate[r.tanggal]) byDate[r.tanggal] = [];
@@ -1742,7 +2204,6 @@
                     </div>
             `;
             
-            // Summary table
             const studentStats = {};
             filteredData.forEach(r => {
                 if (!studentStats[r.student_id]) {
@@ -1801,7 +2262,6 @@
                 </div>
             `;
             
-            // Detail by date
             html += `<div class="date-section"><div class="date-header">B. RINCIAN PER TANGGAL</div>`;
             
             Object.keys(byDate).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
@@ -1843,7 +2303,6 @@
                 `;
             });
             
-            // Statistics summary
             const totalHari = Object.keys(byDate).length;
             const totalSiswa = Object.keys(studentStats).length;
             const totalHadir = Object.values(studentStats).reduce((sum, s) => sum + s.hadir, 0);
@@ -1878,7 +2337,6 @@
             printWindow.print();
         }
 
-        // Delete all attendance records
         async function deleteAllAttendanceRecords() {
             if (attendanceRecords.length === 0) {
                 showToast('Tidak ada data kehadiran', 'error');
@@ -1901,6 +2359,7 @@
             
             document.getElementById('pageAbsensi').classList.add('hidden');
             document.getElementById('pageDataSiswa').classList.add('hidden');
+            document.getElementById('pagePelanggaran').classList.add('hidden');
             document.getElementById('pageRekap').classList.add('hidden');
             
             document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`).classList.remove('hidden');
@@ -1909,6 +2368,9 @@
                 renderStudentTable();
             } else if (page === 'dataSiswa') {
                 renderSiswaManagementTable();
+            } else if (page === 'pelanggaran') {
+                renderPelanggaranTable();
+                updatePelanggaranFilters();
             } else if (page === 'rekap') {
                 renderRekapTable();
             }
@@ -1925,11 +2387,16 @@
             document.getElementById('loadingStatus').textContent = 'Memuat data absensi...';
             await loadAttendance();
             
+            document.getElementById('loadingStatus').textContent = 'Memuat data pelanggaran...';
+            await loadPelanggaran();
+            
             setToday();
             renderStudentTable();
             renderSiswaManagementTable();
+            renderPelanggaranTable();
             renderRekapTable();
             updateClassFilter();
+            updatePelanggaranFilters();
             
             setTimeout(() => {
                 document.getElementById('loading').classList.add('hidden');
@@ -1939,8 +2406,13 @@
             
             setInterval(async () => {
                 await loadAttendance();
+                await loadPelanggaran();
                 if (currentPage === 'absensi') renderStudentTable();
                 if (currentPage === 'rekap') renderRekapTable();
+                if (currentPage === 'pelanggaran') {
+                    renderPelanggaranTable();
+                    updatePelanggaranFilters();
+                }
             }, 30000);
         }
 
@@ -1977,6 +2449,17 @@
         window.printDetailedReport = printDetailedReport;
         window.deleteAllAttendanceRecords = deleteAllAttendanceRecords;
         window.handleLogoUpload = handleLogoUpload;
+        
+        // Fungsi pelanggaran
+        window.handlePelanggaranSubmit = handlePelanggaranSubmit;
+        window.resetPelanggaranForm = resetPelanggaranForm;
+        window.openEditPelanggaranModal = openEditPelanggaranModal;
+        window.closeEditPelanggaranModal = closeEditPelanggaranModal;
+        window.handleEditPelanggaranSubmit = handleEditPelanggaranSubmit;
+        window.deletePelanggaran = deletePelanggaran;
+        window.applyPelanggaranFilter = applyPelanggaranFilter;
+        window.resetPelanggaranFilter = resetPelanggaranFilter;
+        window.exportPelanggaran = exportPelanggaran;
     </script>
 </body>
 </html>
