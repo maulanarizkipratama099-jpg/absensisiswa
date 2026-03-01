@@ -242,9 +242,8 @@
                 </div>
             </nav>
 
-            <!-- ========== PAGE ABSENSI (SAMA) ========== -->
+            <!-- ========== PAGE ABSENSI ========== -->
             <div id="pageAbsensi" class="max-w-7xl mx-auto px-4 py-8 hidden">
-                <!-- Kode Absensi sama persis seperti sebelumnya -->
                 <div class="glass-card rounded-2xl p-8 mb-8">
                     <h1 class="text-4xl font-bold text-center mb-4" id="schoolNameHeader">MAS IBNU HUSAIN</h1>
                     <div class="grid grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -308,7 +307,7 @@
                 </div>
             </div>
 
-            <!-- ========== PAGE DATA SISWA (SAMA) ========== -->
+            <!-- ========== PAGE DATA SISWA ========== -->
             <div id="pageDataSiswa" class="max-w-7xl mx-auto px-4 py-8 hidden">
                 <div class="glass-card rounded-2xl p-8 mb-8">
                     <h2 class="text-3xl font-bold mb-4">Manajemen Data Siswa</h2>
@@ -359,7 +358,7 @@
                 </div>
             </div>
 
-            <!-- ========== PAGE PELANGGARAN (BARU) ========== -->
+            <!-- ========== PAGE PELANGGARAN ========== -->
             <div id="pagePelanggaran" class="max-w-7xl mx-auto px-4 py-8 hidden">
                 <div class="glass-card rounded-2xl p-8 mb-8">
                     <h2 class="text-3xl font-bold mb-4 flex items-center">
@@ -411,7 +410,7 @@
                         </form>
                     </div>
 
-                    <!-- Ringkasan Poin per Kelas -->
+                    <!-- Ringkasan Poin -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500">
                             <div class="text-sm text-gray-600">Total Pelanggaran</div>
@@ -491,9 +490,8 @@
                 </div>
             </div>
 
-            <!-- ========== PAGE REKAP (SAMA) ========== -->
+            <!-- ========== PAGE REKAP ========== -->
             <div id="pageRekap" class="max-w-7xl mx-auto px-4 py-8 hidden">
-                <!-- Kode Rekap sama persis seperti sebelumnya -->
                 <div class="glass-card rounded-2xl p-8 mb-8">
                     <h2 class="text-3xl font-bold mb-6">Rekapitulasi Kehadiran</h2>
 
@@ -622,7 +620,7 @@
         </div>
     </div>
 
-    <!-- MODAL TAMBAH/EDIT SISWA (SAMA) -->
+    <!-- MODAL TAMBAH/EDIT SISWA -->
     <div id="studentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="modal-content w-full max-w-2xl p-8">
             <h3 id="modalTitle" class="text-2xl font-bold mb-6">Tambah Siswa Baru</h3>
@@ -785,7 +783,7 @@
             BINS: {
                 STUDENTS: "699ffd15ae596e708f4b42a4",
                 ATTENDANCE: "699ffd3c43b1c97be99f754c",
-                PELANGGARAN: "69a3c6abae596e708f5431b9", // 🔥 GANTI DENGAN ID BIN BARU ANDA
+                PELANGGARAN: "69a3c6abae596e708f5431b9",
                 CONFIG: "699e9aead0ea881f40d72ba1"
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
@@ -799,8 +797,8 @@
         let currentPage = 'absensi';
         let currentDate = new Date().toISOString().split('T')[0];
         let currentClassFilter = 'all';
-        let itemToDelete = null; // Untuk hapus (bisa student atau pelanggaran)
-        let deleteType = null; // 'student' atau 'pelanggaran'
+        let itemToDelete = null;
+        let deleteType = null;
         let currentQRStudent = null;
         let isLoading = false;
         let dateRangeFilter = { start: null, end: null };
@@ -1100,6 +1098,46 @@
         }
 
         // ==================== CRUD SISWA ====================
+        async function saveStudents() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(students)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                console.log('✅ Students saved');
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan siswa:', error);
+                showToast('Gagal simpan siswa', 'error');
+                return false;
+            }
+        }
+
+        async function saveAttendance() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(attendanceRecords)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                console.log('✅ Attendance saved');
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan absensi:', error);
+                showToast('Gagal simpan absensi', 'error');
+                return false;
+            }
+        }
+
         async function handleStudentSubmit(event) {
             event.preventDefault();
             
@@ -1158,7 +1196,6 @@
                 await saveAttendance();
             }
             
-            // Update juga di pelanggaran jika ada
             if (studentId) {
                 pelanggaranRecords.forEach(p => {
                     if (p.student_id === studentId) {
@@ -1195,6 +1232,7 @@
             deleteType = null;
         }
 
+        // 🔥 PERBAIKAN UTAMA: Fungsi confirmDelete
         async function confirmDelete() {
             if (!itemToDelete) return;
             
@@ -1215,16 +1253,30 @@
                 renderPelanggaranTable();
                 updateClassFilter();
                 updatePelanggaranFilters();
+                showToast('Data siswa berhasil dihapus', 'success');
+                
             } else if (deleteType === 'pelanggaran') {
+                console.log('Menghapus pelanggaran dengan ID:', itemToDelete);
+                
+                const beforeCount = pelanggaranRecords.length;
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.id !== itemToDelete);
+                const afterCount = pelanggaranRecords.length;
+                
+                console.log(`Jumlah pelanggaran: ${beforeCount} -> ${afterCount}`);
+                
                 await savePelanggaran();
                 renderPelanggaranTable();
                 updatePelanggaranStats();
+                
+                if (afterCount < beforeCount) {
+                    showToast('Pelanggaran berhasil dihapus!', 'success');
+                } else {
+                    showToast('Gagal menghapus pelanggaran', 'error');
+                }
             }
             
             hideLoading();
             closeDeleteModal();
-            showToast('Data berhasil dihapus');
         }
 
         // ==================== QR CODE FUNCTIONS ====================
@@ -1343,7 +1395,6 @@
 
         // ==================== FUNGSI PELANGGARAN ====================
         function updatePelanggaranFilters() {
-            // Update pilihan siswa di form
             const siswaSelect = document.getElementById('pelanggaranSiswa');
             if (siswaSelect) {
                 let options = '<option value="">-- Pilih Siswa --</option>';
@@ -1353,7 +1404,6 @@
                 siswaSelect.innerHTML = options;
             }
 
-            // Update filter kelas
             const kelasUnik = [...new Set(students.map(s => s.kelas).filter(k => k))].sort();
             const filterKelas = document.getElementById('filterKelasPelanggaran');
             if (filterKelas) {
@@ -1364,7 +1414,6 @@
                 filterKelas.innerHTML = options;
             }
 
-            // Set default tanggal ke hari ini
             const today = formatDate(new Date());
             document.getElementById('pelanggaranTanggal').value = today;
         }
@@ -1423,7 +1472,7 @@
             resetPelanggaranForm();
             renderPelanggaranTable();
             updatePelanggaranStats();
-            showToast('Pelanggaran berhasil dicatat');
+            showToast('Pelanggaran berhasil dicatat', 'success');
         }
 
         function resetPelanggaranForm() {
@@ -1477,10 +1526,11 @@
             closeEditPelanggaranModal();
             renderPelanggaranTable();
             updatePelanggaranStats();
-            showToast('Pelanggaran berhasil diupdate');
+            showToast('Pelanggaran berhasil diupdate', 'success');
         }
 
         function deletePelanggaran(id) {
+            console.log('Akan menghapus pelanggaran dengan ID:', id);
             itemToDelete = id;
             deleteType = 'pelanggaran';
             document.getElementById('deleteModal').classList.remove('hidden');
@@ -1503,7 +1553,6 @@
                 filtered = filtered.filter(p => p.student_id === filterSiswa);
             }
 
-            // Update filter siswa berdasarkan kelas yang dipilih
             const siswaFilter = document.getElementById('filterSiswaPelanggaran');
             if (siswaFilter) {
                 let siswaOptions = '<option value="">Semua Siswa</option>';
@@ -1609,7 +1658,7 @@
             await saveAttendance();
             renderStudentTable();
             renderRekapTable();
-            showToast('Status kehadiran diperbarui');
+            showToast('Status kehadiran diperbarui', 'success');
         }
 
         async function updateAttendanceKeterangan(studentId, keterangan) {
@@ -1674,7 +1723,7 @@
             
             await saveAttendance();
             renderStudentTable();
-            showToast('Semua siswa ditandai hadir');
+            showToast('Semua siswa ditandai hadir', 'success');
         }
 
         function showDeleteStatusModal() {
@@ -1691,7 +1740,7 @@
             renderStudentTable();
             renderRekapTable();
             closeDeleteStatusModal();
-            showToast('Semua status kehadiran dihapus');
+            showToast('Semua status kehadiran dihapus', 'success');
         }
 
         // ==================== RENDER FUNCTIONS ====================
@@ -1894,7 +1943,7 @@
                 renderPelanggaranTable();
                 updateClassFilter();
                 updatePelanggaranFilters();
-                showToast('Data diperbarui');
+                showToast('Data diperbarui', 'success');
             }
         }
 
@@ -1962,7 +2011,7 @@
                 dateRangeFilter.end = end;
                 document.getElementById('filterBulan').value = '';
                 renderRekapTable();
-                showToast('Filter diterapkan');
+                showToast('Filter diterapkan', 'success');
             } else {
                 showToast('Pilih tanggal mulai dan selesai', 'error');
             }
@@ -1975,7 +2024,7 @@
             document.getElementById('tanggalSelesai').value = '';
             document.getElementById('filterBulan').value = '';
             renderRekapTable();
-            showToast('Filter direset');
+            showToast('Filter direset', 'success');
         }
 
         function applyBulanFilter() {
@@ -1986,7 +2035,7 @@
                 document.getElementById('tanggalMulai').value = '';
                 document.getElementById('tanggalSelesai').value = '';
                 renderRekapTable();
-                showToast('Filter bulan diterapkan');
+                showToast('Filter bulan diterapkan', 'success');
             }
         }
 
@@ -2350,7 +2399,7 @@
             await saveAttendance();
             renderRekapTable();
             hideLoading();
-            showToast('Semua data kehadiran dihapus');
+            showToast('Semua data kehadiran dihapus', 'success');
         }
 
         // ==================== PAGE NAVIGATION ====================
@@ -2450,7 +2499,6 @@
         window.deleteAllAttendanceRecords = deleteAllAttendanceRecords;
         window.handleLogoUpload = handleLogoUpload;
         
-        // Fungsi pelanggaran
         window.handlePelanggaranSubmit = handlePelanggaranSubmit;
         window.resetPelanggaranForm = resetPelanggaranForm;
         window.openEditPelanggaranModal = openEditPelanggaranModal;
@@ -2463,4 +2511,3 @@
     </script>
 </body>
 </html>
-
