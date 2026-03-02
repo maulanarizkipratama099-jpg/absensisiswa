@@ -53,11 +53,6 @@
             color: white;
         }
 
-        .status-badge.pulang {
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-            color: white;
-        }
-
         .status-badge.izin {
             background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
             color: white;
@@ -261,14 +256,6 @@
             font-size: 11px;
             margin-top: 4px;
         }
-
-        .time-badge {
-            background: #f3f4f6;
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-size: 10px;
-            color: #4b5563;
-        }
     </style>
 </head>
 <body>
@@ -358,7 +345,7 @@
                 </div>
 
                 <div class="glass-card rounded-2xl p-8 mb-8">
-                    <div class="flex gap-4 items-center flex-wrap">
+                    <div class="flex gap-4 items-center">
                         <label class="font-semibold">Tanggal:</label>
                         <input type="date" id="inputTanggal" class="px-4 py-2 border rounded-lg">
                         <button onclick="setTanggal()" class="btn-modern px-6 py-2 bg-blue-600 text-white rounded-lg">Set</button>
@@ -372,12 +359,9 @@
                 </div>
 
                 <div class="glass-card rounded-2xl p-8 mb-8">
-                    <div class="flex gap-4 flex-wrap">
+                    <div class="flex gap-4">
                         <button onclick="markAllPresent()" class="btn-modern px-8 py-4 bg-green-600 text-white rounded-xl font-semibold">
                             <i class="fas fa-check-circle mr-2"></i>Hadir Semua
-                        </button>
-                        <button onclick="markAllPulang()" class="btn-modern px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold">
-                            <i class="fas fa-sign-out-alt mr-2"></i>Pulang Semua
                         </button>
                         <button onclick="showDeleteStatusModal()" class="btn-modern px-8 py-4 bg-red-600 text-white rounded-xl font-semibold">
                             <i class="fas fa-eraser mr-2"></i>Hapus Semua Status
@@ -400,7 +384,6 @@
                                     <th>Kelas</th>
                                     <th>Jurusan</th>
                                     <th>Status</th>
-                                    <th>Waktu</th>
                                     <th>Lokasi</th>
                                     <th>Keterangan</th>
                                 </tr>
@@ -588,19 +571,25 @@
                             <!-- Grafik Kategori -->
                             <div class="bg-white rounded-xl p-6 shadow">
                                 <h3 class="font-bold text-gray-800 mb-4">Berdasarkan Kategori</h3>
-                                <div id="kategoriChart" class="space-y-3"></div>
+                                <div id="kategoriChart" class="space-y-3">
+                                    <!-- Akan diisi JavaScript -->
+                                </div>
                             </div>
 
                             <!-- Grafik Per Kelas -->
                             <div class="bg-white rounded-xl p-6 shadow">
                                 <h3 class="font-bold text-gray-800 mb-4">Berdasarkan Kelas</h3>
-                                <div id="kelasChart" class="space-y-3"></div>
+                                <div id="kelasChart" class="space-y-3">
+                                    <!-- Akan diisi JavaScript -->
+                                </div>
                             </div>
 
                             <!-- Top 5 Siswa -->
                             <div class="bg-white rounded-xl p-6 shadow col-span-2">
                                 <h3 class="font-bold text-gray-800 mb-4">Top 5 Siswa dengan Pelanggaran Terbanyak</h3>
-                                <div id="topSiswaChart" class="space-y-3"></div>
+                                <div id="topSiswaChart" class="space-y-3">
+                                    <!-- Akan diisi JavaScript -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -689,26 +678,22 @@
                 </div>
 
                 <!-- Statistik -->
-                <div class="grid grid-cols-5 gap-4 mb-8">
-                    <div class="bg-white rounded-xl p-4 text-center shadow">
-                        <div class="text-2xl font-bold text-green-600" id="totalHadirRekap">0</div>
-                        <div class="text-xs text-gray-600">Hadir</div>
+                <div class="grid grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl p-6 shadow">
+                        <div class="text-3xl font-bold text-blue-600" id="totalHadirRekap">0</div>
+                        <div class="text-sm text-gray-600">Total Hadir</div>
                     </div>
-                    <div class="bg-white rounded-xl p-4 text-center shadow">
-                        <div class="text-2xl font-bold text-blue-600" id="totalPulangRekap">0</div>
-                        <div class="text-xs text-gray-600">Pulang</div>
+                    <div class="bg-white rounded-xl p-6 shadow">
+                        <div class="text-3xl font-bold text-yellow-600" id="totalIzinRekap">0</div>
+                        <div class="text-sm text-gray-600">Total Izin</div>
                     </div>
-                    <div class="bg-white rounded-xl p-4 text-center shadow">
-                        <div class="text-2xl font-bold text-yellow-600" id="totalIzinRekap">0</div>
-                        <div class="text-xs text-gray-600">Izin</div>
+                    <div class="bg-white rounded-xl p-6 shadow">
+                        <div class="text-3xl font-bold text-red-600" id="totalSakitRekap">0</div>
+                        <div class="text-sm text-gray-600">Total Sakit</div>
                     </div>
-                    <div class="bg-white rounded-xl p-4 text-center shadow">
-                        <div class="text-2xl font-bold text-red-600" id="totalSakitRekap">0</div>
-                        <div class="text-xs text-gray-600">Sakit</div>
-                    </div>
-                    <div class="bg-white rounded-xl p-4 text-center shadow">
-                        <div class="text-2xl font-bold text-gray-600" id="totalAbsenRekap">0</div>
-                        <div class="text-xs text-gray-600">Absen</div>
+                    <div class="bg-white rounded-xl p-6 shadow">
+                        <div class="text-3xl font-bold text-gray-600" id="totalAbsenRekap">0</div>
+                        <div class="text-sm text-gray-600">Total Absen</div>
                     </div>
                 </div>
 
@@ -729,7 +714,6 @@
                                     <th>Nama</th>
                                     <th>Kelas</th>
                                     <th>Status</th>
-                                    <th>Waktu</th>
                                     <th>Metode</th>
                                     <th>Lokasi</th>
                                     <th>Keterangan</th>
@@ -842,7 +826,6 @@
                                     <th>Nama</th>
                                     <th>Kelas</th>
                                     <th>Status</th>
-                                    <th>Waktu</th>
                                     <th>Lokasi</th>
                                     <th>Radius</th>
                                 </tr>
@@ -1068,7 +1051,7 @@
                 ATTENDANCE: "699ffd3c43b1c97be99f754c",
                 CONFIG: "699e9aead0ea881f40d72ba1",
                 PELANGGARAN: "69a3f6e5d0ea881f40e42434",
-                LOCATIONS: "69a51fe7ae596e708f56d415_locations"
+                LOCATIONS: "69a51fe7ae596e708f56d415_locations" // Untuk menyimpan data lokasi
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
@@ -1077,7 +1060,7 @@
         const SCHOOL_LOCATION = {
             lat: -7.230636,
             lng: 112.749601,
-            radius: 100,
+            radius: 100, // meter
             address: "Jl. Irawati 1 No. 15-17, Surabaya"
         };
 
@@ -1288,8 +1271,10 @@
 
         async function saveLocationRecord(record) {
             try {
+                // Tambahkan ke array lokal
                 locationRecords.push(record);
                 
+                // Simpan ke JSONBin
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.LOCATIONS}`, {
                     method: 'PUT',
                     headers: {
@@ -1388,14 +1373,6 @@
             return date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
-        function formatTime(timestamp) {
-            if (!timestamp) return '-';
-            return new Date(timestamp).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
         function formatDateTime(timestamp) {
             const date = new Date(timestamp);
             return date.toLocaleString('id-ID', {
@@ -1418,7 +1395,7 @@
 
         // ==================== FUNGSI LOKASI ====================
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
+            const R = 6371e3; // Radius bumi dalam meter
             const φ1 = lat1 * Math.PI/180;
             const φ2 = lat2 * Math.PI/180;
             const Δφ = (lat2-lat1) * Math.PI/180;
@@ -1429,7 +1406,7 @@
                     Math.sin(Δλ/2) * Math.sin(Δλ/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-            return R * c;
+            return R * c; // dalam meter
         }
 
         function isWithinSchoolRadius(lat, lng) {
@@ -1455,13 +1432,15 @@
             const tbody = document.getElementById('lokasiTableBody');
             if (!tbody) return;
             
+            // Filter absensi yang memiliki lokasi
             const withLocation = attendanceRecords.filter(r => r.location);
             
             if (withLocation.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12">Belum ada data lokasi</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12">Belum ada data lokasi</td></tr>';
                 return;
             }
             
+            // Hitung statistik
             const dalamRadius = withLocation.filter(r => r.location && isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
             const luarRadius = withLocation.filter(r => r.location && !isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
             const tanpaLokasi = attendanceRecords.filter(r => !r.location).length;
@@ -1470,6 +1449,7 @@
             document.getElementById('statLuarRadius').textContent = luarRadius;
             document.getElementById('statTanpaLokasi').textContent = tanpaLokasi;
             
+            // Urutkan dari yang terbaru
             const sorted = [...withLocation].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
             
             tbody.innerHTML = sorted.map(record => {
@@ -1485,7 +1465,6 @@
                         <td class="px-4 py-4">
                             <span class="status-badge ${record.status}">${record.status.toUpperCase()}</span>
                         </td>
-                        <td class="px-4 py-4">${formatTime(record.timestamp)}</td>
                         <td class="px-4 py-4">
                             ${record.location ? `
                                 <div class="text-xs">
@@ -2121,7 +2100,7 @@
             const filteredStudents = getFilteredStudents();
             
             if (filteredStudents.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12">Tidak ada data siswa</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12">Tidak ada data siswa</td></tr>';
                 return;
             }
             
@@ -2148,16 +2127,10 @@
                             <select class="border rounded-lg px-3 py-2" onchange="updateAttendanceStatus('${student.id}', this.value)">
                                 <option value="">Pilih</option>
                                 <option value="hadir" ${attendance?.status === 'hadir' ? 'selected' : ''}>✅ Hadir</option>
-                                <option value="pulang" ${attendance?.status === 'pulang' ? 'selected' : ''}>🚶 Pulang</option>
                                 <option value="izin" ${attendance?.status === 'izin' ? 'selected' : ''}>📝 Izin</option>
                                 <option value="sakit" ${attendance?.status === 'sakit' ? 'selected' : ''}>🏥 Sakit</option>
                                 <option value="absen" ${attendance?.status === 'absen' ? 'selected' : ''}>❌ Absen</option>
                             </select>
-                        </td>
-                        <td class="px-4 py-4">
-                            ${attendance ? `
-                                <span class="time-badge"><i class="far fa-clock mr-1"></i>${formatTime(attendance.timestamp)}</span>
-                            ` : '-'}
                         </td>
                         <td class="px-4 py-4">
                             ${attendance?.location ? `
@@ -2253,20 +2226,18 @@
             
             const stats = {
                 hadir: filtered.filter(r => r.status === 'hadir').length,
-                pulang: filtered.filter(r => r.status === 'pulang').length,
                 izin: filtered.filter(r => r.status === 'izin').length,
                 sakit: filtered.filter(r => r.status === 'sakit').length,
                 absen: filtered.filter(r => r.status === 'absen').length
             };
             
             document.getElementById('totalHadirRekap').textContent = stats.hadir;
-            document.getElementById('totalPulangRekap').textContent = stats.pulang;
             document.getElementById('totalIzinRekap').textContent = stats.izin;
             document.getElementById('totalSakitRekap').textContent = stats.sakit;
             document.getElementById('totalAbsenRekap').textContent = stats.absen;
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12">Tidak ada data kehadiran</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12">Tidak ada data kehadiran</td></tr>';
                 return;
             }
             
@@ -2291,7 +2262,6 @@
                         <td class="px-4 py-4">
                             <span class="status-badge ${record.status}">${record.status.toUpperCase()}</span>
                         </td>
-                        <td class="px-4 py-4">${formatTime(record.timestamp)}</td>
                         <td class="px-4 py-4">${record.metode}</td>
                         <td class="px-4 py-4">
                             ${record.location ? 
@@ -2684,38 +2654,6 @@
             showToast('Semua siswa ditandai hadir');
         }
 
-        async function markAllPulang() {
-            const filteredStudents = getFilteredStudents();
-            
-            for (const student of filteredStudents) {
-                let attendance = attendanceRecords.find(r => r.student_id === student.id && r.tanggal === currentDate);
-                
-                if (attendance) {
-                    attendance.status = 'pulang';
-                } else {
-                    attendance = {
-                        id: generateId(),
-                        student_id: student.id,
-                        student_nis: student.nis,
-                        student_nama: student.nama,
-                        student_kelas: student.kelas,
-                        student_jurusan: student.jurusan,
-                        student_photo: student.photo || '',
-                        status: 'pulang',
-                        metode: 'manual',
-                        keterangan: '',
-                        tanggal: currentDate,
-                        timestamp: Date.now()
-                    };
-                    attendanceRecords.push(attendance);
-                }
-            }
-            
-            await saveAttendance();
-            renderStudentTable();
-            showToast('Semua siswa ditandai pulang');
-        }
-
         function showDeleteStatusModal() {
             document.getElementById('deleteStatusModal').classList.remove('hidden');
         }
@@ -2819,7 +2757,6 @@
                         kelas: record.student_kelas,
                         jurusan: record.student_jurusan,
                         hadir: 0,
-                        pulang: 0,
                         izin: 0,
                         sakit: 0,
                         absen: 0,
@@ -2829,7 +2766,6 @@
                 
                 studentStats[studentId].total++;
                 if (record.status === 'hadir') studentStats[studentId].hadir++;
-                else if (record.status === 'pulang') studentStats[studentId].pulang++;
                 else if (record.status === 'izin') studentStats[studentId].izin++;
                 else if (record.status === 'sakit') studentStats[studentId].sakit++;
                 else if (record.status === 'absen') studentStats[studentId].absen++;
@@ -2889,7 +2825,6 @@
                                 <th>Kelas</th>
                                 <th>Jurusan</th>
                                 <th class="text-center">Hadir</th>
-                                <th class="text-center">Pulang</th>
                                 <th class="text-center">Izin</th>
                                 <th class="text-center">Sakit</th>
                                 <th class="text-center">Alpha</th>
@@ -2908,7 +2843,6 @@
                                         <td>${s.kelas}</td>
                                         <td>${s.jurusan}</td>
                                         <td class="text-center">${s.hadir}</td>
-                                        <td class="text-center">${s.pulang}</td>
                                         <td class="text-center">${s.izin}</td>
                                         <td class="text-center">${s.sakit}</td>
                                         <td class="text-center">${s.absen}</td>
@@ -2995,7 +2929,6 @@
                         th { background: #667eea; color: white; padding: 8px; border: 1px solid #ddd; }
                         td { padding: 6px; border: 1px solid #ddd; }
                         .status-hadir { background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; }
-                        .status-pulang { background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; }
                         .status-izin { background: #f59e0b; color: white; padding: 2px 8px; border-radius: 12px; }
                         .status-sakit { background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; }
                         .status-absen { background: #6b7280; color: white; padding: 2px 8px; border-radius: 12px; }
@@ -3022,12 +2955,11 @@
                         nis: r.student_nis,
                         nama: r.student_nama,
                         kelas: r.student_kelas,
-                        hadir: 0, pulang: 0, izin: 0, sakit: 0, absen: 0, total: 0
+                        hadir: 0, izin: 0, sakit: 0, absen: 0, total: 0
                     };
                 }
                 studentStats[r.student_id].total++;
                 if (r.status === 'hadir') studentStats[r.student_id].hadir++;
-                else if (r.status === 'pulang') studentStats[r.student_id].pulang++;
                 else if (r.status === 'izin') studentStats[r.student_id].izin++;
                 else if (r.status === 'sakit') studentStats[r.student_id].sakit++;
                 else if (r.status === 'absen') studentStats[r.student_id].absen++;
@@ -3044,7 +2976,6 @@
                                 <th>Nama</th>
                                 <th>Kelas</th>
                                 <th class="text-center">Hadir</th>
-                                <th class="text-center">Pulang</th>
                                 <th class="text-center">Izin</th>
                                 <th class="text-center">Sakit</th>
                                 <th class="text-center">Alpha</th>
@@ -3062,7 +2993,6 @@
                                         <td>${s.nama}</td>
                                         <td>${s.kelas}</td>
                                         <td class="text-center">${s.hadir}</td>
-                                        <td class="text-center">${s.pulang}</td>
                                         <td class="text-center">${s.izin}</td>
                                         <td class="text-center">${s.sakit}</td>
                                         <td class="text-center">${s.absen}</td>
@@ -3095,7 +3025,6 @@
                                     <th>Nama</th>
                                     <th>Kelas</th>
                                     <th>Status</th>
-                                    <th>Waktu</th>
                                     <th>Metode</th>
                                     <th>Lokasi</th>
                                     <th>Keterangan</th>
@@ -3108,21 +3037,13 @@
                                         `${r.location.lat.toFixed(6)}, ${r.location.lng.toFixed(6)} (${Math.round(r.location.accuracy)}m)` : 
                                         '-';
                                     
-                                    let statusClass = 'status-';
-                                    if (r.status === 'hadir') statusClass += 'hadir';
-                                    else if (r.status === 'pulang') statusClass += 'pulang';
-                                    else if (r.status === 'izin') statusClass += 'izin';
-                                    else if (r.status === 'sakit') statusClass += 'sakit';
-                                    else statusClass += 'absen';
-                                    
                                     return `
                                         <tr>
                                             <td>${i + 1}</td>
                                             <td>${r.student_nis}</td>
                                             <td>${r.student_nama}</td>
                                             <td>${r.student_kelas}</td>
-                                            <td><span class="${statusClass}">${r.status.toUpperCase()}</span></td>
-                                            <td>${formatTime(r.timestamp)}</td>
+                                            <td><span class="status-${r.status}">${r.status.toUpperCase()}</span></td>
                                             <td>${r.metode}</td>
                                             <td><span class="${locationClass}">${locationText}</span></td>
                                             <td>${r.keterangan || '-'}</td>
@@ -3348,7 +3269,6 @@
         window.updateAttendanceStatus = updateAttendanceStatus;
         window.updateAttendanceKeterangan = updateAttendanceKeterangan;
         window.markAllPresent = markAllPresent;
-        window.markAllPulang = markAllPulang;
         window.showDeleteStatusModal = showDeleteStatusModal;
         window.closeDeleteStatusModal = closeDeleteStatusModal;
         window.confirmDeleteStatus = confirmDeleteStatus;
