@@ -701,7 +701,7 @@
                 <div class="glass-card rounded-2xl overflow-hidden">
                     <div class="p-8 border-b flex justify-between items-center">
                         <h3 class="text-xl font-bold">Detail Kehadiran</h3>
-                        <button onclick="deleteAllAttendanceRecords()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
+                        <button onclick="confirmDeleteAllAttendance()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
                             <i class="fas fa-trash-alt mr-2"></i>Hapus Semua
                         </button>
                     </div>
@@ -1006,6 +1006,21 @@
         </div>
     </div>
 
+    <!-- MODAL HAPUS SEMUA DATA ABSENSI -->
+    <div id="deleteAllAttendanceModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="modal-content w-full max-w-md p-8 text-center">
+            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-3xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold mb-2">Hapus Semua Data Kehadiran</h3>
+            <p class="text-gray-600 mb-6">Apakah Anda yakin ingin menghapus SEMUA data kehadiran? Tindakan ini tidak dapat dibatalkan!</p>
+            <div class="flex gap-4">
+                <button onclick="executeDeleteAllAttendance()" class="flex-1 py-4 bg-red-600 text-white rounded-xl font-semibold">Ya, Hapus Semua</button>
+                <button onclick="closeDeleteAllAttendanceModal()" class="flex-1 py-4 bg-gray-600 text-white rounded-xl font-semibold">Batal</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL QR -->
     <div id="qrModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="modal-content w-full max-w-sm p-6">
@@ -1051,7 +1066,7 @@
                 ATTENDANCE: "699ffd3c43b1c97be99f754c",
                 CONFIG: "699e9aead0ea881f40d72ba1",
                 PELANGGARAN: "69a3f6e5d0ea881f40e42434",
-                LOCATIONS: "69a51fe7ae596e708f56d415_locations" // Untuk menyimpan data lokasi
+                LOCATIONS: "69a51fe7ae596e708f56d415_locations"
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
@@ -1060,7 +1075,7 @@
         const SCHOOL_LOCATION = {
             lat: -7.230636,
             lng: 112.749601,
-            radius: 100, // meter
+            radius: 100,
             address: "Jl. Irawati 1 No. 15-17, Surabaya"
         };
 
@@ -1271,10 +1286,8 @@
 
         async function saveLocationRecord(record) {
             try {
-                // Tambahkan ke array lokal
                 locationRecords.push(record);
                 
-                // Simpan ke JSONBin
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.LOCATIONS}`, {
                     method: 'PUT',
                     headers: {
@@ -1395,7 +1408,7 @@
 
         // ==================== FUNGSI LOKASI ====================
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Radius bumi dalam meter
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI/180;
             const φ2 = lat2 * Math.PI/180;
             const Δφ = (lat2-lat1) * Math.PI/180;
@@ -1406,7 +1419,7 @@
                     Math.sin(Δλ/2) * Math.sin(Δλ/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-            return R * c; // dalam meter
+            return R * c;
         }
 
         function isWithinSchoolRadius(lat, lng) {
@@ -1432,7 +1445,6 @@
             const tbody = document.getElementById('lokasiTableBody');
             if (!tbody) return;
             
-            // Filter absensi yang memiliki lokasi
             const withLocation = attendanceRecords.filter(r => r.location);
             
             if (withLocation.length === 0) {
@@ -1440,7 +1452,6 @@
                 return;
             }
             
-            // Hitung statistik
             const dalamRadius = withLocation.filter(r => r.location && isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
             const luarRadius = withLocation.filter(r => r.location && !isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
             const tanpaLokasi = attendanceRecords.filter(r => !r.location).length;
@@ -1449,7 +1460,6 @@
             document.getElementById('statLuarRadius').textContent = luarRadius;
             document.getElementById('statTanpaLokasi').textContent = tanpaLokasi;
             
-            // Urutkan dari yang terbaru
             const sorted = [...withLocation].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
             
             tbody.innerHTML = sorted.map(record => {
@@ -2672,6 +2682,28 @@
             showToast('Semua status kehadiran dihapus');
         }
 
+        // ==================== FUNGSI HAPUS SEMUA DATA KEHADIRAN ====================
+        function confirmDeleteAllAttendance() {
+            document.getElementById('deleteAllAttendanceModal').classList.remove('hidden');
+        }
+
+        function closeDeleteAllAttendanceModal() {
+            document.getElementById('deleteAllAttendanceModal').classList.add('hidden');
+        }
+
+        async function executeDeleteAllAttendance() {
+            showLoading('Menghapus semua data kehadiran...');
+            
+            attendanceRecords = [];
+            await saveAttendance();
+            
+            hideLoading();
+            closeDeleteAllAttendanceModal();
+            renderRekapTable();
+            renderLokasiTable();
+            showToast('Semua data kehadiran berhasil dihapus');
+        }
+
         // ==================== DATE FUNCTIONS ====================
         function setTanggal() {
             const selectedDate = document.getElementById('inputTanggal').value;
@@ -3090,23 +3122,6 @@
             printWindow.print();
         }
 
-        async function deleteAllAttendanceRecords() {
-            if (attendanceRecords.length === 0) {
-                showToast('Tidak ada data kehadiran', 'error');
-                return;
-            }
-            
-            if (!confirm('Hapus semua data kehadiran?')) return;
-            
-            showLoading('Menghapus semua data...');
-            attendanceRecords = [];
-            await saveAttendance();
-            renderRekapTable();
-            renderLokasiTable();
-            hideLoading();
-            showToast('Semua data kehadiran dihapus');
-        }
-
         // ==================== PAGE NAVIGATION ====================
         function showPage(page) {
             currentPage = page;
@@ -3278,7 +3293,9 @@
         window.applyBulanFilter = applyBulanFilter;
         window.printReport = printReport;
         window.printDetailedReport = printDetailedReport;
-        window.deleteAllAttendanceRecords = deleteAllAttendanceRecords;
+        window.confirmDeleteAllAttendance = confirmDeleteAllAttendance;
+        window.closeDeleteAllAttendanceModal = closeDeleteAllAttendanceModal;
+        window.executeDeleteAllAttendance = executeDeleteAllAttendance;
         window.handleLogoUpload = handleLogoUpload;
         window.openTambahPelanggaranModal = openTambahPelanggaranModal;
         window.openEditPelanggaranModal = openEditPelanggaranModal;
