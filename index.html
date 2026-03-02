@@ -10,6 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -26,20 +28,13 @@
             position: relative;
         }
 
-        /* Optimasi CSS - gunakan transform instead of top/left untuk animasi */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            will-change: transform, box-shadow;
-        }
-
-        .glass-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 48px rgba(31, 38, 135, 0.25);
+            transition: all 0.3s ease;
         }
 
         .status-badge {
@@ -50,6 +45,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
+            transition: all 0.3s ease;
         }
 
         .status-badge.hadir {
@@ -94,20 +90,12 @@
             color: #991b1b;
         }
 
-        .modern-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
         .modern-table th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             font-weight: 600;
             padding: 16px;
             font-size: 14px;
-            position: sticky;
-            top: 0;
-            z-index: 10;
         }
 
         .modern-table td {
@@ -126,11 +114,9 @@
         .modal-content {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 24px;
-            animation: modalSlideIn 0.2s ease-out;
-            will-change: transform, opacity;
+            animation: modalSlideIn 0.3s ease-out;
         }
 
         @keyframes modalSlideIn {
@@ -141,17 +127,12 @@
         .btn-modern {
             position: relative;
             overflow: hidden;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            will-change: transform;
+            transition: all 0.3s ease;
         }
 
         .btn-modern:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.5);
-        }
-
-        .btn-modern:active {
-            transform: translateY(0);
         }
 
         .kelas-badge {
@@ -171,14 +152,13 @@
             border-radius: 12px;
             color: white;
             z-index: 9999;
-            animation: slideUp 0.2s ease-out;
-            max-width: 400px;
-            will-change: transform;
+            animation: slideUp 0.3s ease-out;
         }
 
         .toast-success { background: #10b981; }
         .toast-error { background: #ef4444; }
         .toast-info { background: #3b82f6; }
+        .toast-warning { background: #f59e0b; }
 
         @keyframes slideUp {
             from { transform: translateY(100%); opacity: 0; }
@@ -204,7 +184,7 @@
             border: 3px solid #f3f3f3;
             border-top: 3px solid #667eea;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
@@ -212,11 +192,18 @@
             100% { transform: rotate(360deg); }
         }
 
+        .logo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
         .nav-tab {
             padding: 12px 24px;
             border-radius: 12px 12px 0 0;
             font-weight: 600;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             cursor: pointer;
         }
 
@@ -231,17 +218,43 @@
             color: #6b7280;
         }
 
-        /* Optimasi scroll */
-        .optimized-scroll {
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
+        .nav-tab:hover:not(.active) {
+            background: rgba(255,255,255,0.8);
         }
 
-        /* Virtual scroll container */
-        .virtual-scroll-container {
-            height: 500px;
-            overflow-y: auto;
-            position: relative;
+        .map-container {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .map-container iframe {
+            width: 100%;
+            height: 250px;
+            border: 0;
+        }
+
+        .location-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .location-badge.outside {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .attendance-location {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 11px;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -298,6 +311,9 @@
                         </button>
                         <button onclick="showPage('rekap')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-700 hover:bg-gray-50">
                             <i class="fas fa-chart-bar mr-2"></i>Rekap
+                        </button>
+                        <button onclick="showPage('lokasi')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-700 hover:bg-gray-50">
+                            <i class="fas fa-map-marker-alt mr-2"></i>Lokasi
                         </button>
                     </div>
                 </div>
@@ -357,7 +373,7 @@
                     <div class="p-8 border-b">
                         <h2 class="text-2xl font-bold">Daftar Absensi Siswa</h2>
                     </div>
-                    <div class="overflow-x-auto virtual-scroll-container" id="studentTableContainer">
+                    <div class="overflow-x-auto">
                         <table class="modern-table w-full">
                             <thead>
                                 <tr>
@@ -368,6 +384,7 @@
                                     <th>Kelas</th>
                                     <th>Jurusan</th>
                                     <th>Status</th>
+                                    <th>Lokasi</th>
                                     <th>Keterangan</th>
                                 </tr>
                             </thead>
@@ -408,7 +425,7 @@
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto virtual-scroll-container">
+                    <div class="overflow-x-auto">
                         <table class="modern-table w-full">
                             <thead>
                                 <tr>
@@ -442,10 +459,10 @@
                             <button onclick="openTambahPelanggaranModal()" class="btn-modern px-8 py-4 bg-orange-600 text-white rounded-xl font-semibold">
                                 <i class="fas fa-plus-circle mr-2"></i>Tambah Pelanggaran
                             </button>
-                            <select id="pelanggaranFilterKelas" class="px-4 py-2 border rounded-lg" onchange="debouncedLoadPelanggaran()">
+                            <select id="pelanggaranFilterKelas" class="px-4 py-2 border rounded-lg" onchange="loadPelanggaran()">
                                 <option value="">Semua Kelas</option>
                             </select>
-                            <select id="pelanggaranFilterBulan" class="px-4 py-2 border rounded-lg" onchange="debouncedLoadPelanggaran()">
+                            <select id="pelanggaranFilterBulan" class="px-4 py-2 border rounded-lg" onchange="loadPelanggaran()">
                                 <option value="">Semua Bulan</option>
                                 <option value="01">Januari</option>
                                 <option value="02">Februari</option>
@@ -460,7 +477,7 @@
                                 <option value="11">November</option>
                                 <option value="12">Desember</option>
                             </select>
-                            <select id="pelanggaranFilterTahun" class="px-4 py-2 border rounded-lg" onchange="debouncedLoadPelanggaran()">
+                            <select id="pelanggaranFilterTahun" class="px-4 py-2 border rounded-lg" onchange="loadPelanggaran()">
                                 <option value="">Semua Tahun</option>
                             </select>
                         </div>
@@ -491,7 +508,7 @@
                         <div class="p-8 border-b">
                             <h3 class="text-xl font-bold">Riwayat Pelanggaran</h3>
                         </div>
-                        <div class="overflow-x-auto virtual-scroll-container">
+                        <div class="overflow-x-auto">
                             <table class="modern-table w-full">
                                 <thead>
                                     <tr>
@@ -680,12 +697,15 @@
                     </div>
                 </div>
 
-                <!-- Tabel Rekap - TANPA TOMBOL HAPUS SEMUA -->
+                <!-- Tabel Rekap -->
                 <div class="glass-card rounded-2xl overflow-hidden">
-                    <div class="p-8 border-b">
+                    <div class="p-8 border-b flex justify-between items-center">
                         <h3 class="text-xl font-bold">Detail Kehadiran</h3>
+                        <button onclick="deleteAllAttendanceRecords()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
+                            <i class="fas fa-trash-alt mr-2"></i>Hapus Semua
+                        </button>
                     </div>
-                    <div class="overflow-x-auto virtual-scroll-container">
+                    <div class="overflow-x-auto">
                         <table class="modern-table w-full">
                             <thead>
                                 <tr>
@@ -695,10 +715,122 @@
                                     <th>Kelas</th>
                                     <th>Status</th>
                                     <th>Metode</th>
+                                    <th>Lokasi</th>
                                     <th>Keterangan</th>
                                 </tr>
                             </thead>
                             <tbody id="rekapTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== PAGE LOKASI ========== -->
+            <div id="pageLokasi" class="max-w-7xl mx-auto px-4 py-8 hidden">
+                <div class="glass-card rounded-2xl p-8 mb-8">
+                    <h2 class="text-3xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-map-marked-alt text-red-500 mr-3"></i>
+                        Peta Lokasi Sekolah
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Map Container -->
+                        <div class="lg:col-span-2 map-container">
+                            <iframe 
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d514.1851226791971!2d112.7496008033516!3d-7.230636387035431!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd7f94d0048ecd5%3A0x8fea446505a5e0b8!2sMA%20Ibnu%20Husain!5e0!3m2!1sid!2sid!4v1772422202009!5m2!1sid!2sid" 
+                                style="border:0; width: 100%; height: 400px;" 
+                                allowfullscreen="" 
+                                loading="lazy" 
+                                referrerpolicy="no-referrer-when-downgrade">
+                            </iframe>
+                        </div>
+                        
+                        <!-- Info Panel -->
+                        <div class="bg-white rounded-xl p-6 shadow-lg">
+                            <h3 class="font-bold text-lg mb-4 text-gray-800">Informasi Lokasi</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-school text-blue-600 mt-1"></i>
+                                    <div>
+                                        <p class="font-medium">MAS IBNU HUSAIN</p>
+                                        <p class="text-sm text-gray-600">Jl. Irawati 1 No. 15-17, Surabaya</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-map-pin text-red-600 mt-1"></i>
+                                    <div>
+                                        <p class="font-medium">Koordinat</p>
+                                        <p class="text-sm text-gray-600">-7.230636, 112.749601</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-globe text-green-600 mt-1"></i>
+                                    <div>
+                                        <p class="font-medium">Google Maps</p>
+                                        <a href="https://maps.app.goo.gl/m22C8Ce1fYEDM5DCA" target="_blank" class="text-sm text-blue-600 hover:underline break-all">
+                                            https://maps.app.goo.gl/m22C8Ce1fYEDM5DCA
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="border-t pt-4 mt-4">
+                                    <h4 class="font-medium mb-2">Radius Absensi</h4>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-circle text-green-500 text-xs"></i>
+                                        <span class="text-sm">Dalam radius 100 meter dari sekolah</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <i class="fas fa-circle text-red-500 text-xs"></i>
+                                        <span class="text-sm">Di luar radius (tidak valid untuk absensi QR)</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-blue-50 rounded-lg p-4 mt-4">
+                                    <p class="text-xs text-blue-700">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Saat siswa scan QR, sistem akan mencatat lokasi mereka. Absensi hanya valid jika dalam radius sekolah.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistik Lokasi -->
+                <div class="glass-card rounded-2xl p-8">
+                    <h3 class="text-xl font-bold mb-4">Statistik Absensi Berdasarkan Lokasi</h3>
+                    
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-white rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-green-600" id="statDalamRadius">0</div>
+                            <div class="text-xs text-gray-600">Dalam Radius</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-red-600" id="statLuarRadius">0</div>
+                            <div class="text-xs text-gray-600">Luar Radius</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="statTanpaLokasi">0</div>
+                            <div class="text-xs text-gray-600">Tanpa Lokasi</div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="modern-table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Nama</th>
+                                    <th>Kelas</th>
+                                    <th>Status</th>
+                                    <th>Lokasi</th>
+                                    <th>Radius</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lokasiTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -918,15 +1050,25 @@
                 STUDENTS: "699ffd15ae596e708f4b42a4",
                 ATTENDANCE: "699ffd3c43b1c97be99f754c",
                 CONFIG: "699e9aead0ea881f40d72ba1",
-                PELANGGARAN: "69a3f6e5d0ea881f40e42434"
+                PELANGGARAN: "69a3f6e5d0ea881f40e42434",
+                LOCATIONS: "69a51fe7ae596e708f56d415_locations" // Untuk menyimpan data lokasi
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
+        };
+
+        // ==================== KONSTANTA LOKASI ====================
+        const SCHOOL_LOCATION = {
+            lat: -7.230636,
+            lng: 112.749601,
+            radius: 100, // meter
+            address: "Jl. Irawati 1 No. 15-17, Surabaya"
         };
 
         // ==================== STATE ====================
         let students = [];
         let attendanceRecords = [];
         let pelanggaranRecords = [];
+        let locationRecords = [];
         let kategoriPelanggaran = [
             { id: "k1", nama: "Ringan", poin: 5, deskripsi: "Pelanggaran ringan seperti terlambat" },
             { id: "k2", nama: "Sedang", poin: 10, deskripsi: "Pelanggaran sedang seperti membolos" },
@@ -944,46 +1086,7 @@
         let dateRangeFilter = { start: null, end: null };
         let currentPelanggaranTab = 'list';
 
-        // Cache untuk performa
-        let studentsCache = null;
-        let attendanceCache = null;
-        let pelanggaranCache = null;
-        let lastRenderTime = 0;
-        const RENDER_THROTTLE = 100; // ms
-
-        // Debounce functions
-        const debouncedRenderStudentTable = debounce(() => renderStudentTable(), 100);
-        const debouncedRenderSiswaManagementTable = debounce(() => renderSiswaManagementTable(), 100);
-        const debouncedRenderRekapTable = debounce(() => renderRekapTable(), 100);
-        const debouncedRenderPelanggaranTable = debounce(() => renderPelanggaranTable(), 100);
-        const debouncedUpdatePelanggaranStats = debounce(() => updatePelanggaranStats(), 100);
-        const debouncedUpdatePelanggaranCharts = debounce(() => updatePelanggaranCharts(), 100);
-        const debouncedLoadPelanggaran = debounce(() => loadPelanggaran(), 100);
-
-        // ==================== FUNGSI UTILITY ====================
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        function throttle(func, limit) {
-            let inThrottle;
-            return function(...args) {
-                if (!inThrottle) {
-                    func.apply(this, args);
-                    inThrottle = true;
-                    setTimeout(() => inThrottle = false, limit);
-                }
-            };
-        }
-
+        // ==================== FUNGSI LOADING ====================
         function showLoading(message = 'Memproses...') {
             document.getElementById('loadingMessage').textContent = message;
             document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -1112,12 +1215,7 @@
         }
 
         // ==================== FUNGSI DATABASE ====================
-        async function loadStudents(useCache = true) {
-            if (useCache && studentsCache) {
-                students = studentsCache;
-                return students;
-            }
-            
+        async function loadStudents() {
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
@@ -1125,7 +1223,6 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 students = Array.isArray(data) ? data : [];
-                studentsCache = students;
                 console.log('✅ Loaded students:', students.length);
                 return students;
             } catch (error) {
@@ -1135,12 +1232,7 @@
             }
         }
 
-        async function loadAttendance(useCache = true) {
-            if (useCache && attendanceCache) {
-                attendanceRecords = attendanceCache;
-                return attendanceRecords;
-            }
-            
+        async function loadAttendance() {
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
@@ -1148,7 +1240,6 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 attendanceRecords = Array.isArray(data) ? data : [];
-                attendanceCache = attendanceRecords;
                 console.log('✅ Loaded attendance:', attendanceRecords.length);
                 return attendanceRecords;
             } catch (error) {
@@ -1157,17 +1248,53 @@
             }
         }
 
-        // ==================== FUNGSI PELANGGARAN ====================
-        async function loadPelanggaran(useCache = true) {
-            if (useCache && pelanggaranCache) {
-                pelanggaranRecords = pelanggaranCache;
-                renderPelanggaranTable();
-                updatePelanggaranStats();
-                renderKategoriTable();
-                updatePelanggaranCharts();
-                return pelanggaranRecords;
+        async function loadLocationRecords() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.LOCATIONS}/latest`, {
+                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    locationRecords = Array.isArray(data) ? data : [];
+                } else {
+                    locationRecords = [];
+                }
+                
+                console.log('✅ Loaded location records:', locationRecords.length);
+                return locationRecords;
+            } catch (error) {
+                console.error('❌ Gagal load lokasi:', error);
+                return [];
             }
-            
+        }
+
+        async function saveLocationRecord(record) {
+            try {
+                // Tambahkan ke array lokal
+                locationRecords.push(record);
+                
+                // Simpan ke JSONBin
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.LOCATIONS}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(locationRecords)
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                console.log('✅ Lokasi tersimpan');
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan lokasi:', error);
+                return false;
+            }
+        }
+
+        // ==================== FUNGSI PELANGGARAN ====================
+        async function loadPelanggaran() {
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
@@ -1184,8 +1311,6 @@
                     if (data.kategori) {
                         kategoriPelanggaran = Array.isArray(data.kategori) ? data.kategori : kategoriPelanggaran;
                     }
-                    
-                    pelanggaranCache = pelanggaranRecords;
                 } else {
                     pelanggaranRecords = [];
                 }
@@ -1222,7 +1347,6 @@
                 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 console.log('✅ Pelanggaran saved');
-                pelanggaranCache = pelanggaranRecords;
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran:', error);
@@ -1264,9 +1388,102 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast toast-${type}`;
-            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>${message}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>${message}`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ==================== FUNGSI LOKASI ====================
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Radius bumi dalam meter
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c; // dalam meter
+        }
+
+        function isWithinSchoolRadius(lat, lng) {
+            const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
+            return distance <= SCHOOL_LOCATION.radius;
+        }
+
+        function getLocationStatus(lat, lng) {
+            if (!lat || !lng) return { status: 'unknown', text: 'Tidak diketahui', class: '' };
+            
+            const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
+            const withinRadius = distance <= SCHOOL_LOCATION.radius;
+            
+            return {
+                status: withinRadius ? 'within' : 'outside',
+                text: withinRadius ? `Dalam radius (${Math.round(distance)}m)` : `Luar radius (${Math.round(distance)}m)`,
+                class: withinRadius ? 'location-badge' : 'location-badge outside',
+                distance: Math.round(distance)
+            };
+        }
+
+        function renderLokasiTable() {
+            const tbody = document.getElementById('lokasiTableBody');
+            if (!tbody) return;
+            
+            // Filter absensi yang memiliki lokasi
+            const withLocation = attendanceRecords.filter(r => r.location);
+            
+            if (withLocation.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12">Belum ada data lokasi</td></tr>';
+                return;
+            }
+            
+            // Hitung statistik
+            const dalamRadius = withLocation.filter(r => r.location && isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
+            const luarRadius = withLocation.filter(r => r.location && !isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
+            const tanpaLokasi = attendanceRecords.filter(r => !r.location).length;
+            
+            document.getElementById('statDalamRadius').textContent = dalamRadius;
+            document.getElementById('statLuarRadius').textContent = luarRadius;
+            document.getElementById('statTanpaLokasi').textContent = tanpaLokasi;
+            
+            // Urutkan dari yang terbaru
+            const sorted = [...withLocation].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+            
+            tbody.innerHTML = sorted.map(record => {
+                const locStatus = record.location ? 
+                    getLocationStatus(record.location.lat, record.location.lng) : 
+                    { text: 'Tidak ada data', class: '' };
+                
+                return `
+                    <tr>
+                        <td class="px-4 py-4">${formatDateID(record.tanggal)}</td>
+                        <td class="px-4 py-4">${record.student_nama}</td>
+                        <td class="px-4 py-4">${record.student_kelas}</td>
+                        <td class="px-4 py-4">
+                            <span class="status-badge ${record.status}">${record.status.toUpperCase()}</span>
+                        </td>
+                        <td class="px-4 py-4">
+                            ${record.location ? `
+                                <div class="text-xs">
+                                    <div><i class="fas fa-map-pin mr-1"></i>${record.location.lat.toFixed(6)}, ${record.location.lng.toFixed(6)}</div>
+                                    <div class="attendance-location mt-1">
+                                        <i class="fas fa-wifi mr-1"></i>Akurasi: ±${Math.round(record.location.accuracy)}m
+                                    </div>
+                                </div>
+                            ` : '-'}
+                        </td>
+                        <td class="px-4 py-4">
+                            ${record.location ? 
+                                `<span class="${locStatus.class}">${locStatus.text}</span>` : 
+                                '<span class="text-gray-400">-</span>'
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // ==================== FUNGSI MODAL & FOTO ====================
@@ -1454,9 +1671,9 @@
             
             hideLoading();
             closePelanggaranModal();
-            debouncedRenderPelanggaranTable();
-            debouncedUpdatePelanggaranStats();
-            debouncedUpdatePelanggaranCharts();
+            renderPelanggaranTable();
+            updatePelanggaranStats();
+            updatePelanggaranCharts();
             showToast('Data pelanggaran berhasil disimpan');
         }
 
@@ -1550,19 +1767,16 @@
                 await saveAttendance();
                 await savePelanggaran();
                 
-                studentsCache = students;
-                attendanceCache = attendanceRecords;
-                pelanggaranCache = pelanggaranRecords;
-                
                 hideLoading();
                 closeDeleteModal();
-                debouncedRenderStudentTable();
-                debouncedRenderSiswaManagementTable();
-                debouncedRenderRekapTable();
-                debouncedRenderPelanggaranTable();
+                renderStudentTable();
+                renderSiswaManagementTable();
+                renderRekapTable();
+                renderLokasiTable();
+                renderPelanggaranTable();
                 updateClassFilter();
-                debouncedUpdatePelanggaranStats();
-                debouncedUpdatePelanggaranCharts();
+                updatePelanggaranStats();
+                updatePelanggaranCharts();
                 showToast('Data siswa berhasil dihapus');
                 
             } else if (pelanggaranToDelete) {
@@ -1571,13 +1785,11 @@
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.id !== pelanggaranToDelete);
                 await savePelanggaran();
                 
-                pelanggaranCache = pelanggaranRecords;
-                
                 hideLoading();
                 closeDeleteModal();
-                debouncedRenderPelanggaranTable();
-                debouncedUpdatePelanggaranStats();
-                debouncedUpdatePelanggaranCharts();
+                renderPelanggaranTable();
+                updatePelanggaranStats();
+                updatePelanggaranCharts();
                 showToast('Pelanggaran berhasil dihapus');
                 
             } else if (kategoriToDelete) {
@@ -1623,10 +1835,7 @@
                 return;
             }
             
-            // Virtual scrolling - hanya render 50 baris pertama
-            const displayRows = filtered.slice(0, 50);
-            
-            tbody.innerHTML = displayRows.map((p, index) => {
+            tbody.innerHTML = filtered.map((p, index) => {
                 let badgeClass = 'pelanggaran-ringan';
                 if (p.poin >= 20) badgeClass = 'pelanggaran-berat';
                 else if (p.poin >= 10) badgeClass = 'pelanggaran-sedang';
@@ -1774,14 +1983,14 @@
         }
 
         function updatePelanggaranCharts() {
+            const kategoriCount = {};
+            pelanggaranRecords.forEach(p => {
+                const kat = p.kategori_nama || 'Lainnya';
+                kategoriCount[kat] = (kategoriCount[kat] || 0) + 1;
+            });
+            
             const kategoriChart = document.getElementById('kategoriChart');
             if (kategoriChart) {
-                const kategoriCount = {};
-                pelanggaranRecords.forEach(p => {
-                    const kat = p.kategori_nama || 'Lainnya';
-                    kategoriCount[kat] = (kategoriCount[kat] || 0) + 1;
-                });
-                
                 let html = '';
                 const total = pelanggaranRecords.length;
                 
@@ -1807,14 +2016,14 @@
                 kategoriChart.innerHTML = html || '<p class="text-gray-500">Belum ada data</p>';
             }
             
+            const kelasCount = {};
+            pelanggaranRecords.forEach(p => {
+                const kelas = p.student_kelas || 'Tanpa Kelas';
+                kelasCount[kelas] = (kelasCount[kelas] || 0) + 1;
+            });
+            
             const kelasChart = document.getElementById('kelasChart');
             if (kelasChart) {
-                const kelasCount = {};
-                pelanggaranRecords.forEach(p => {
-                    const kelas = p.student_kelas || 'Tanpa Kelas';
-                    kelasCount[kelas] = (kelasCount[kelas] || 0) + 1;
-                });
-                
                 let html = '';
                 const total = pelanggaranRecords.length;
                 
@@ -1837,27 +2046,27 @@
                 kelasChart.innerHTML = html || '<p class="text-gray-500">Belum ada data</p>';
             }
             
+            const siswaPoin = {};
+            pelanggaranRecords.forEach(p => {
+                const key = p.student_id;
+                if (!siswaPoin[key]) {
+                    siswaPoin[key] = {
+                        id: p.student_id,
+                        nis: p.student_nis,
+                        nama: p.student_nama,
+                        kelas: p.student_kelas,
+                        poin: 0,
+                        count: 0
+                    };
+                }
+                siswaPoin[key].poin += p.poin;
+                siswaPoin[key].count += 1;
+            });
+            
+            const topSiswa = Object.values(siswaPoin).sort((a, b) => b.poin - a.poin).slice(0, 5);
+            
             const topSiswaChart = document.getElementById('topSiswaChart');
             if (topSiswaChart) {
-                const siswaPoin = {};
-                pelanggaranRecords.forEach(p => {
-                    const key = p.student_id;
-                    if (!siswaPoin[key]) {
-                        siswaPoin[key] = {
-                            id: p.student_id,
-                            nis: p.student_nis,
-                            nama: p.student_nama,
-                            kelas: p.student_kelas,
-                            poin: 0,
-                            count: 0
-                        };
-                    }
-                    siswaPoin[key].poin += p.poin;
-                    siswaPoin[key].count += 1;
-                });
-                
-                const topSiswa = Object.values(siswaPoin).sort((a, b) => b.poin - a.poin).slice(0, 5);
-                
                 let html = '';
                 topSiswa.forEach((siswa, index) => {
                     html += `
@@ -1891,15 +2100,15 @@
             const filteredStudents = getFilteredStudents();
             
             if (filteredStudents.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12">Tidak ada data siswa</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12">Tidak ada data siswa</td></tr>';
                 return;
             }
             
-            // Virtual scrolling - hanya render 50 baris pertama
-            const displayStudents = filteredStudents.slice(0, 50);
-            
-            tbody.innerHTML = displayStudents.map((student, index) => {
+            tbody.innerHTML = filteredStudents.map((student, index) => {
                 const attendance = attendanceRecords.find(r => r.student_id === student.id && r.tanggal === currentDate);
+                const locationStatus = attendance?.location ? 
+                    getLocationStatus(attendance.location.lat, attendance.location.lng) : 
+                    { text: 'Belum absen', class: '' };
                 
                 return `
                     <tr>
@@ -1924,6 +2133,13 @@
                             </select>
                         </td>
                         <td class="px-4 py-4">
+                            ${attendance?.location ? `
+                                <div class="text-xs">
+                                    <span class="${locationStatus.class}">${locationStatus.text}</span>
+                                </div>
+                            ` : '-'}
+                        </td>
+                        <td class="px-4 py-4">
                             <input type="text" value="${attendance?.keterangan || ''}" 
                                    class="border rounded-lg px-3 py-2 w-full"
                                    onchange="updateAttendanceKeterangan('${student.id}', this.value)"
@@ -1943,10 +2159,7 @@
                 return;
             }
             
-            // Virtual scrolling - hanya render 50 baris pertama
-            const displayStudents = students.slice(0, 50);
-            
-            tbody.innerHTML = displayStudents.map((student, index) => {
+            tbody.innerHTML = students.map((student, index) => {
                 return `
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
@@ -2024,14 +2237,15 @@
             document.getElementById('totalAbsenRekap').textContent = stats.absen;
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12">Tidak ada data kehadiran</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12">Tidak ada data kehadiran</td></tr>';
                 return;
             }
             
-            // Virtual scrolling - hanya render 50 baris pertama
-            const displayRecords = filtered.slice(0, 50);
-            
-            tbody.innerHTML = displayRecords.map(record => {
+            tbody.innerHTML = filtered.map(record => {
+                const locationStatus = record.location ? 
+                    getLocationStatus(record.location.lat, record.location.lng) : 
+                    { text: '-', class: '' };
+                
                 return `
                     <tr>
                         <td class="px-4 py-4">${formatDateID(record.tanggal)}</td>
@@ -2049,6 +2263,12 @@
                             <span class="status-badge ${record.status}">${record.status.toUpperCase()}</span>
                         </td>
                         <td class="px-4 py-4">${record.metode}</td>
+                        <td class="px-4 py-4">
+                            ${record.location ? 
+                                `<span class="${locationStatus.class}">${locationStatus.text}</span>` : 
+                                '-'
+                            }
+                        </td>
                         <td class="px-4 py-4">${record.keterangan || '-'}</td>
                     </tr>
                 `;
@@ -2081,14 +2301,11 @@
                 await saveAttendance();
                 await savePelanggaran();
                 
-                studentsCache = students;
-                attendanceCache = attendanceRecords;
-                pelanggaranCache = pelanggaranRecords;
-                
-                debouncedRenderStudentTable();
-                debouncedRenderSiswaManagementTable();
-                debouncedRenderRekapTable();
-                debouncedRenderPelanggaranTable();
+                renderStudentTable();
+                renderSiswaManagementTable();
+                renderRekapTable();
+                renderLokasiTable();
+                renderPelanggaranTable();
                 updateClassFilter();
                 showToast('Data diperbarui');
             }
@@ -2116,7 +2333,7 @@
                     this.classList.add('active', 'bg-blue-600', 'text-white');
                     this.classList.remove('bg-gray-200');
                     currentClassFilter = this.dataset.class;
-                    debouncedRenderStudentTable();
+                    renderStudentTable();
                 });
             });
             
@@ -2133,48 +2350,6 @@
         }
 
         // ==================== CRUD SISWA ====================
-        async function saveStudents() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(students)
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                console.log('✅ Students saved');
-                studentsCache = students;
-                return true;
-            } catch (error) {
-                console.error('❌ Gagal simpan siswa:', error);
-                showToast('Gagal simpan siswa', 'error');
-                return false;
-            }
-        }
-
-        async function saveAttendance() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(attendanceRecords)
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                console.log('✅ Attendance saved');
-                attendanceCache = attendanceRecords;
-                return true;
-            } catch (error) {
-                console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
-                return false;
-            }
-        }
-
         async function handleStudentSubmit(event) {
             event.preventDefault();
             
@@ -2244,19 +2419,16 @@
                 await savePelanggaran();
             }
             
-            studentsCache = students;
-            attendanceCache = attendanceRecords;
-            pelanggaranCache = pelanggaranRecords;
-            
             hideLoading();
             closeStudentModal();
-            debouncedRenderStudentTable();
-            debouncedRenderSiswaManagementTable();
-            debouncedRenderRekapTable();
-            debouncedRenderPelanggaranTable();
+            renderStudentTable();
+            renderSiswaManagementTable();
+            renderRekapTable();
+            renderLokasiTable();
+            renderPelanggaranTable();
             updateClassFilter();
-            debouncedUpdatePelanggaranStats();
-            debouncedUpdatePelanggaranCharts();
+            updatePelanggaranStats();
+            updatePelanggaranCharts();
             showToast('Data siswa berhasil disimpan');
             
             document.getElementById('studentPhoto').dataset.compressed = '';
@@ -2411,8 +2583,9 @@
             }
             
             await saveAttendance();
-            debouncedRenderStudentTable();
-            debouncedRenderRekapTable();
+            renderStudentTable();
+            renderRekapTable();
+            renderLokasiTable();
             showToast('Status kehadiran diperbarui');
         }
 
@@ -2477,7 +2650,7 @@
             }
             
             await saveAttendance();
-            debouncedRenderStudentTable();
+            renderStudentTable();
             showToast('Semua siswa ditandai hadir');
         }
 
@@ -2492,8 +2665,9 @@
         async function confirmDeleteStatus() {
             attendanceRecords = attendanceRecords.filter(r => r.tanggal !== currentDate);
             await saveAttendance();
-            debouncedRenderStudentTable();
-            debouncedRenderRekapTable();
+            renderStudentTable();
+            renderRekapTable();
+            renderLokasiTable();
             closeDeleteStatusModal();
             showToast('Semua status kehadiran dihapus');
         }
@@ -2504,7 +2678,7 @@
             if (selectedDate) {
                 currentDate = selectedDate;
                 document.getElementById('tanggalHari').textContent = formatDateID(currentDate);
-                debouncedRenderStudentTable();
+                renderStudentTable();
             }
         }
 
@@ -2512,7 +2686,7 @@
             currentDate = formatDate(new Date());
             document.getElementById('inputTanggal').value = currentDate;
             document.getElementById('tanggalHari').textContent = formatDateID(currentDate);
-            debouncedRenderStudentTable();
+            renderStudentTable();
         }
 
         function applyDateRangeFilter() {
@@ -2523,7 +2697,8 @@
                 dateRangeFilter.start = start;
                 dateRangeFilter.end = end;
                 document.getElementById('filterBulan').value = '';
-                debouncedRenderRekapTable();
+                renderRekapTable();
+                renderLokasiTable();
                 showToast('Filter diterapkan');
             } else {
                 showToast('Pilih tanggal mulai dan selesai', 'error');
@@ -2536,7 +2711,8 @@
             document.getElementById('tanggalMulai').value = '';
             document.getElementById('tanggalSelesai').value = '';
             document.getElementById('filterBulan').value = '';
-            debouncedRenderRekapTable();
+            renderRekapTable();
+            renderLokasiTable();
             showToast('Filter direset');
         }
 
@@ -2547,7 +2723,8 @@
                 dateRangeFilter.end = null;
                 document.getElementById('tanggalMulai').value = '';
                 document.getElementById('tanggalSelesai').value = '';
-                debouncedRenderRekapTable();
+                renderRekapTable();
+                renderLokasiTable();
                 showToast('Filter bulan diterapkan');
             }
         }
@@ -2627,6 +2804,7 @@
                         .text-center { text-align: center; }
                         .signature { margin-top: 50px; text-align: right; }
                         .footer { margin-top: 30px; font-size: 10px; color: #666; text-align: center; }
+                        .location-info { font-size: 11px; color: #666; margin-top: 10px; }
                     </style>
                 </head>
                 <body>
@@ -2635,6 +2813,7 @@
                         <div class="school-name">MAS IBNU HUSAIN</div>
                         <div>JL. Irawati 1 No. 15-17, Surabaya</div>
                         <div class="period">Periode: ${periodText}</div>
+                        <div class="location-info">Lokasi Sekolah: -7.230636, 112.749601 (Radius 100m)</div>
                     </div>
                     
                     <table>
@@ -2753,6 +2932,8 @@
                         .status-izin { background: #f59e0b; color: white; padding: 2px 8px; border-radius: 12px; }
                         .status-sakit { background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; }
                         .status-absen { background: #6b7280; color: white; padding: 2px 8px; border-radius: 12px; }
+                        .location-badge { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; }
+                        .location-outside { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 12px; }
                         .signature { margin-top: 50px; text-align: right; }
                         .footer { margin-top: 30px; font-size: 10px; color: #666; text-align: center; }
                     </style>
@@ -2763,6 +2944,7 @@
                         <div class="school-name">MAS IBNU HUSAIN</div>
                         <div>JL. Irawati 1 No. 15-17, Surabaya</div>
                         <div class="period">Periode: ${periodText}</div>
+                        <div>Lokasi Sekolah: -7.230636, 112.749601 (Radius 100m)</div>
                     </div>
             `;
             
@@ -2844,21 +3026,30 @@
                                     <th>Kelas</th>
                                     <th>Status</th>
                                     <th>Metode</th>
+                                    <th>Lokasi</th>
                                     <th>Keterangan</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${records.map((r, i) => `
-                                    <tr>
-                                        <td>${i + 1}</td>
-                                        <td>${r.student_nis}</td>
-                                        <td>${r.student_nama}</td>
-                                        <td>${r.student_kelas}</td>
-                                        <td><span class="status-${r.status}">${r.status.toUpperCase()}</span></td>
-                                        <td>${r.metode}</td>
-                                        <td>${r.keterangan || '-'}</td>
-                                    </tr>
-                                `).join('')}
+                                ${records.map((r, i) => {
+                                    const locationClass = r.location && isWithinSchoolRadius(r.location.lat, r.location.lng) ? 'location-badge' : 'location-outside';
+                                    const locationText = r.location ? 
+                                        `${r.location.lat.toFixed(6)}, ${r.location.lng.toFixed(6)} (${Math.round(r.location.accuracy)}m)` : 
+                                        '-';
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${i + 1}</td>
+                                            <td>${r.student_nis}</td>
+                                            <td>${r.student_nama}</td>
+                                            <td>${r.student_kelas}</td>
+                                            <td><span class="status-${r.status}">${r.status.toUpperCase()}</span></td>
+                                            <td>${r.metode}</td>
+                                            <td><span class="${locationClass}">${locationText}</span></td>
+                                            <td>${r.keterangan || '-'}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -2899,6 +3090,23 @@
             printWindow.print();
         }
 
+        async function deleteAllAttendanceRecords() {
+            if (attendanceRecords.length === 0) {
+                showToast('Tidak ada data kehadiran', 'error');
+                return;
+            }
+            
+            if (!confirm('Hapus semua data kehadiran?')) return;
+            
+            showLoading('Menghapus semua data...');
+            attendanceRecords = [];
+            await saveAttendance();
+            renderRekapTable();
+            renderLokasiTable();
+            hideLoading();
+            showToast('Semua data kehadiran dihapus');
+        }
+
         // ==================== PAGE NAVIGATION ====================
         function showPage(page) {
             currentPage = page;
@@ -2907,6 +3115,7 @@
             document.getElementById('pageDataSiswa').classList.add('hidden');
             document.getElementById('pagePelanggaran').classList.add('hidden');
             document.getElementById('pageRekap').classList.add('hidden');
+            document.getElementById('pageLokasi').classList.add('hidden');
             
             document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`).classList.remove('hidden');
             
@@ -2918,11 +3127,13 @@
             }
             
             if (page === 'absensi') {
-                debouncedRenderStudentTable();
+                renderStudentTable();
             } else if (page === 'dataSiswa') {
-                debouncedRenderSiswaManagementTable();
+                renderSiswaManagementTable();
             } else if (page === 'rekap') {
-                debouncedRenderRekapTable();
+                renderRekapTable();
+            } else if (page === 'lokasi') {
+                renderLokasiTable();
             }
         }
 
@@ -2938,7 +3149,7 @@
                 document.getElementById('pelanggaranListTab').classList.remove('hidden');
                 document.getElementById('pelanggaranKategoriTab').classList.add('hidden');
                 document.getElementById('pelanggaranStatistikTab').classList.add('hidden');
-                debouncedRenderPelanggaranTable();
+                renderPelanggaranTable();
             } else if (tab === 'kategori') {
                 document.querySelectorAll('#pelanggaranTabs .nav-tab')[1].classList.add('active');
                 document.getElementById('pelanggaranListTab').classList.add('hidden');
@@ -2950,7 +3161,42 @@
                 document.getElementById('pelanggaranListTab').classList.add('hidden');
                 document.getElementById('pelanggaranKategoriTab').classList.add('hidden');
                 document.getElementById('pelanggaranStatistikTab').classList.remove('hidden');
-                debouncedUpdatePelanggaranCharts();
+                updatePelanggaranCharts();
+            }
+        }
+
+        // ==================== SAVE FUNCTIONS ====================
+        async function saveStudents() {
+            try {
+                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(students)
+                });
+                console.log('✅ Students saved');
+            } catch (error) {
+                console.error('❌ Gagal simpan siswa:', error);
+                showToast('Gagal simpan siswa', 'error');
+            }
+        }
+
+        async function saveAttendance() {
+            try {
+                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(attendanceRecords)
+                });
+                console.log('✅ Attendance saved');
+            } catch (error) {
+                console.error('❌ Gagal simpan absensi:', error);
+                showToast('Gagal simpan absensi', 'error');
             }
         }
 
@@ -2960,18 +3206,22 @@
             await loadConfig();
             
             document.getElementById('loadingStatus').textContent = 'Memuat data siswa...';
-            await loadStudents(false);
+            await loadStudents();
             
             document.getElementById('loadingStatus').textContent = 'Memuat data absensi...';
-            await loadAttendance(false);
+            await loadAttendance();
             
             document.getElementById('loadingStatus').textContent = 'Memuat data pelanggaran...';
-            await loadPelanggaran(false);
+            await loadPelanggaran();
+            
+            document.getElementById('loadingStatus').textContent = 'Memuat data lokasi...';
+            await loadLocationRecords();
             
             setToday();
             renderStudentTable();
             renderSiswaManagementTable();
             renderRekapTable();
+            renderLokasiTable();
             renderPelanggaranTable();
             updateClassFilter();
             updatePelanggaranStats();
@@ -2984,13 +3234,15 @@
             }, 500);
             
             setInterval(async () => {
-                await loadAttendance(false);
-                await loadPelanggaran(false);
-                if (currentPage === 'absensi') debouncedRenderStudentTable();
-                if (currentPage === 'rekap') debouncedRenderRekapTable();
+                await loadAttendance();
+                await loadPelanggaran();
+                await loadLocationRecords();
+                if (currentPage === 'absensi') renderStudentTable();
+                if (currentPage === 'rekap') renderRekapTable();
+                if (currentPage === 'lokasi') renderLokasiTable();
                 if (currentPage === 'pelanggaran') {
-                    if (currentPelanggaranTab === 'list') debouncedRenderPelanggaranTable();
-                    else if (currentPelanggaranTab === 'statistik') debouncedUpdatePelanggaranCharts();
+                    if (currentPelanggaranTab === 'list') renderPelanggaranTable();
+                    else if (currentPelanggaranTab === 'statistik') updatePelanggaranCharts();
                 }
             }, 30000);
         }
@@ -3026,6 +3278,7 @@
         window.applyBulanFilter = applyBulanFilter;
         window.printReport = printReport;
         window.printDetailedReport = printDetailedReport;
+        window.deleteAllAttendanceRecords = deleteAllAttendanceRecords;
         window.handleLogoUpload = handleLogoUpload;
         window.openTambahPelanggaranModal = openTambahPelanggaranModal;
         window.openEditPelanggaranModal = openEditPelanggaranModal;
@@ -3039,7 +3292,7 @@
         window.handleKategoriSubmit = handleKategoriSubmit;
         window.deleteKategori = deleteKategori;
         window.updatePoinFromKategori = updatePoinFromKategori;
-        window.debouncedLoadPelanggaran = debouncedLoadPelanggaran;
+        window.loadPelanggaran = loadPelanggaran;
     </script>
 </body>
 </html>
