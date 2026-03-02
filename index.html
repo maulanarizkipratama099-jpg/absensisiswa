@@ -701,7 +701,7 @@
                 <div class="glass-card rounded-2xl overflow-hidden">
                     <div class="p-8 border-b flex justify-between items-center">
                         <h3 class="text-xl font-bold">Detail Kehadiran</h3>
-                        <button onclick="confirmDeleteAllAttendance()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
+                        <button onclick="deleteAllAttendanceRecords()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
                             <i class="fas fa-trash-alt mr-2"></i>Hapus Semua
                         </button>
                     </div>
@@ -1006,21 +1006,6 @@
         </div>
     </div>
 
-    <!-- MODAL HAPUS SEMUA DATA ABSENSI -->
-    <div id="deleteAllAttendanceModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="modal-content w-full max-w-md p-8 text-center">
-            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-exclamation-triangle text-red-600 text-3xl"></i>
-            </div>
-            <h3 class="text-2xl font-bold mb-2">Hapus Semua Data Kehadiran</h3>
-            <p class="text-gray-600 mb-6">Apakah Anda yakin ingin menghapus SEMUA data kehadiran? Tindakan ini tidak dapat dibatalkan!</p>
-            <div class="flex gap-4">
-                <button onclick="executeDeleteAllAttendance()" class="flex-1 py-4 bg-red-600 text-white rounded-xl font-semibold">Ya, Hapus Semua</button>
-                <button onclick="closeDeleteAllAttendanceModal()" class="flex-1 py-4 bg-gray-600 text-white rounded-xl font-semibold">Batal</button>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL QR -->
     <div id="qrModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="modal-content w-full max-w-sm p-6">
@@ -1170,7 +1155,14 @@
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    configData = data;
+                    console.log('Config raw:', data);
+                    
+                    // ✅ PERBAIKAN: Ambil dari property 'record'
+                    if (data && data.record) {
+                        configData = data.record;
+                    } else {
+                        configData = data;
+                    }
                     
                     if (configData.school_logo) {
                         document.getElementById('logoImage').src = configData.school_logo;
@@ -1229,20 +1221,32 @@
             }
         }
 
-        // ==================== FUNGSI DATABASE ====================
+        // ==================== FUNGSI DATABASE (LOAD) ====================
         async function loadStudents() {
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
                 });
+                
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
                 const data = await response.json();
-                students = Array.isArray(data) ? data : [];
+                console.log('Students raw:', data);
+                
+                // ✅ PERBAIKAN: Ambil dari property 'record'
+                if (data && data.record && Array.isArray(data.record)) {
+                    students = data.record;
+                } else if (Array.isArray(data)) {
+                    students = data;
+                } else {
+                    students = [];
+                }
+                
                 console.log('✅ Loaded students:', students.length);
                 return students;
             } catch (error) {
                 console.error('❌ Gagal load siswa:', error);
-                showToast('Gagal load siswa', 'error');
+                students = [];
                 return [];
             }
         }
@@ -1252,13 +1256,26 @@
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
                 });
+                
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
                 const data = await response.json();
-                attendanceRecords = Array.isArray(data) ? data : [];
+                console.log('Attendance raw:', data);
+                
+                // ✅ PERBAIKAN: Ambil dari property 'record'
+                if (data && data.record && Array.isArray(data.record)) {
+                    attendanceRecords = data.record;
+                } else if (Array.isArray(data)) {
+                    attendanceRecords = data;
+                } else {
+                    attendanceRecords = [];
+                }
+                
                 console.log('✅ Loaded attendance:', attendanceRecords.length);
                 return attendanceRecords;
             } catch (error) {
                 console.error('❌ Gagal load absensi:', error);
+                attendanceRecords = [];
                 return [];
             }
         }
@@ -1271,7 +1288,16 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    locationRecords = Array.isArray(data) ? data : [];
+                    console.log('Location raw:', data);
+                    
+                    // ✅ PERBAIKAN: Ambil dari property 'record'
+                    if (data && data.record && Array.isArray(data.record)) {
+                        locationRecords = data.record;
+                    } else if (Array.isArray(data)) {
+                        locationRecords = data;
+                    } else {
+                        locationRecords = [];
+                    }
                 } else {
                     locationRecords = [];
                 }
@@ -1280,7 +1306,93 @@
                 return locationRecords;
             } catch (error) {
                 console.error('❌ Gagal load lokasi:', error);
+                locationRecords = [];
                 return [];
+            }
+        }
+
+        async function loadPelanggaran() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}/latest`, {
+                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                console.log('Pelanggaran raw:', data);
+                
+                // ✅ PERBAIKAN: Ambil dari property 'record'
+                if (data && data.record) {
+                    // Jika data.record adalah object dengan property pelanggaran
+                    if (data.record.pelanggaran) {
+                        pelanggaranRecords = Array.isArray(data.record.pelanggaran) ? data.record.pelanggaran : [];
+                        if (data.record.kategori) {
+                            kategoriPelanggaran = Array.isArray(data.record.kategori) ? data.record.kategori : kategoriPelanggaran;
+                        }
+                    } 
+                    // Jika data.record langsung array
+                    else if (Array.isArray(data.record)) {
+                        pelanggaranRecords = data.record;
+                    }
+                } 
+                // Fallback untuk format lama
+                else if (data.pelanggaran) {
+                    pelanggaranRecords = Array.isArray(data.pelanggaran) ? data.pelanggaran : [];
+                    if (data.kategori) {
+                        kategoriPelanggaran = Array.isArray(data.kategori) ? data.kategori : kategoriPelanggaran;
+                    }
+                } else if (Array.isArray(data)) {
+                    pelanggaranRecords = data;
+                } else {
+                    pelanggaranRecords = [];
+                }
+                
+                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
+                renderPelanggaranTable();
+                updatePelanggaranStats();
+                renderKategoriTable();
+                updatePelanggaranCharts();
+                return pelanggaranRecords;
+            } catch (error) {
+                console.error('❌ Gagal load pelanggaran:', error);
+                pelanggaranRecords = [];
+                return [];
+            }
+        }
+
+        // ==================== FUNGSI SAVE ====================
+        async function saveStudents() {
+            try {
+                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(students)
+                });
+                console.log('✅ Students saved');
+            } catch (error) {
+                console.error('❌ Gagal simpan siswa:', error);
+                showToast('Gagal simpan siswa', 'error');
+            }
+        }
+
+        async function saveAttendance() {
+            try {
+                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(attendanceRecords)
+                });
+                console.log('✅ Attendance saved');
+            } catch (error) {
+                console.error('❌ Gagal simpan absensi:', error);
+                showToast('Gagal simpan absensi', 'error');
             }
         }
 
@@ -1303,41 +1415,6 @@
             } catch (error) {
                 console.error('❌ Gagal simpan lokasi:', error);
                 return false;
-            }
-        }
-
-        // ==================== FUNGSI PELANGGARAN ====================
-        async function loadPelanggaran() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.pelanggaran) {
-                        pelanggaranRecords = Array.isArray(data.pelanggaran) ? data.pelanggaran : [];
-                    } else {
-                        pelanggaranRecords = Array.isArray(data) ? data : [];
-                    }
-                    
-                    if (data.kategori) {
-                        kategoriPelanggaran = Array.isArray(data.kategori) ? data.kategori : kategoriPelanggaran;
-                    }
-                } else {
-                    pelanggaranRecords = [];
-                }
-                
-                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
-                renderPelanggaranTable();
-                updatePelanggaranStats();
-                renderKategoriTable();
-                updatePelanggaranCharts();
-                return pelanggaranRecords;
-            } catch (error) {
-                console.error('❌ Gagal load pelanggaran:', error);
-                pelanggaranRecords = [];
-                return [];
             }
         }
 
@@ -2682,28 +2759,6 @@
             showToast('Semua status kehadiran dihapus');
         }
 
-        // ==================== FUNGSI HAPUS SEMUA DATA KEHADIRAN ====================
-        function confirmDeleteAllAttendance() {
-            document.getElementById('deleteAllAttendanceModal').classList.remove('hidden');
-        }
-
-        function closeDeleteAllAttendanceModal() {
-            document.getElementById('deleteAllAttendanceModal').classList.add('hidden');
-        }
-
-        async function executeDeleteAllAttendance() {
-            showLoading('Menghapus semua data kehadiran...');
-            
-            attendanceRecords = [];
-            await saveAttendance();
-            
-            hideLoading();
-            closeDeleteAllAttendanceModal();
-            renderRekapTable();
-            renderLokasiTable();
-            showToast('Semua data kehadiran berhasil dihapus');
-        }
-
         // ==================== DATE FUNCTIONS ====================
         function setTanggal() {
             const selectedDate = document.getElementById('inputTanggal').value;
@@ -3122,6 +3177,49 @@
             printWindow.print();
         }
 
+        async function deleteAllAttendanceRecords() {
+            if (attendanceRecords.length === 0) {
+                showToast('Tidak ada data kehadiran', 'error');
+                return;
+            }
+            
+            if (!confirm('⚠️ Hapus SEMUA data kehadiran? Data yang dihapus tidak bisa dikembalikan!')) {
+                return;
+            }
+            
+            showLoading('Menghapus semua data...');
+            
+            try {
+                attendanceRecords = [];
+                
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify([])
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                console.log('✅ Semua data berhasil dihapus dari JSONBin');
+                
+                renderRekapTable();
+                renderLokasiTable();
+                if (currentPage === 'absensi') renderStudentTable();
+                
+                showToast('Semua data kehadiran dihapus', 'success');
+            } catch (error) {
+                console.error('❌ Gagal menghapus data:', error);
+                showToast('Gagal menghapus data', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
         // ==================== PAGE NAVIGATION ====================
         function showPage(page) {
             currentPage = page;
@@ -3177,41 +3275,6 @@
                 document.getElementById('pelanggaranKategoriTab').classList.add('hidden');
                 document.getElementById('pelanggaranStatistikTab').classList.remove('hidden');
                 updatePelanggaranCharts();
-            }
-        }
-
-        // ==================== SAVE FUNCTIONS ====================
-        async function saveStudents() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(students)
-                });
-                console.log('✅ Students saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan siswa:', error);
-                showToast('Gagal simpan siswa', 'error');
-            }
-        }
-
-        async function saveAttendance() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(attendanceRecords)
-                });
-                console.log('✅ Attendance saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
             }
         }
 
@@ -3293,9 +3356,7 @@
         window.applyBulanFilter = applyBulanFilter;
         window.printReport = printReport;
         window.printDetailedReport = printDetailedReport;
-        window.confirmDeleteAllAttendance = confirmDeleteAllAttendance;
-        window.closeDeleteAllAttendanceModal = closeDeleteAllAttendanceModal;
-        window.executeDeleteAllAttendance = executeDeleteAllAttendance;
+        window.deleteAllAttendanceRecords = deleteAllAttendanceRecords;
         window.handleLogoUpload = handleLogoUpload;
         window.openTambahPelanggaranModal = openTambahPelanggaranModal;
         window.openEditPelanggaranModal = openEditPelanggaranModal;
