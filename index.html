@@ -26,13 +26,20 @@
             position: relative;
         }
 
+        /* Optimasi CSS - gunakan transform instead of top/left untuk animasi */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            will-change: transform, box-shadow;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px rgba(31, 38, 135, 0.25);
         }
 
         .status-badge {
@@ -43,7 +50,6 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            transition: all 0.3s ease;
         }
 
         .status-badge.hadir {
@@ -88,12 +94,20 @@
             color: #991b1b;
         }
 
+        .modern-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
         .modern-table th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             font-weight: 600;
             padding: 16px;
             font-size: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .modern-table td {
@@ -112,9 +126,11 @@
         .modal-content {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 24px;
-            animation: modalSlideIn 0.3s ease-out;
+            animation: modalSlideIn 0.2s ease-out;
+            will-change: transform, opacity;
         }
 
         @keyframes modalSlideIn {
@@ -125,12 +141,17 @@
         .btn-modern {
             position: relative;
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            will-change: transform;
         }
 
         .btn-modern:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-modern:active {
+            transform: translateY(0);
         }
 
         .kelas-badge {
@@ -150,7 +171,9 @@
             border-radius: 12px;
             color: white;
             z-index: 9999;
-            animation: slideUp 0.3s ease-out;
+            animation: slideUp 0.2s ease-out;
+            max-width: 400px;
+            will-change: transform;
         }
 
         .toast-success { background: #10b981; }
@@ -181,7 +204,7 @@
             border: 3px solid #f3f3f3;
             border-top: 3px solid #667eea;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
@@ -189,18 +212,11 @@
             100% { transform: rotate(360deg); }
         }
 
-        .logo-preview {
-            width: 80px;
-            height: 80px;
-            border-radius: 12px;
-            object-fit: cover;
-        }
-
         .nav-tab {
             padding: 12px 24px;
             border-radius: 12px 12px 0 0;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             cursor: pointer;
         }
 
@@ -215,8 +231,17 @@
             color: #6b7280;
         }
 
-        .nav-tab:hover:not(.active) {
-            background: rgba(255,255,255,0.8);
+        /* Optimasi scroll */
+        .optimized-scroll {
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Virtual scroll container */
+        .virtual-scroll-container {
+            height: 500px;
+            overflow-y: auto;
+            position: relative;
         }
     </style>
 </head>
@@ -332,7 +357,7 @@
                     <div class="p-8 border-b">
                         <h2 class="text-2xl font-bold">Daftar Absensi Siswa</h2>
                     </div>
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto virtual-scroll-container" id="studentTableContainer">
                         <table class="modern-table w-full">
                             <thead>
                                 <tr>
@@ -383,7 +408,7 @@
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto virtual-scroll-container">
                         <table class="modern-table w-full">
                             <thead>
                                 <tr>
@@ -417,10 +442,10 @@
                             <button onclick="openTambahPelanggaranModal()" class="btn-modern px-8 py-4 bg-orange-600 text-white rounded-xl font-semibold">
                                 <i class="fas fa-plus-circle mr-2"></i>Tambah Pelanggaran
                             </button>
-                            <select id="pelanggaranFilterKelas" class="px-4 py-2 border rounded-lg" onchange="loadPelanggaran()">
+                            <select id="pelanggaranFilterKelas" class="px-4 py-2 border rounded-lg" onchange="debouncedLoadPelanggaran()">
                                 <option value="">Semua Kelas</option>
                             </select>
-                            <select id="pelanggaranFilterBulan" class="px-4 py-2 border rounded-lg" onchange="loadPelanggaran()">
+                            <select id="pelanggaranFilterBulan" class="px-4 py-2 border rounded-lg" onchange="debouncedLoadPelanggaran()">
                                 <option value="">Semua Bulan</option>
                                 <option value="01">Januari</option>
                                 <option value="02">Februari</option>
@@ -435,7 +460,7 @@
                                 <option value="11">November</option>
                                 <option value="12">Desember</option>
                             </select>
-                            <select id="pelanggaranFilterTahun" class="px-4 py-2 border rounded-lg" onchange="loadPelanggaran()">
+                            <select id="pelanggaranFilterTahun" class="px-4 py-2 border rounded-lg" onchange="debouncedLoadPelanggaran()">
                                 <option value="">Semua Tahun</option>
                             </select>
                         </div>
@@ -466,7 +491,7 @@
                         <div class="p-8 border-b">
                             <h3 class="text-xl font-bold">Riwayat Pelanggaran</h3>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto virtual-scroll-container">
                             <table class="modern-table w-full">
                                 <thead>
                                     <tr>
@@ -655,15 +680,12 @@
                     </div>
                 </div>
 
-                <!-- Tabel Rekap -->
+                <!-- Tabel Rekap - TANPA TOMBOL HAPUS SEMUA -->
                 <div class="glass-card rounded-2xl overflow-hidden">
-                    <div class="p-8 border-b flex justify-between items-center">
+                    <div class="p-8 border-b">
                         <h3 class="text-xl font-bold">Detail Kehadiran</h3>
-                        <button onclick="deleteAllAttendanceRecords()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
-                            <i class="fas fa-trash-alt mr-2"></i>Hapus Semua
-                        </button>
                     </div>
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto virtual-scroll-container">
                         <table class="modern-table w-full">
                             <thead>
                                 <tr>
@@ -896,8 +918,7 @@
                 STUDENTS: "699ffd15ae596e708f4b42a4",
                 ATTENDANCE: "699ffd3c43b1c97be99f754c",
                 CONFIG: "699e9aead0ea881f40d72ba1",
-                PELANGGARAN: "69a3f6e5d0ea881f40e42434", // Bin ID untuk pelanggaran
-                KATEGORI: "69a3f6e5d0ea881f40e42434_kategori" // Kita akan simpan di bin yang sama dengan prefix
+                PELANGGARAN: "69a3f6e5d0ea881f40e42434"
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
@@ -923,7 +944,46 @@
         let dateRangeFilter = { start: null, end: null };
         let currentPelanggaranTab = 'list';
 
-        // ==================== FUNGSI LOADING ====================
+        // Cache untuk performa
+        let studentsCache = null;
+        let attendanceCache = null;
+        let pelanggaranCache = null;
+        let lastRenderTime = 0;
+        const RENDER_THROTTLE = 100; // ms
+
+        // Debounce functions
+        const debouncedRenderStudentTable = debounce(() => renderStudentTable(), 100);
+        const debouncedRenderSiswaManagementTable = debounce(() => renderSiswaManagementTable(), 100);
+        const debouncedRenderRekapTable = debounce(() => renderRekapTable(), 100);
+        const debouncedRenderPelanggaranTable = debounce(() => renderPelanggaranTable(), 100);
+        const debouncedUpdatePelanggaranStats = debounce(() => updatePelanggaranStats(), 100);
+        const debouncedUpdatePelanggaranCharts = debounce(() => updatePelanggaranCharts(), 100);
+        const debouncedLoadPelanggaran = debounce(() => loadPelanggaran(), 100);
+
+        // ==================== FUNGSI UTILITY ====================
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function throttle(func, limit) {
+            let inThrottle;
+            return function(...args) {
+                if (!inThrottle) {
+                    func.apply(this, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            };
+        }
+
         function showLoading(message = 'Memproses...') {
             document.getElementById('loadingMessage').textContent = message;
             document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -1052,7 +1112,12 @@
         }
 
         // ==================== FUNGSI DATABASE ====================
-        async function loadStudents() {
+        async function loadStudents(useCache = true) {
+            if (useCache && studentsCache) {
+                students = studentsCache;
+                return students;
+            }
+            
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
@@ -1060,6 +1125,7 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 students = Array.isArray(data) ? data : [];
+                studentsCache = students;
                 console.log('✅ Loaded students:', students.length);
                 return students;
             } catch (error) {
@@ -1069,7 +1135,12 @@
             }
         }
 
-        async function loadAttendance() {
+        async function loadAttendance(useCache = true) {
+            if (useCache && attendanceCache) {
+                attendanceRecords = attendanceCache;
+                return attendanceRecords;
+            }
+            
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
@@ -1077,6 +1148,7 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 attendanceRecords = Array.isArray(data) ? data : [];
+                attendanceCache = attendanceRecords;
                 console.log('✅ Loaded attendance:', attendanceRecords.length);
                 return attendanceRecords;
             } catch (error) {
@@ -1086,7 +1158,16 @@
         }
 
         // ==================== FUNGSI PELANGGARAN ====================
-        async function loadPelanggaran() {
+        async function loadPelanggaran(useCache = true) {
+            if (useCache && pelanggaranCache) {
+                pelanggaranRecords = pelanggaranCache;
+                renderPelanggaranTable();
+                updatePelanggaranStats();
+                renderKategoriTable();
+                updatePelanggaranCharts();
+                return pelanggaranRecords;
+            }
+            
             try {
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
@@ -1094,7 +1175,6 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    // Data bisa berupa object dengan properti pelanggaran dan kategori
                     if (data.pelanggaran) {
                         pelanggaranRecords = Array.isArray(data.pelanggaran) ? data.pelanggaran : [];
                     } else {
@@ -1104,6 +1184,8 @@
                     if (data.kategori) {
                         kategoriPelanggaran = Array.isArray(data.kategori) ? data.kategori : kategoriPelanggaran;
                     }
+                    
+                    pelanggaranCache = pelanggaranRecords;
                 } else {
                     pelanggaranRecords = [];
                 }
@@ -1123,7 +1205,6 @@
 
         async function savePelanggaran() {
             try {
-                // Data yang akan disimpan (gabungan pelanggaran dan kategori)
                 const dataToSave = {
                     pelanggaran: pelanggaranRecords,
                     kategori: kategoriPelanggaran,
@@ -1141,6 +1222,7 @@
                 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 console.log('✅ Pelanggaran saved');
+                pelanggaranCache = pelanggaranRecords;
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran:', error);
@@ -1256,13 +1338,9 @@
             document.getElementById('pelanggaranForm').reset();
             document.getElementById('pelanggaranId').value = '';
             
-            // Set default tanggal ke hari ini
             document.getElementById('pelanggaranTanggal').value = formatDate(new Date());
             
-            // Isi dropdown siswa
             updateSiswaSelect();
-            
-            // Isi dropdown kategori
             updateKategoriSelect();
             
             document.getElementById('pelanggaranModal').classList.remove('hidden');
@@ -1364,13 +1442,11 @@
             };
             
             if (pelanggaranId) {
-                // Update
                 const index = pelanggaranRecords.findIndex(p => p.id === pelanggaranId);
                 if (index !== -1) {
                     pelanggaranRecords[index] = pelanggaranData;
                 }
             } else {
-                // Create
                 pelanggaranRecords.push(pelanggaranData);
             }
             
@@ -1378,9 +1454,9 @@
             
             hideLoading();
             closePelanggaranModal();
-            renderPelanggaranTable();
-            updatePelanggaranStats();
-            updatePelanggaranCharts();
+            debouncedRenderPelanggaranTable();
+            debouncedUpdatePelanggaranStats();
+            debouncedUpdatePelanggaranCharts();
             showToast('Data pelanggaran berhasil disimpan');
         }
 
@@ -1433,13 +1509,11 @@
             };
             
             if (kategoriId) {
-                // Update
                 const index = kategoriPelanggaran.findIndex(k => k.id === kategoriId);
                 if (index !== -1) {
                     kategoriPelanggaran[index] = kategoriData;
                 }
             } else {
-                // Create
                 kategoriPelanggaran.push(kategoriData);
             }
             
@@ -1466,7 +1540,6 @@
 
         async function confirmDelete() {
             if (studentToDelete) {
-                // Delete siswa
                 showLoading('Menghapus data siswa...');
                 
                 students = students.filter(s => s.id !== studentToDelete);
@@ -1477,33 +1550,37 @@
                 await saveAttendance();
                 await savePelanggaran();
                 
+                studentsCache = students;
+                attendanceCache = attendanceRecords;
+                pelanggaranCache = pelanggaranRecords;
+                
                 hideLoading();
                 closeDeleteModal();
-                renderStudentTable();
-                renderSiswaManagementTable();
-                renderRekapTable();
-                renderPelanggaranTable();
+                debouncedRenderStudentTable();
+                debouncedRenderSiswaManagementTable();
+                debouncedRenderRekapTable();
+                debouncedRenderPelanggaranTable();
                 updateClassFilter();
-                updatePelanggaranStats();
-                updatePelanggaranCharts();
+                debouncedUpdatePelanggaranStats();
+                debouncedUpdatePelanggaranCharts();
                 showToast('Data siswa berhasil dihapus');
                 
             } else if (pelanggaranToDelete) {
-                // Delete pelanggaran
                 showLoading('Menghapus pelanggaran...');
                 
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.id !== pelanggaranToDelete);
                 await savePelanggaran();
                 
+                pelanggaranCache = pelanggaranRecords;
+                
                 hideLoading();
                 closeDeleteModal();
-                renderPelanggaranTable();
-                updatePelanggaranStats();
-                updatePelanggaranCharts();
+                debouncedRenderPelanggaranTable();
+                debouncedUpdatePelanggaranStats();
+                debouncedUpdatePelanggaranCharts();
                 showToast('Pelanggaran berhasil dihapus');
                 
             } else if (kategoriToDelete) {
-                // Delete kategori
                 showLoading('Menghapus kategori...');
                 
                 kategoriPelanggaran = kategoriPelanggaran.filter(k => k.id !== kategoriToDelete);
@@ -1546,8 +1623,10 @@
                 return;
             }
             
-            tbody.innerHTML = filtered.map((p, index) => {
-                // Tentukan kelas badge berdasarkan poin
+            // Virtual scrolling - hanya render 50 baris pertama
+            const displayRows = filtered.slice(0, 50);
+            
+            tbody.innerHTML = displayRows.map((p, index) => {
                 let badgeClass = 'pelanggaran-ringan';
                 if (p.poin >= 20) badgeClass = 'pelanggaran-berat';
                 else if (p.poin >= 10) badgeClass = 'pelanggaran-sedang';
@@ -1638,7 +1717,6 @@
             const totalPoin = filtered.reduce((sum, p) => sum + p.poin, 0);
             const siswaTerlibat = new Set(filtered.map(p => p.student_id)).size;
             
-            // Hitung pelanggaran bulan ini
             const now = new Date();
             const bulanIni = String(now.getMonth() + 1).padStart(2, '0');
             const tahunIni = now.getFullYear().toString();
@@ -1653,10 +1731,7 @@
             document.getElementById('siswaTerlibat').textContent = siswaTerlibat;
             document.getElementById('pelanggaranBulanIni').textContent = pelanggaranBulanIni;
             
-            // Update filter tahun
             updatePelanggaranYearFilter();
-            
-            // Update filter kelas
             updatePelanggaranKelasFilter();
         }
 
@@ -1699,15 +1774,14 @@
         }
 
         function updatePelanggaranCharts() {
-            // Kategori Chart
-            const kategoriCount = {};
-            pelanggaranRecords.forEach(p => {
-                const kat = p.kategori_nama || 'Lainnya';
-                kategoriCount[kat] = (kategoriCount[kat] || 0) + 1;
-            });
-            
             const kategoriChart = document.getElementById('kategoriChart');
             if (kategoriChart) {
+                const kategoriCount = {};
+                pelanggaranRecords.forEach(p => {
+                    const kat = p.kategori_nama || 'Lainnya';
+                    kategoriCount[kat] = (kategoriCount[kat] || 0) + 1;
+                });
+                
                 let html = '';
                 const total = pelanggaranRecords.length;
                 
@@ -1733,15 +1807,14 @@
                 kategoriChart.innerHTML = html || '<p class="text-gray-500">Belum ada data</p>';
             }
             
-            // Kelas Chart
-            const kelasCount = {};
-            pelanggaranRecords.forEach(p => {
-                const kelas = p.student_kelas || 'Tanpa Kelas';
-                kelasCount[kelas] = (kelasCount[kelas] || 0) + 1;
-            });
-            
             const kelasChart = document.getElementById('kelasChart');
             if (kelasChart) {
+                const kelasCount = {};
+                pelanggaranRecords.forEach(p => {
+                    const kelas = p.student_kelas || 'Tanpa Kelas';
+                    kelasCount[kelas] = (kelasCount[kelas] || 0) + 1;
+                });
+                
                 let html = '';
                 const total = pelanggaranRecords.length;
                 
@@ -1764,28 +1837,27 @@
                 kelasChart.innerHTML = html || '<p class="text-gray-500">Belum ada data</p>';
             }
             
-            // Top 5 Siswa
-            const siswaPoin = {};
-            pelanggaranRecords.forEach(p => {
-                const key = p.student_id;
-                if (!siswaPoin[key]) {
-                    siswaPoin[key] = {
-                        id: p.student_id,
-                        nis: p.student_nis,
-                        nama: p.student_nama,
-                        kelas: p.student_kelas,
-                        poin: 0,
-                        count: 0
-                    };
-                }
-                siswaPoin[key].poin += p.poin;
-                siswaPoin[key].count += 1;
-            });
-            
-            const topSiswa = Object.values(siswaPoin).sort((a, b) => b.poin - a.poin).slice(0, 5);
-            
             const topSiswaChart = document.getElementById('topSiswaChart');
             if (topSiswaChart) {
+                const siswaPoin = {};
+                pelanggaranRecords.forEach(p => {
+                    const key = p.student_id;
+                    if (!siswaPoin[key]) {
+                        siswaPoin[key] = {
+                            id: p.student_id,
+                            nis: p.student_nis,
+                            nama: p.student_nama,
+                            kelas: p.student_kelas,
+                            poin: 0,
+                            count: 0
+                        };
+                    }
+                    siswaPoin[key].poin += p.poin;
+                    siswaPoin[key].count += 1;
+                });
+                
+                const topSiswa = Object.values(siswaPoin).sort((a, b) => b.poin - a.poin).slice(0, 5);
+                
                 let html = '';
                 topSiswa.forEach((siswa, index) => {
                     html += `
@@ -1823,7 +1895,10 @@
                 return;
             }
             
-            tbody.innerHTML = filteredStudents.map((student, index) => {
+            // Virtual scrolling - hanya render 50 baris pertama
+            const displayStudents = filteredStudents.slice(0, 50);
+            
+            tbody.innerHTML = displayStudents.map((student, index) => {
                 const attendance = attendanceRecords.find(r => r.student_id === student.id && r.tanggal === currentDate);
                 
                 return `
@@ -1868,7 +1943,10 @@
                 return;
             }
             
-            tbody.innerHTML = students.map((student, index) => {
+            // Virtual scrolling - hanya render 50 baris pertama
+            const displayStudents = students.slice(0, 50);
+            
+            tbody.innerHTML = displayStudents.map((student, index) => {
                 return `
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
@@ -1950,7 +2028,10 @@
                 return;
             }
             
-            tbody.innerHTML = filtered.map(record => {
+            // Virtual scrolling - hanya render 50 baris pertama
+            const displayRecords = filtered.slice(0, 50);
+            
+            tbody.innerHTML = displayRecords.map(record => {
                 return `
                     <tr>
                         <td class="px-4 py-4">${formatDateID(record.tanggal)}</td>
@@ -2000,10 +2081,14 @@
                 await saveAttendance();
                 await savePelanggaran();
                 
-                renderStudentTable();
-                renderSiswaManagementTable();
-                renderRekapTable();
-                renderPelanggaranTable();
+                studentsCache = students;
+                attendanceCache = attendanceRecords;
+                pelanggaranCache = pelanggaranRecords;
+                
+                debouncedRenderStudentTable();
+                debouncedRenderSiswaManagementTable();
+                debouncedRenderRekapTable();
+                debouncedRenderPelanggaranTable();
                 updateClassFilter();
                 showToast('Data diperbarui');
             }
@@ -2031,7 +2116,7 @@
                     this.classList.add('active', 'bg-blue-600', 'text-white');
                     this.classList.remove('bg-gray-200');
                     currentClassFilter = this.dataset.class;
-                    renderStudentTable();
+                    debouncedRenderStudentTable();
                 });
             });
             
@@ -2048,6 +2133,48 @@
         }
 
         // ==================== CRUD SISWA ====================
+        async function saveStudents() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(students)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                console.log('✅ Students saved');
+                studentsCache = students;
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan siswa:', error);
+                showToast('Gagal simpan siswa', 'error');
+                return false;
+            }
+        }
+
+        async function saveAttendance() {
+            try {
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(attendanceRecords)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                console.log('✅ Attendance saved');
+                attendanceCache = attendanceRecords;
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan absensi:', error);
+                showToast('Gagal simpan absensi', 'error');
+                return false;
+            }
+        }
+
         async function handleStudentSubmit(event) {
             event.preventDefault();
             
@@ -2117,15 +2244,19 @@
                 await savePelanggaran();
             }
             
+            studentsCache = students;
+            attendanceCache = attendanceRecords;
+            pelanggaranCache = pelanggaranRecords;
+            
             hideLoading();
             closeStudentModal();
-            renderStudentTable();
-            renderSiswaManagementTable();
-            renderRekapTable();
-            renderPelanggaranTable();
+            debouncedRenderStudentTable();
+            debouncedRenderSiswaManagementTable();
+            debouncedRenderRekapTable();
+            debouncedRenderPelanggaranTable();
             updateClassFilter();
-            updatePelanggaranStats();
-            updatePelanggaranCharts();
+            debouncedUpdatePelanggaranStats();
+            debouncedUpdatePelanggaranCharts();
             showToast('Data siswa berhasil disimpan');
             
             document.getElementById('studentPhoto').dataset.compressed = '';
@@ -2280,8 +2411,8 @@
             }
             
             await saveAttendance();
-            renderStudentTable();
-            renderRekapTable();
+            debouncedRenderStudentTable();
+            debouncedRenderRekapTable();
             showToast('Status kehadiran diperbarui');
         }
 
@@ -2346,7 +2477,7 @@
             }
             
             await saveAttendance();
-            renderStudentTable();
+            debouncedRenderStudentTable();
             showToast('Semua siswa ditandai hadir');
         }
 
@@ -2361,8 +2492,8 @@
         async function confirmDeleteStatus() {
             attendanceRecords = attendanceRecords.filter(r => r.tanggal !== currentDate);
             await saveAttendance();
-            renderStudentTable();
-            renderRekapTable();
+            debouncedRenderStudentTable();
+            debouncedRenderRekapTable();
             closeDeleteStatusModal();
             showToast('Semua status kehadiran dihapus');
         }
@@ -2373,7 +2504,7 @@
             if (selectedDate) {
                 currentDate = selectedDate;
                 document.getElementById('tanggalHari').textContent = formatDateID(currentDate);
-                renderStudentTable();
+                debouncedRenderStudentTable();
             }
         }
 
@@ -2381,7 +2512,7 @@
             currentDate = formatDate(new Date());
             document.getElementById('inputTanggal').value = currentDate;
             document.getElementById('tanggalHari').textContent = formatDateID(currentDate);
-            renderStudentTable();
+            debouncedRenderStudentTable();
         }
 
         function applyDateRangeFilter() {
@@ -2392,7 +2523,7 @@
                 dateRangeFilter.start = start;
                 dateRangeFilter.end = end;
                 document.getElementById('filterBulan').value = '';
-                renderRekapTable();
+                debouncedRenderRekapTable();
                 showToast('Filter diterapkan');
             } else {
                 showToast('Pilih tanggal mulai dan selesai', 'error');
@@ -2405,7 +2536,7 @@
             document.getElementById('tanggalMulai').value = '';
             document.getElementById('tanggalSelesai').value = '';
             document.getElementById('filterBulan').value = '';
-            renderRekapTable();
+            debouncedRenderRekapTable();
             showToast('Filter direset');
         }
 
@@ -2416,7 +2547,7 @@
                 dateRangeFilter.end = null;
                 document.getElementById('tanggalMulai').value = '';
                 document.getElementById('tanggalSelesai').value = '';
-                renderRekapTable();
+                debouncedRenderRekapTable();
                 showToast('Filter bulan diterapkan');
             }
         }
@@ -2768,22 +2899,6 @@
             printWindow.print();
         }
 
-        async function deleteAllAttendanceRecords() {
-            if (attendanceRecords.length === 0) {
-                showToast('Tidak ada data kehadiran', 'error');
-                return;
-            }
-            
-            if (!confirm('Hapus semua data kehadiran?')) return;
-            
-            showLoading('Menghapus semua data...');
-            attendanceRecords = [];
-            await saveAttendance();
-            renderRekapTable();
-            hideLoading();
-            showToast('Semua data kehadiran dihapus');
-        }
-
         // ==================== PAGE NAVIGATION ====================
         function showPage(page) {
             currentPage = page;
@@ -2795,7 +2910,6 @@
             
             document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`).classList.remove('hidden');
             
-            // Tampilkan/sembunyikan tab navigasi untuk pelanggaran
             if (page === 'pelanggaran') {
                 document.getElementById('pelanggaranTabs').style.display = 'flex';
                 switchPelanggaranTab('list');
@@ -2804,18 +2918,17 @@
             }
             
             if (page === 'absensi') {
-                renderStudentTable();
+                debouncedRenderStudentTable();
             } else if (page === 'dataSiswa') {
-                renderSiswaManagementTable();
+                debouncedRenderSiswaManagementTable();
             } else if (page === 'rekap') {
-                renderRekapTable();
+                debouncedRenderRekapTable();
             }
         }
 
         function switchPelanggaranTab(tab) {
             currentPelanggaranTab = tab;
             
-            // Update tab buttons
             document.querySelectorAll('#pelanggaranTabs .nav-tab').forEach(el => {
                 el.classList.remove('active');
             });
@@ -2825,7 +2938,7 @@
                 document.getElementById('pelanggaranListTab').classList.remove('hidden');
                 document.getElementById('pelanggaranKategoriTab').classList.add('hidden');
                 document.getElementById('pelanggaranStatistikTab').classList.add('hidden');
-                renderPelanggaranTable();
+                debouncedRenderPelanggaranTable();
             } else if (tab === 'kategori') {
                 document.querySelectorAll('#pelanggaranTabs .nav-tab')[1].classList.add('active');
                 document.getElementById('pelanggaranListTab').classList.add('hidden');
@@ -2837,7 +2950,7 @@
                 document.getElementById('pelanggaranListTab').classList.add('hidden');
                 document.getElementById('pelanggaranKategoriTab').classList.add('hidden');
                 document.getElementById('pelanggaranStatistikTab').classList.remove('hidden');
-                updatePelanggaranCharts();
+                debouncedUpdatePelanggaranCharts();
             }
         }
 
@@ -2847,13 +2960,13 @@
             await loadConfig();
             
             document.getElementById('loadingStatus').textContent = 'Memuat data siswa...';
-            await loadStudents();
+            await loadStudents(false);
             
             document.getElementById('loadingStatus').textContent = 'Memuat data absensi...';
-            await loadAttendance();
+            await loadAttendance(false);
             
             document.getElementById('loadingStatus').textContent = 'Memuat data pelanggaran...';
-            await loadPelanggaran();
+            await loadPelanggaran(false);
             
             setToday();
             renderStudentTable();
@@ -2871,13 +2984,13 @@
             }, 500);
             
             setInterval(async () => {
-                await loadAttendance();
-                await loadPelanggaran();
-                if (currentPage === 'absensi') renderStudentTable();
-                if (currentPage === 'rekap') renderRekapTable();
+                await loadAttendance(false);
+                await loadPelanggaran(false);
+                if (currentPage === 'absensi') debouncedRenderStudentTable();
+                if (currentPage === 'rekap') debouncedRenderRekapTable();
                 if (currentPage === 'pelanggaran') {
-                    if (currentPelanggaranTab === 'list') renderPelanggaranTable();
-                    else if (currentPelanggaranTab === 'statistik') updatePelanggaranCharts();
+                    if (currentPelanggaranTab === 'list') debouncedRenderPelanggaranTable();
+                    else if (currentPelanggaranTab === 'statistik') debouncedUpdatePelanggaranCharts();
                 }
             }, 30000);
         }
@@ -2913,7 +3026,6 @@
         window.applyBulanFilter = applyBulanFilter;
         window.printReport = printReport;
         window.printDetailedReport = printDetailedReport;
-        window.deleteAllAttendanceRecords = deleteAllAttendanceRecords;
         window.handleLogoUpload = handleLogoUpload;
         window.openTambahPelanggaranModal = openTambahPelanggaranModal;
         window.openEditPelanggaranModal = openEditPelanggaranModal;
@@ -2927,7 +3039,7 @@
         window.handleKategoriSubmit = handleKategoriSubmit;
         window.deleteKategori = deleteKategori;
         window.updatePoinFromKategori = updatePoinFromKategori;
-        window.loadPelanggaran = loadPelanggaran;
+        window.debouncedLoadPelanggaran = debouncedLoadPelanggaran;
     </script>
 </body>
 </html>
