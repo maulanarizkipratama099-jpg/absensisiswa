@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Admin Absensi | MAS IBNU HUSAIN</title>
+    <title> TATA USAHA | MAS IBNU HUSAIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/_sdk/data_sdk.js"></script>
     <script src="/_sdk/element_sdk.js"></script>
@@ -434,6 +434,13 @@
         .pulse {
             animation: pulse 2s infinite;
         }
+
+        /* Input Focus */
+        .modern-input:focus {
+            outline: none;
+            ring: 2px solid #4f46e5;
+            border-color: transparent;
+        }
     </style>
 </head>
 <body>
@@ -491,19 +498,19 @@
                         </div>
                     </div>
                     <div class="flex space-x-2">
-                        <button onclick="showPage('absensi')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                        <button onclick="showPage('absensi', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
                             <i class="fas fa-clipboard-list mr-2"></i>Absensi
                         </button>
-                        <button onclick="showPage('dataSiswa')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                        <button onclick="showPage('dataSiswa', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
                             <i class="fas fa-user-graduate mr-2"></i>Data Siswa
                         </button>
-                        <button onclick="showPage('pelanggaran')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                        <button onclick="showPage('pelanggaran', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
                             <i class="fas fa-exclamation-triangle mr-2"></i>Pelanggaran
                         </button>
-                        <button onclick="showPage('rekap')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                        <button onclick="showPage('rekap', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
                             <i class="fas fa-chart-bar mr-2"></i>Rekap
                         </button>
-                        <button onclick="showPage('lokasi')" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                        <button onclick="showPage('lokasi', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
                             <i class="fas fa-map-marker-alt mr-2"></i>Lokasi
                         </button>
                     </div>
@@ -601,7 +608,7 @@
                         <button onclick="printAllQR()" class="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all">
                             <i class="fas fa-print mr-2"></i>Cetak Semua QR
                         </button>
-                        <!-- TOMBOL HAPUS SEMUA DATA SISWA - BARU -->
+                        <!-- TOMBOL HAPUS SEMUA DATA SISWA -->
                         <button onclick="confirmDeleteAllStudents()" class="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all pulse">
                             <i class="fas fa-trash-alt mr-2"></i>Hapus Semua Data
                         </button>
@@ -1207,7 +1214,7 @@
         </div>
     </div>
 
-    <!-- MODAL HAPUS SEMUA DATA SISWA - BARU -->
+    <!-- MODAL HAPUS SEMUA DATA SISWA -->
     <div id="deleteAllStudentsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="modal-content w-full max-w-md p-8 text-center">
             <div class="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -2052,7 +2059,7 @@
             }
         }
 
-        // ==================== FUNGSI HAPUS SEMUA DATA SISWA - BARU ====================
+        // ==================== FUNGSI HAPUS SEMUA DATA SISWA ====================
         function confirmDeleteAllStudents() {
             const totalSiswa = students.length;
             if (totalSiswa === 0) {
@@ -2083,15 +2090,8 @@
                 students = [];
                 
                 // Hapus juga data absensi dan pelanggaran yang terkait
-                attendanceRecords = attendanceRecords.filter(r => {
-                    const studentExists = students.some(s => s.id === r.student_id);
-                    return !studentExists; // Hapus yang tidak ada siswanya
-                });
-                
-                pelanggaranRecords = pelanggaranRecords.filter(p => {
-                    const studentExists = students.some(s => s.id === p.student_id);
-                    return !studentExists; // Hapus yang tidak ada siswanya
-                });
+                attendanceRecords = [];
+                pelanggaranRecords = [];
                 
                 // Simpan ke JSONBin
                 await saveStudents();
@@ -2895,10 +2895,14 @@
                 attendanceRecords.push(attendance);
             }
             
+            // Simpan ke JSONBin
             await saveAttendance();
+            
+            // Update tampilan
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
+            
             showToast('Status kehadiran diperbarui');
         }
 
@@ -2931,7 +2935,13 @@
             }
             
             if (attendance) {
+                // Simpan ke JSONBin
                 await saveAttendance();
+                
+                // Update tampilan
+                renderStudentTable();
+                renderRekapTable();
+                renderLokasiTable();
             }
         }
 
@@ -2962,8 +2972,14 @@
                 }
             }
             
+            // Simpan ke JSONBin
             await saveAttendance();
+            
+            // Update tampilan
             renderStudentTable();
+            renderRekapTable();
+            renderLokasiTable();
+            
             showToast('Semua siswa ditandai hadir');
         }
 
@@ -2976,11 +2992,17 @@
         }
 
         async function confirmDeleteStatus() {
+            // Hapus semua status untuk tanggal hari ini
             attendanceRecords = attendanceRecords.filter(r => r.tanggal !== currentDate);
+            
+            // Simpan ke JSONBin
             await saveAttendance();
+            
+            // Update tampilan
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
+            
             closeDeleteStatusModal();
             showToast('Semua status kehadiran dihapus');
         }
@@ -3421,7 +3443,7 @@
         }
 
         // ==================== PAGE NAVIGATION ====================
-        function showPage(page) {
+        function showPage(page, event) {
             currentPage = page;
             
             document.getElementById('pageAbsensi').classList.add('hidden');
@@ -3561,7 +3583,7 @@
             setTimeout(() => {
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('mainApp').classList.remove('hidden');
-                showPage('absensi');
+                showPage('absensi', { target: document.querySelector('.nav-btn') });
             }, 2800);
             
             setInterval(async () => {
@@ -3624,10 +3646,8 @@
         window.deleteKategori = deleteKategori;
         window.updatePoinFromKategori = updatePoinFromKategori;
         window.loadPelanggaran = loadPelanggaran;
-        // Fungsi baru untuk hapus semua data siswa
         window.confirmDeleteAllStudents = confirmDeleteAllStudents;
         window.closeDeleteAllStudentsModal = closeDeleteAllStudentsModal;
-        window.confirmDeleteAllStudents = confirmDeleteAllStudents;
     </script>
 </body>
 </html>
