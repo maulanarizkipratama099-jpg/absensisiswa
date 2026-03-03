@@ -2675,41 +2675,62 @@
             }).join('');
         }
 
-        async function updateStudentField(studentId, field, value) {
-            const student = students.find(s => s.id === studentId);
-            if (student) {
-                student[field] = value;
-                await saveStudents();
-                
-                attendanceRecords.forEach(r => {
-                    if (r.student_id === studentId) {
-                        if (field === 'nis') r.student_nis = value;
-                        if (field === 'nama') r.student_nama = value;
-                        if (field === 'kelas') r.student_kelas = value;
-                        if (field === 'jurusan') r.student_jurusan = value;
-                    }
-                });
-                
-                pelanggaranRecords.forEach(p => {
-                    if (p.student_id === studentId) {
-                        if (field === 'nis') p.student_nis = value;
-                        if (field === 'nama') p.student_nama = value;
-                        if (field === 'kelas') p.student_kelas = value;
-                    }
-                });
-                
-                await saveAttendance();
-                await savePelanggaran();
-                
-                renderStudentTable();
-                renderSiswaManagementTable();
-                renderRekapTable();
-                renderLokasiTable();
-                renderPelanggaranTable();
-                updateClassFilter();
-                showToast('Data diperbarui');
-            }
+async function updateStudentField(studentId, field, value) {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+    
+    showLoading('Memperbarui data...');
+    
+    try {
+        student[field] = value;
+        
+        // Simpan ke JSONBin
+        const saved = await saveStudents();
+        
+        if (!saved) {
+            throw new Error('Gagal menyimpan ke server');
         }
+        
+        // Update data terkait
+        attendanceRecords.forEach(r => {
+            if (r.student_id === studentId) {
+                if (field === 'nis') r.student_nis = value;
+                if (field === 'nama') r.student_nama = value;
+                if (field === 'kelas') r.student_kelas = value;
+                if (field === 'jurusan') r.student_jurusan = value;
+            }
+        });
+        
+        pelanggaranRecords.forEach(p => {
+            if (p.student_id === studentId) {
+                if (field === 'nis') p.student_nis = value;
+                if (field === 'nama') p.student_nama = value;
+                if (field === 'kelas') p.student_kelas = value;
+            }
+        });
+        
+        await Promise.all([
+            saveAttendance(),
+            savePelanggaran()
+        ]);
+        
+        // Render ulang
+        renderStudentTable();
+        renderSiswaManagementTable();
+        renderRekapTable();
+        renderLokasiTable();
+        renderPelanggaranTable();
+        updateClassFilter();
+        
+        showToast('Data diperbarui', 'success');
+        
+    } catch (error) {
+        console.error('Error updating field:', error);
+        showToast('Gagal memperbarui data: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
 
         function updateClassFilter() {
             const container = document.getElementById('classFilterContainer');
@@ -2750,94 +2771,105 @@
         }
 
         // ==================== CRUD SISWA ====================
-        async function handleStudentSubmit(event) {
-            event.preventDefault();
-            
-            const studentId = document.getElementById('studentId').value;
-            const nis = document.getElementById('nis').value.trim();
-            const nama = document.getElementById('nama').value.trim();
-            const kelas = document.getElementById('kelas').value.trim();
-            const jurusan = document.getElementById('jurusan').value.trim();
-            
-            if (!nis || !nama || !kelas || !jurusan) {
-                showToast('Semua field wajib diisi', 'error');
-                return;
-            }
-            
-            showLoading('Menyimpan data siswa...');
-            
-            let photoBase64 = document.getElementById('studentPhoto').dataset.compressed || '';
-            
-            if (studentId) {
-                const index = students.findIndex(s => s.id === studentId);
-                if (index !== -1) {
-                    students[index] = {
-                        ...students[index],
-                        nis,
-                        nama,
-                        kelas,
-                        jurusan,
-                        ...(photoBase64 && { photo: photoBase64 })
-                    };
-                }
-            } else {
-                const newStudent = {
-                    id: generateId(),
+  async function handleStudentSubmit(event) {
+    event.preventDefault();
+    
+    const studentId = document.getElementById('studentId').value;
+    const nis = document.getElementById('nis').value.trim();
+    const nama = document.getElementById('nama').value.trim();
+    const kelas = document.getElementById('kelas').value.trim();
+    const jurusan = document.getElementById('jurusan').value.trim();
+    
+    if (!nis || !nama || !kelas || !jurusan) {
+        showToast('Semua field wajib diisi', 'error');
+        return;
+    }
+    
+    showLoading('Menyimpan data siswa...');
+    
+    try {
+        let photoBase64 = document.getElementById('studentPhoto').dataset.compressed || '';
+        
+        if (studentId) {
+            const index = students.findIndex(s => s.id === studentId);
+            if (index !== -1) {
+                students[index] = {
+                    ...students[index],
                     nis,
                     nama,
                     kelas,
                     jurusan,
-                    photo: photoBase64 || '',
-                    created_at: Date.now()
+                    ...(photoBase64 && { photo: photoBase64 })
                 };
-                students.push(newStudent);
             }
-            
-            await saveStudents();
-            
-            if (studentId) {
-                attendanceRecords.forEach(r => {
-                    if (r.student_id === studentId) {
-                        r.student_nis = nis;
-                        r.student_nama = nama;
-                        r.student_kelas = kelas;
-                        r.student_jurusan = jurusan;
-                        if (photoBase64) r.student_photo = photoBase64;
-                    }
-                });
-                
-                pelanggaranRecords.forEach(p => {
-                    if (p.student_id === studentId) {
-                        p.student_nis = nis;
-                        p.student_nama = nama;
-                        p.student_kelas = kelas;
-                        if (photoBase64) p.student_photo = photoBase64;
-                    }
-                });
-                
-                await saveAttendance();
-                await savePelanggaran();
-            }
-            
-            hideLoading();
-            closeStudentModal();
-            renderStudentTable();
-            renderSiswaManagementTable();
-            renderRekapTable();
-            renderLokasiTable();
-            renderPelanggaranTable();
-            updateClassFilter();
-            updatePelanggaranStats();
-            updatePelanggaranCharts();
-            showToast('Data siswa berhasil disimpan');
-            
-            document.getElementById('studentPhoto').dataset.compressed = '';
+        } else {
+            const newStudent = {
+                id: generateId(),
+                nis,
+                nama,
+                kelas,
+                jurusan,
+                photo: photoBase64 || '',
+                created_at: Date.now()
+            };
+            students.push(newStudent);
         }
-
-        function deleteStudent(id) {
-            studentToDelete = id;
-            document.getElementById('deleteModal').classList.remove('hidden');
+        
+        // Simpan ke JSONBin dan tunggu
+        const saved = await saveStudents();
+        
+        if (!saved) {
+            throw new Error('Gagal menyimpan ke server');
         }
+        
+        if (studentId) {
+            // Update data terkait
+            attendanceRecords.forEach(r => {
+                if (r.student_id === studentId) {
+                    r.student_nis = nis;
+                    r.student_nama = nama;
+                    r.student_kelas = kelas;
+                    r.student_jurusan = jurusan;
+                    if (photoBase64) r.student_photo = photoBase64;
+                }
+            });
+            
+            pelanggaranRecords.forEach(p => {
+                if (p.student_id === studentId) {
+                    p.student_nis = nis;
+                    p.student_nama = nama;
+                    p.student_kelas = kelas;
+                    if (photoBase64) p.student_photo = photoBase64;
+                }
+            });
+            
+            await Promise.all([
+                saveAttendance(),
+                savePelanggaran()
+            ]);
+        }
+        
+        hideLoading();
+        closeStudentModal();
+        renderStudentTable();
+        renderSiswaManagementTable();
+        renderRekapTable();
+        renderLokasiTable();
+        renderPelanggaranTable();
+        updateClassFilter();
+        updatePelanggaranStats();
+        updatePelanggaranCharts();
+    
+        showToast('Data siswa berhasil disimpan', 'success');
+           // Reset form
+        document.getElementById('studentPhoto').dataset.compressed = '';
+        
+    } catch (error) {
+        console.error('Error saving student:', error);
+        hideLoading();
+        showToast('Gagal menyimpan data: ' + error.message, 'error');
+    }
+}
 
         // ==================== QR CODE FUNCTIONS ====================
         function generateQR(studentId) {
@@ -2952,6 +2984,97 @@
             printWindow.document.close();
             printWindow.print();
         }
+
+        // ==================== FUNGSI IMPORT EXCEL ====================
+document.getElementById('importExcel').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(fileExt)) {
+        showToast('Format file harus .xlsx, .xls, atau .csv', 'error');
+        return;
+    }
+    
+    showLoading('Mengimpor data siswa...');
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = e.target.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            // Hapus baris header jika ada
+            const headerRow = jsonData[0];
+            const dataRows = jsonData.slice(1).filter(row => row.length > 0 && row[0]);
+            
+            let importedCount = 0;
+            let updatedCount = 0;
+            
+            dataRows.forEach(row => {
+                // Format: [NIS, Nama, Kelas, Jurusan, Foto (opsional)]
+                const nis = row[0]?.toString().trim();
+                const nama = row[1]?.toString().trim();
+                const kelas = row[2]?.toString().trim();
+                const jurusan = row[3]?.toString().trim();
+                const photo = row[4]?.toString().trim() || '';
+                
+                if (!nis || !nama || !kelas || !jurusan) return;
+                
+                // Cek apakah siswa sudah ada
+                const existingStudent = students.find(s => s.nis === nis);
+                
+                if (existingStudent) {
+                    // Update data siswa yang sudah ada
+                    existingStudent.nama = nama;
+                    existingStudent.kelas = kelas;
+                    existingStudent.jurusan = jurusan;
+                    if (photo) existingStudent.photo = photo;
+                    updatedCount++;
+                } else {
+                    // Tambah siswa baru
+                    const newStudent = {
+                        id: generateId(),
+                        nis: nis,
+                        nama: nama,
+                        kelas: kelas,
+                        jurusan: jurusan,
+                        photo: photo || '',
+                        created_at: Date.now()
+                    };
+                    students.push(newStudent);
+                    importedCount++;
+                }
+            });
+            
+            // Simpan ke JSONBin
+            saveStudents().then(() => {
+                hideLoading();
+                
+                // Render ulang tabel
+                renderSiswaManagementTable();
+                renderStudentTable();
+                updateClassFilter();
+                
+                showToast(`Berhasil mengimpor ${importedCount} siswa baru dan memperbarui ${updatedCount} siswa`, 'success');
+                
+                // Reset input file
+                document.getElementById('importExcel').value = '';
+            });
+            
+        } catch (error) {
+            console.error('Error importing Excel:', error);
+            hideLoading();
+            showToast('Gagal mengimpor file: ' + error.message, 'error');
+            document.getElementById('importExcel').value = '';
+        }
+    };
+    
+    reader.readAsBinaryString(file);
+});
 
         // ==================== ABSENSI FUNCTIONS ====================
         async function updateAttendanceStatus(studentId, status) {
@@ -3651,38 +3774,56 @@ async function saveLocationRecords() {
 
         // ==================== SAVE FUNCTIONS ====================
         async function saveStudents() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(students)
-                });
-                console.log('✅ Students saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan siswa:', error);
-                showToast('Gagal simpan siswa', 'error');
-            }
+    try {
+        const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+            method: 'PUT',
+            headers: {
+                'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                'Content-Type': 'application/json',
+                'X-Bin-Meta': 'false'
+            },
+            body: JSON.stringify(students)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
+        
+        console.log('✅ Students saved successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Gagal simpan siswa:', error);
+        showToast('Gagal menyimpan data siswa ke server', 'error');
+        return false;
+    }
+}
 
-        async function saveAttendance() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(attendanceRecords)
-                });
-                console.log('✅ Attendance saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
-            }
+async function saveAttendance() {
+    try {
+        const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
+            method: 'PUT',
+            headers: {
+                'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                'Content-Type': 'application/json',
+                'X-Bin-Meta': 'false'
+            },
+            body: JSON.stringify(attendanceRecords)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
+        
+        console.log('✅ Attendance saved successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Gagal simpan absensi:', error);
+        showToast('Gagal menyimpan data absensi ke server', 'error');
+        return false;
+    }
+}
 
         // ==================== INITIALIZATION ====================
         async function init() {
