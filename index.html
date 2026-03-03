@@ -731,7 +731,6 @@
             <div id="pageDataSiswa" class="max-w-7xl mx-auto px-4 py-8 hidden page-transition">
                 <div class="glass-card rounded-3xl p-8 mb-8">
                     <h2 class="text-3xl font-bold mb-6 heading-gradient">👥 Manajemen Data Siswa</h2>
-                    
                     <div class="flex flex-wrap gap-4 mb-8">
                         <button onclick="openTambahSiswaModal()" class="btn-modern px-8 py-4 btn-primary rounded-xl font-semibold">
                             <i class="fas fa-user-plus mr-2"></i>Tambah Siswa
@@ -743,8 +742,11 @@
                         <button onclick="printAllQR()" class="btn-modern px-8 py-4 btn-gold rounded-xl font-semibold">
                             <i class="fas fa-print mr-2"></i>Cetak Semua QR
                         </button>
+                        <button onclick="showDeleteAllStudentsModal()" class="btn-modern px-8 py-4 bg-gradient-to-r from-red-600 to-rose-700 text-white rounded-xl font-semibold">
+                            <i class="fas fa-trash-alt mr-2"></i>Hapus Semua Data
+                        </button>
                     </div>
-
+    
                     <div class="grid grid-cols-4 gap-6 mb-8">
                         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition">
                             <div class="text-4xl mb-3 text-[#0f172a]"><i class="fas fa-users"></i></div>
@@ -1367,6 +1369,32 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL HAPUS SEMUA DATA SISWA -->
+<div id="deleteAllStudentsModal" class="hidden fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="modal-content w-full max-w-md p-8 text-center">
+        <div class="w-24 h-24 bg-gradient-to-br from-red-100 to-rose-100 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+            <i class="fas fa-exclamation-triangle text-red-600 text-4xl"></i>
+        </div>
+        <h3 class="text-2xl font-bold mb-2 text-gray-800">Hapus Semua Data Siswa?</h3>
+        <p class="text-gray-600 mb-4">Anda akan menghapus <span id="totalSiswaDelete" class="font-bold text-red-600">0</span> siswa beserta semua data:</p>
+        <ul class="text-left text-sm text-gray-600 mb-6 space-y-2 bg-red-50 p-4 rounded-xl">
+            <li class="flex items-center gap-2"><i class="fas fa-times-circle text-red-500"></i> Data siswa akan dihapus permanen</li>
+            <li class="flex items-center gap-2"><i class="fas fa-times-circle text-red-500"></i> Riwayat absensi siswa akan dihapus</li>
+            <li class="flex items-center gap-2"><i class="fas fa-times-circle text-red-500"></i> Riwayat pelanggaran siswa akan dihapus</li>
+            <li class="flex items-center gap-2"><i class="fas fa-times-circle text-red-500"></i> Data lokasi siswa akan dihapus</li>
+            <li class="flex items-center gap-2 font-bold text-red-700 mt-2"><i class="fas fa-exclamation-circle"></i> Tindakan ini tidak dapat dibatalkan!</li>
+        </ul>
+        <div class="flex gap-4">
+            <button onclick="confirmDeleteAllStudents()" class="flex-1 btn-modern py-4 bg-gradient-to-r from-red-600 to-rose-700 text-white rounded-xl font-semibold">
+                <i class="fas fa-trash-alt mr-2"></i>Ya, Hapus Semua
+            </button>
+            <button onclick="closeDeleteAllStudentsModal()" class="flex-1 btn-modern py-4 bg-gradient-to-r from-gray-700 to-gray-900 text-white rounded-xl font-semibold">
+                Batal
+            </button>
+        </div>
+    </div>
+</div>
 
     <!-- Toast -->
     <div id="toastContainer"></div>
@@ -3103,6 +3131,88 @@
             }
         }
 
+        // ==================== FUNGSI HAPUS SEMUA DATA SISWA ====================
+function showDeleteAllStudentsModal() {
+    const totalSiswa = students.length;
+    if (totalSiswa === 0) {
+        showToast('Tidak ada data siswa untuk dihapus', 'warning');
+        return;
+    }
+    
+    document.getElementById('totalSiswaDelete').textContent = totalSiswa;
+    document.getElementById('deleteAllStudentsModal').classList.remove('hidden');
+}
+
+function closeDeleteAllStudentsModal() {
+    document.getElementById('deleteAllStudentsModal').classList.add('hidden');
+}
+
+async function confirmDeleteAllStudents() {
+    if (students.length === 0) {
+        showToast('Tidak ada data siswa', 'warning');
+        closeDeleteAllStudentsModal();
+        return;
+    }
+    
+    showLoading('Menghapus semua data siswa...');
+    
+    try {
+        const jumlahSiswa = students.length;
+        
+        // Kosongkan semua array
+        students = [];
+        attendanceRecords = [];
+        pelanggaranRecords = [];
+        locationRecords = [];
+        
+        // Simpan ke JSONBin
+        await Promise.all([
+            saveStudents(),
+            saveAttendance(),
+            savePelanggaran(),
+            saveLocationRecords() // Pastikan fungsi ini ada
+        ]);
+        
+        // Render ulang semua tabel
+        renderStudentTable();
+        renderSiswaManagementTable();
+        renderRekapTable();
+        renderLokasiTable();
+        renderPelanggaranTable();
+        updateClassFilter();
+        updatePelanggaranStats();
+        updatePelanggaranCharts();
+        
+        showToast(`Berhasil menghapus ${jumlahSiswa} data siswa beserta seluruh riwayatnya`, 'success');
+    } catch (error) {
+        console.error('Error saat menghapus semua data:', error);
+        showToast('Gagal menghapus data: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+        closeDeleteAllStudentsModal();
+    }
+}
+
+// Fungsi tambahan untuk menyimpan locationRecords
+async function saveLocationRecords() {
+    try {
+        const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.LOCATIONS}`, {
+            method: 'PUT',
+            headers: {
+                'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(locationRecords)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        console.log('✅ Locations saved');
+        return true;
+    } catch (error) {
+        console.error('❌ Gagal simpan lokasi:', error);
+        return false;
+    }
+}
+
         // ==================== FUNGSI CETAK ====================
         function printReport() {
             const filterBulan = document.getElementById('filterBulan')?.value || '';
@@ -3681,6 +3791,10 @@
         window.deleteKategori = deleteKategori;
         window.updatePoinFromKategori = updatePoinFromKategori;
         window.loadPelanggaran = loadPelanggaran;
+        window.showDeleteAllStudentsModal = showDeleteAllStudentsModal;
+        window.closeDeleteAllStudentsModal = closeDeleteAllStudentsModal;
+        window.confirmDeleteAllStudents = confirmDeleteAllStudents;
+        window.saveLocationRecords = saveLocationRecords;
     </script>
 </body>
 </html>
