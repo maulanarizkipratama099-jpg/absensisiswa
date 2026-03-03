@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> TATA USAHA | MAS IBNU HUSAIN</title>
+    <title> TATA USAHA| MAS IBNU HUSAIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/_sdk/data_sdk.js"></script>
     <script src="/_sdk/element_sdk.js"></script>
@@ -1404,7 +1404,7 @@
         const JSONBIN_CONFIG = {
             API_KEY: "$2a$10$uIB7UH1hUV6kFv7v4l21puJBjd.1.r9SYqT8XT94RkJyHCyzGQQFm",
             BINS: {
-                STUDENTS: "699ffd15ae596e708f4b42a4",
+                STUDENTS: "69a684e8d0ea881f40e99f74",
                 ATTENDANCE: "69a57b3243b1c97be9abe8ac",
                 CONFIG: "699e9aead0ea881f40d72ba1",
                 PELANGGARAN: "69a3f6e5d0ea881f40e42434",
@@ -3282,19 +3282,35 @@ async function confirmDeleteAllStudents() {
     try {
         const jumlahSiswa = students.length;
         
+        // Simpan data lama untuk referensi
+        const oldStudents = [...students];
+        const oldAttendance = [...attendanceRecords];
+        const oldPelanggaran = [...pelanggaranRecords];
+        const oldLocations = [...locationRecords];
+        
         // Kosongkan semua array
         students = [];
         attendanceRecords = [];
         pelanggaranRecords = [];
         locationRecords = [];
         
-        // Simpan ke JSONBin
-        await Promise.all([
+        // Simpan ke JSONBin - gunakan Promise.allSettled agar tidak gagal total jika satu bin error
+        const results = await Promise.allSettled([
             saveStudents(),
             saveAttendance(),
             savePelanggaran(),
-            saveLocationRecords() // Pastikan fungsi ini ada
+            saveLocationRecords() // Fungsi ini mungkin gagal
         ]);
+        
+        // Cek hasil
+        const failures = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value === false));
+        
+        if (failures.length > 0) {
+            console.warn(`${failures.length} penyimpanan gagal, tetapi data lokal sudah dihapus`);
+            showToast(`Data lokal dihapus, tetapi ${failures.length} penyimpanan ke server gagal`, 'warning');
+        } else {
+            showToast(`Berhasil menghapus ${jumlahSiswa} data siswa beserta seluruh riwayatnya`, 'success');
+        }
         
         // Render ulang semua tabel
         renderStudentTable();
@@ -3306,7 +3322,6 @@ async function confirmDeleteAllStudents() {
         updatePelanggaranStats();
         updatePelanggaranCharts();
         
-        showToast(`Berhasil menghapus ${jumlahSiswa} data siswa beserta seluruh riwayatnya`, 'success');
     } catch (error) {
         console.error('Error saat menghapus semua data:', error);
         showToast('Gagal menghapus data: ' + error.message, 'error');
@@ -3332,6 +3347,50 @@ async function saveLocationRecords() {
         return true;
     } catch (error) {
         console.error('❌ Gagal simpan lokasi:', error);
+        return false;
+    }
+}
+
+// Fungsi untuk membuat bin locations baru
+async function createNewLocationBin() {
+    try {
+        const response = await fetch('https://api.jsonbin.io/v3/b', {
+            method: 'POST',
+            headers: {
+                'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                'Content-Type': 'application/json',
+                'X-Bin-Name': 'locations'
+            },
+            body: JSON.stringify([])
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        const newBinId = data.metadata.id;
+        
+        console.log('✅ Bin locations baru dibuat dengan ID:', newBinId);
+        
+        // Update konfigurasi
+        JSONBIN_CONFIG.BINS.LOCATIONS = newBinId;
+        
+        // Simpan konfigurasi baru
+        await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.CONFIG}`, {
+            method: 'PUT',
+            headers: {
+                'X-Master-Key': JSONBIN_CONFIG.API_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ...configData,
+                locations_bin_id: newBinId
+            })
+        });
+        
+        showToast('Bin locations baru berhasil dibuat', 'success');
+        return true;
+    } catch (error) {
+        console.error('❌ Gagal membuat bin locations baru:', error);
         return false;
     }
 }
@@ -3939,4 +3998,3 @@ async function saveAttendance() {
     </script>
 </body>
 </html>
-
