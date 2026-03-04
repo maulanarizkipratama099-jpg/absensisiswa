@@ -442,108 +442,6 @@
             border-color: transparent;
         }
 
-        /* Photo Upload */
-        .photo-upload-area {
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .photo-upload-area:hover {
-            transform: scale(1.02);
-        }
-
-        .photo-upload-area::after {
-            content: '\f030';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            background: linear-gradient(145deg, #4f46e5, #7c3aed);
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
-            opacity: 0;
-            transform: scale(0.5);
-            transition: all 0.3s ease;
-        }
-
-        .photo-upload-area:hover::after {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        /* Student Photo in Table - KUALITAS TINGGI */
-        .student-photo {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
-            object-fit: cover;
-            border: 3px solid #4f46e5;
-            box-shadow: 0 8px 15px rgba(79, 70, 229, 0.4);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            image-rendering: -webkit-optimize-contrast; /* Untuk kualitas gambar lebih baik */
-            image-rendering: crisp-edges;
-        }
-
-        .student-photo:hover {
-            transform: scale(1.15);
-            box-shadow: 0 12px 25px rgba(79, 70, 229, 0.6);
-            border-color: #f59e0b;
-        }
-
-        .student-photo-placeholder {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
-            background: linear-gradient(145deg, #e0e7ff, #c7d2fe);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #4f46e5;
-            font-size: 24px;
-            border: 2px dashed #4f46e5;
-            cursor: pointer;
-        }
-
-        .student-photo-placeholder:hover {
-            background: linear-gradient(145deg, #c7d2fe, #a5b4fc);
-        }
-
-        /* Photo Preview Modal */
-        .photo-preview-modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 24px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-            z-index: 10002;
-            max-width: 90vw;
-            max-height: 90vh;
-        }
-
-        .photo-preview-modal img {
-            max-width: 100%;
-            max-height: 80vh;
-            border-radius: 16px;
-            border: 4px solid #4f46e5;
-        }
-
-        .photo-preview-modal.hidden {
-            display: none;
-        }
-
         /* Import Progress */
         .import-progress {
             position: fixed;
@@ -578,71 +476,20 @@
             transition: width 0.3s ease;
         }
 
-        /* Batch Upload Progress */
-        .batch-progress {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-            z-index: 10001;
-            text-align: center;
-            min-width: 350px;
-        }
-
-        .batch-progress.hidden {
-            display: none;
-        }
-
-        .batch-progress-bar {
+        /* Google Drive Preview */
+        .drive-preview {
             width: 100%;
-            height: 10px;
-            background: #e5e7eb;
-            border-radius: 5px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
-
-        .batch-progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #10b981, #34d399);
-            transition: width 0.3s ease;
+            object-fit: cover;
         }
 
-        .batch-stats {
+        .drive-preview-error {
+            background: #f3f4f6;
             display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        /* Storage Info */
-        .storage-info {
-            background: linear-gradient(145deg, #f0f9ff, #e6f0fa);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 10px;
-            font-size: 12px;
-            border: 1px solid #4f46e533;
-        }
-
-        .storage-bar {
-            width: 100%;
-            height: 6px;
-            background: #e5e7eb;
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 8px 0;
-        }
-
-        .storage-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4f46e5, #7c3aed);
-            transition: width 0.3s ease;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 24px;
         }
     </style>
 </head>
@@ -673,47 +520,17 @@
             </div>
         </div>
 
-        <!-- Batch Upload Progress -->
-        <div id="batchProgress" class="batch-progress hidden">
-            <div class="text-4xl mb-3 text-green-600">
-                <i class="fas fa-images"></i>
-            </div>
-            <h3 class="text-xl font-bold mb-2">Menyimpan Foto</h3>
-            <p id="batchStatus" class="text-gray-600 mb-3">Memproses foto siswa...</p>
-            <div class="batch-progress-bar">
-                <div id="batchProgressBar" class="batch-progress-fill" style="width: 0%"></div>
-            </div>
-            <div class="batch-stats">
-                <span id="batchCurrent">0</span>
-                <span>/</span>
-                <span id="batchTotal">0</span>
-            </div>
-            <p id="batchDetail" class="text-xs text-gray-500 mt-2"></p>
-        </div>
-
         <!-- Import Progress Modal -->
-        <div id="importProgress" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-3xl p-8 text-center max-w-sm">
-                <div class="text-4xl mb-3 text-indigo-600">
-                    <i class="fas fa-file-import"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-2">Mengimpor Data</h3>
-                <p id="importStatus" class="text-gray-600 mb-3">Memproses file...</p>
-                <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
-                    <div id="importProgressBar" class="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                </div>
-                <p id="importCounter" class="text-sm text-gray-500">0 data diproses</p>
+        <div id="importProgress" class="import-progress hidden">
+            <div class="text-4xl mb-3 text-indigo-600">
+                <i class="fas fa-file-import"></i>
             </div>
-        </div>
-
-        <!-- Photo Preview Modal -->
-        <div id="photoPreviewModal" class="photo-preview-modal hidden">
-            <div class="relative">
-                <img id="previewLargePhoto" src="" alt="Preview Foto">
-                <button onclick="closePhotoPreview()" class="absolute top-2 right-2 w-10 h-10 bg-red-600 text-white rounded-full hover:bg-red-700 transition flex items-center justify-center shadow-lg">
-                    <i class="fas fa-times"></i>
-                </button>
+            <h3 class="text-xl font-bold mb-2">Mengimpor Data</h3>
+            <p id="importStatus" class="text-gray-600 mb-3">Memproses file...</p>
+            <div class="progress-bar-import">
+                <div id="importProgressBar" class="progress-bar-fill" style="width: 0%"></div>
             </div>
+            <p id="importCounter" class="text-sm text-gray-500">0 data diproses</p>
         </div>
 
         <!-- Loading Awal -->
@@ -860,18 +677,6 @@
                         </button>
                     </div>
 
-                    <!-- Storage Info -->
-                    <div class="storage-info mb-6">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-semibold text-gray-700">Penyimpanan Foto</span>
-                            <span id="storageStats" class="text-sm font-bold text-indigo-600">0 KB / 10 MB</span>
-                        </div>
-                        <div class="storage-bar">
-                            <div id="storageBar" class="storage-bar-fill" style="width: 0%"></div>
-                        </div>
-                        <p id="storageDetail" class="text-xs text-gray-500 mt-1">0 siswa dengan foto</p>
-                    </div>
-
                     <div class="grid grid-cols-4 gap-6 mb-8">
                         <div class="bg-gradient-to-br from-white to-indigo-50 rounded-2xl p-6 shadow-lg">
                             <div class="text-4xl mb-3 text-indigo-600"><i class="fas fa-users"></i></div>
@@ -882,16 +687,6 @@
                             <div class="text-4xl mb-3 text-purple-600"><i class="fas fa-school"></i></div>
                             <div class="text-3xl font-bold text-gray-800" id="totalKelasCount">0</div>
                             <div class="text-sm text-gray-600">Total Kelas</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-white to-green-50 rounded-2xl p-6 shadow-lg">
-                            <div class="text-4xl mb-3 text-green-600"><i class="fas fa-camera"></i></div>
-                            <div class="text-3xl font-bold text-gray-800" id="siswaDenganFoto">0</div>
-                            <div class="text-sm text-gray-600">Siswa dengan Foto</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-lg">
-                            <div class="text-4xl mb-3 text-blue-600"><i class="fas fa-database"></i></div>
-                            <div class="text-3xl font-bold text-gray-800" id="totalUkuran">0 KB</div>
-                            <div class="text-sm text-gray-600">Total Ukuran</div>
                         </div>
                     </div>
 
@@ -1314,36 +1109,42 @@
         </div>
     </div>
 
-    <!-- MODAL TAMBAH/EDIT SISWA -->
+    <!-- MODAL TAMBAH/EDIT SISWA (GOOGLE DRIVE VERSION) -->
     <div id="studentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="modal-content w-full max-w-2xl p-8">
-            <h3 id="modalTitle" class="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Tambah/Edit Siswa</h3>
+            <h3 id="modalTitle" class="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Tambah Siswa Baru</h3>
             <form id="studentForm" onsubmit="handleStudentSubmit(event)">
                 <input type="hidden" id="studentId">
-                <input type="hidden" id="currentPhoto" value="">
                 
-                <!-- Upload Foto dengan Kompresi KUALITAS TINGGI -->
+                <!-- Google Drive Link untuk Foto -->
                 <div class="mb-6">
-                    <label class="block text-sm font-medium mb-2 text-gray-700">Foto Siswa</label>
+                    <label class="block text-sm font-medium mb-2 text-gray-700">Foto Siswa (Google Drive Link)</label>
                     <div class="flex items-center gap-6">
-                        <div id="photoPreview" class="photo-upload-area w-32 h-32 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-indigo-200" onclick="document.getElementById('studentPhoto').click()">
-                            <img id="previewImg" src="" alt="Preview" class="w-full h-full object-cover hidden">
+                        <div id="photoPreview" class="w-32 h-32 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-indigo-200">
+                            <img id="previewImg" src="" alt="Preview" class="w-full h-full object-cover hidden" onerror="this.classList.add('hidden'); document.getElementById('previewIcon').classList.remove('hidden');">
                             <i class="fas fa-user text-4xl text-gray-400" id="previewIcon"></i>
                         </div>
                         <div class="flex-1">
-                            <input type="file" id="studentPhoto" accept="image/jpeg,image/jpg,image/png" class="hidden" onchange="previewPhoto(this)">
-                            <button type="button" onclick="document.getElementById('studentPhoto').click()" class="btn-modern px-6 py-3 rounded-xl">
-                                <i class="fas fa-upload mr-2"></i>Pilih Foto
-                            </button>
+                            <input type="url" id="studentPhoto" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="https://drive.google.com/your-image-link">
                             <p class="text-xs text-gray-500 mt-2">
-                                Format: JPG, JPEG, PNG. Ukuran: 300x300 pixel (akan dikompres dengan kualitas tinggi)
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Masukkan link Google Drive yang bisa diakses publik. 
+                                <button type="button" onclick="showDriveGuide()" class="text-indigo-600 hover:underline">Cara mendapatkan link</button>
                             </p>
-                            <div id="compressIndicator" class="hidden text-xs text-indigo-600 mt-2">
-                                <i class="fas fa-spinner fa-spin mr-1"></i>Mengompres foto...
+                            <div id="driveGuide" class="hidden mt-3 p-3 bg-indigo-50 rounded-lg text-xs">
+                                <p class="font-semibold mb-1">Cara mendapatkan link Google Drive:</p>
+                                <ol class="list-decimal list-inside space-y-1 text-gray-600">
+                                    <li>Upload foto ke Google Drive</li>
+                                    <li>Klik kanan file → Bagikan</li>
+                                    <li>Ubah akses menjadi "Siapa saja dengan link"</li>
+                                    <li>Salin link dan paste di atas</li>
+                                    <li>Link akan otomatis dikonversi untuk ditampilkan</li>
+                                </ol>
+                                <button type="button" onclick="closeDriveGuide()" class="mt-2 text-indigo-600 font-semibold">Tutup</button>
                             </div>
-                            <button type="button" onclick="removePhoto()" class="text-xs text-red-600 mt-2 hover:text-red-800 transition">
-                                <i class="fas fa-trash-alt mr-1"></i>Hapus Foto
-                            </button>
+                            <div id="drivePreviewStatus" class="hidden mt-2 text-xs text-green-600">
+                                <i class="fas fa-check-circle mr-1"></i>Link valid
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1543,8 +1344,8 @@
             API_KEY: "$2a$10$uIB7UH1hUV6kFv7v4l21puJBjd.1.r9SYqT8XT94RkJyHCyzGQQFm",
             BINS: {
                 STUDENTS: "699ffd15ae596e708f4b42a4",
-                ATTENDANCE: "69a57b3243b1c97be9abe8ac",
-                CONFIG: "69a748b1d0ea881f40ebb17c",
+                ATTENDANCE: "699ffd3c43b1c97be99f754c",
+                CONFIG: "699e9aead0ea881f40d72ba1",
                 PELANGGARAN: "69a3f6e5d0ea881f40e42434",
                 LOCATIONS: "69a51fe7ae596e708f56d415_locations"
             },
@@ -1625,29 +1426,6 @@
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
-        // ==================== FUNGSI BATCH PROGRESS ====================
-        function showBatchProgress(total) {
-            document.getElementById('batchProgress').classList.remove('hidden');
-            document.getElementById('batchProgressBar').style.width = '0%';
-            document.getElementById('batchCurrent').textContent = '0';
-            document.getElementById('batchTotal').textContent = total;
-            document.getElementById('batchDetail').textContent = '';
-        }
-
-        function updateBatchProgress(current, total, detail = '') {
-            const percentage = (current / total) * 100;
-            document.getElementById('batchProgressBar').style.width = percentage + '%';
-            document.getElementById('batchCurrent').textContent = current;
-            document.getElementById('batchTotal').textContent = total;
-            if (detail) {
-                document.getElementById('batchDetail').textContent = detail;
-            }
-        }
-
-        function hideBatchProgress() {
-            document.getElementById('batchProgress').classList.add('hidden');
-        }
-
         // ==================== FUNGSI IMPORT PROGRESS ====================
         function showImportProgress() {
             document.getElementById('importProgress').classList.remove('hidden');
@@ -1666,68 +1444,109 @@
             document.getElementById('importProgress').classList.add('hidden');
         }
 
-        // ==================== FUNGSI PREVIEW FOTO ====================
-        function showPhotoPreview(photoSrc) {
-            document.getElementById('previewLargePhoto').src = photoSrc;
-            document.getElementById('photoPreviewModal').classList.remove('hidden');
+        // ==================== FUNGSI GOOGLE DRIVE ====================
+        function convertGoogleDriveLink(link) {
+            if (!link) return '';
+            
+            // Handle berbagai format link Google Drive
+            let fileId = '';
+            
+            // Format: https://drive.google.com/file/d/FILE_ID/view
+            const fileMatch = link.match(/\/file\/d\/([^\/]+)/);
+            if (fileMatch) {
+                fileId = fileMatch[1];
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+            
+            // Format: https://drive.google.com/open?id=FILE_ID
+            const openMatch = link.match(/[?&]id=([^&]+)/);
+            if (openMatch) {
+                fileId = openMatch[1];
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+            
+            // Format: https://docs.google.com/uc?id=FILE_ID
+            const ucMatch = link.match(/[?&]id=([^&]+)/);
+            if (ucMatch) {
+                fileId = ucMatch[1];
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+            
+            // Jika sudah dalam format yang benar, return asli
+            if (link.includes('drive.google.com/uc?') || link.includes('drive.google.com/thumbnail?')) {
+                return link;
+            }
+            
+            return link;
         }
 
-        function closePhotoPreview() {
-            document.getElementById('photoPreviewModal').classList.add('hidden');
+        function validateGoogleDriveLink(link) {
+            if (!link) return false;
+            
+            // Cek apakah link mengandung pola Google Drive
+            const patterns = [
+                /drive\.google\.com\/file\/d\//,
+                /drive\.google\.com\/open\?id=/,
+                /drive\.google\.com\/uc\?/,
+                /docs\.google\.com\/uc\?/
+            ];
+            
+            return patterns.some(pattern => pattern.test(link));
         }
 
-        // ==================== FUNGSI KOMPRESI FOTO (KUALITAS TINGGI) ====================
-        function compressImage(file, maxWidth = 300, maxHeight = 300, quality = 0.85) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = () => {
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        // Hitung dimensi baru dengan mempertahankan aspect ratio
-                        // Ukuran 300x300 untuk kualitas yang baik
-                        if (width > height) {
-                            if (width > maxWidth) {
-                                height = Math.round(height * (maxWidth / width));
-                                width = maxWidth;
-                            }
-                        } else {
-                            if (height > maxHeight) {
-                                width = Math.round(width * (maxHeight / height));
-                                height = maxHeight;
-                            }
-                        }
-                        
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-                        
-                        const ctx = canvas.getContext('2d');
-                        // Gunakan image smoothing untuk kualitas lebih baik
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = 'high';
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // Kompres dengan kualitas tinggi
-                        canvas.toBlob((blob) => {
-                            const compressedReader = new FileReader();
-                            compressedReader.readAsDataURL(blob);
-                            compressedReader.onload = () => {
-                                const base64 = compressedReader.result;
-                                const sizeInKB = (base64.length * 0.75) / 1024;
-                                console.log(`📸 Kompresi: ${(file.size/1024).toFixed(2)}KB → ${sizeInKB.toFixed(2)}KB (${width}x${height})`);
-                                resolve(base64);
-                            };
-                        }, 'image/jpeg', quality);
-                    };
-                    img.onerror = reject;
-                };
-                reader.onerror = reject;
+        function testGoogleDriveLink(link) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = convertGoogleDriveLink(link);
             });
+        }
+
+        async function previewGoogleDriveLink(input) {
+            const link = input.value.trim();
+            const previewImg = document.getElementById('previewImg');
+            const previewIcon = document.getElementById('previewIcon');
+            const statusEl = document.getElementById('drivePreviewStatus');
+            
+            if (!link) {
+                previewImg.classList.add('hidden');
+                previewIcon.classList.remove('hidden');
+                statusEl.classList.add('hidden');
+                return;
+            }
+            
+            if (!validateGoogleDriveLink(link)) {
+                showToast('Link Google Drive tidak valid', 'error');
+                previewImg.classList.add('hidden');
+                previewIcon.classList.remove('hidden');
+                statusEl.classList.add('hidden');
+                return;
+            }
+            
+            const convertedLink = convertGoogleDriveLink(link);
+            previewImg.src = convertedLink;
+            previewImg.classList.remove('hidden');
+            previewIcon.classList.add('hidden');
+            
+            // Test apakah link bisa diakses
+            const isValid = await testGoogleDriveLink(link);
+            if (isValid) {
+                statusEl.classList.remove('hidden');
+                statusEl.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Link valid dan dapat diakses';
+            } else {
+                statusEl.classList.remove('hidden');
+                statusEl.className = 'mt-2 text-xs text-red-600';
+                statusEl.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i>Peringatan: Link mungkin tidak dapat diakses publik';
+            }
+        }
+
+        function showDriveGuide() {
+            document.getElementById('driveGuide').classList.remove('hidden');
+        }
+
+        function closeDriveGuide() {
+            document.getElementById('driveGuide').classList.add('hidden');
         }
 
         // ==================== FUNGSI LOGO ====================
@@ -1778,7 +1597,7 @@
                 showLoading('Mengompres logo...');
                 
                 try {
-                    const compressedBase64 = await compressImage(file, 200, 200, 0.8);
+                    const compressedBase64 = await compressImage(file, 300, 300, 0.8);
                     
                     configData.school_logo = compressedBase64;
                     await saveConfig();
@@ -1855,6 +1674,7 @@
                         const nama = row.nama || row.Nama || row.NAMA || '';
                         const kelas = row.kelas || row.Kelas || row.KELAS || '';
                         const jurusan = row.jurusan || row.Jurusan || row.JURUSAN || '';
+                        const photo = row.photo || row.Photo || row.Foto || row.foto || '';
 
                         if (!nis || !nama || !kelas || !jurusan) {
                             errorCount++;
@@ -1869,14 +1689,14 @@
                             continue;
                         }
 
-                        // Buat siswa baru (foto dikosongkan dulu)
+                        // Buat siswa baru dengan link Google Drive
                         const newStudent = {
                             id: generateId(),
                             nis: nis.toString(),
                             nama: nama.toString(),
                             kelas: kelas.toString(),
                             jurusan: jurusan.toString(),
-                            photo: '',
+                            photo: photo ? convertGoogleDriveLink(photo.toString()) : '',
                             created_at: Date.now()
                         };
 
@@ -1955,6 +1775,57 @@
             });
         }
 
+        // ==================== FUNGSI KOMPRESI FOTO (untuk logo saja) ====================
+        function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+                        
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            
+                            const compressedReader = new FileReader();
+                            compressedReader.readAsDataURL(compressedFile);
+                            compressedReader.onload = () => {
+                                console.log(`📸 Kompresi: ${(file.size/1024).toFixed(2)}KB → ${(blob.size/1024).toFixed(2)}KB`);
+                                resolve(compressedReader.result);
+                            };
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+            });
+        }
+
         // ==================== FUNGSI DATABASE ====================
         async function loadStudents() {
             try {
@@ -1965,10 +1836,6 @@
                 const data = await response.json();
                 students = Array.isArray(data) ? data : [];
                 console.log('✅ Loaded students:', students.length);
-                
-                // Hitung statistik foto
-                updateStorageStats();
-                
                 return students;
             } catch (error) {
                 console.error('❌ Gagal load siswa:', error);
@@ -2136,31 +2003,6 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // ==================== FUNGSI STORAGE STATS ====================
-        function updateStorageStats() {
-            const studentsWithPhoto = students.filter(s => s.photo && s.photo !== '').length;
-            
-            // Hitung total ukuran foto (kira-kira)
-            let totalSize = 0;
-            students.forEach(s => {
-                if (s.photo) {
-                    // Base64 size = (length * 0.75) bytes
-                    totalSize += (s.photo.length * 0.75);
-                }
-            });
-            
-            const totalSizeKB = Math.round(totalSize / 1024);
-            const maxSizeKB = 10 * 1024; // Asumsi 10MB limit
-            
-            document.getElementById('siswaDenganFoto').textContent = studentsWithPhoto;
-            document.getElementById('totalUkuran').textContent = totalSizeKB + ' KB';
-            document.getElementById('storageStats').textContent = `${totalSizeKB} KB / 10 MB`;
-            
-            const percentage = (totalSizeKB / maxSizeKB) * 100;
-            document.getElementById('storageBar').style.width = Math.min(percentage, 100) + '%';
-            document.getElementById('storageDetail').textContent = `${studentsWithPhoto} dari ${students.length} siswa memiliki foto`;
-        }
-
         // ==================== FUNGSI LOKASI ====================
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
@@ -2249,30 +2091,27 @@
             }).join('');
         }
 
-        // ==================== FUNGSI FOTO SISWA ====================
-        function removePhoto() {
-            document.getElementById('previewImg').src = '';
-            document.getElementById('previewImg').classList.add('hidden');
-            document.getElementById('previewIcon').classList.remove('hidden');
-            document.getElementById('studentPhoto').dataset.compressed = '';
-            document.getElementById('currentPhoto').value = '';
-        }
-
+        // ==================== FUNGSI MODAL & FOTO ====================
         function openTambahSiswaModal() {
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
             document.getElementById('studentId').value = '';
-            document.getElementById('currentPhoto').value = '';
-            
-            // Reset preview foto
-            document.getElementById('previewImg').src = '';
             document.getElementById('previewImg').classList.add('hidden');
             document.getElementById('previewIcon').classList.remove('hidden');
-            document.getElementById('compressIndicator').classList.add('hidden');
-            document.getElementById('studentPhoto').dataset.compressed = '';
-            
+            document.getElementById('driveGuide').classList.add('hidden');
+            document.getElementById('drivePreviewStatus').classList.add('hidden');
             document.getElementById('studentModal').classList.remove('hidden');
+            
+            // Tambahkan event listener untuk preview link
+            const photoInput = document.getElementById('studentPhoto');
+            photoInput.removeEventListener('input', previewHandler);
+            photoInput.addEventListener('input', previewHandler);
         }
+
+        // Handler untuk preview link Google Drive
+        const previewHandler = function() {
+            previewGoogleDriveLink(this);
+        };
 
         function openEditSiswaModal(student) {
             document.getElementById('modalTitle').textContent = 'Edit Siswa';
@@ -2281,65 +2120,43 @@
             document.getElementById('nama').value = student.nama;
             document.getElementById('kelas').value = student.kelas;
             document.getElementById('jurusan').value = student.jurusan;
-            document.getElementById('currentPhoto').value = student.photo || '';
-            document.getElementById('compressIndicator').classList.add('hidden');
+            document.getElementById('studentPhoto').value = student.photo || '';
+            document.getElementById('driveGuide').classList.add('hidden');
             
-            // Reset dataset compressed
-            document.getElementById('studentPhoto').dataset.compressed = '';
-            
-            // Tampilkan foto jika ada
-            if (student.photo && student.photo !== '') {
-                document.getElementById('previewImg').src = student.photo;
+            if (student.photo) {
+                document.getElementById('previewImg').src = convertGoogleDriveLink(student.photo);
                 document.getElementById('previewImg').classList.remove('hidden');
                 document.getElementById('previewIcon').classList.add('hidden');
-                console.log('📸 Menampilkan foto untuk edit');
+                
+                // Test link
+                testGoogleDriveLink(student.photo).then(isValid => {
+                    const statusEl = document.getElementById('drivePreviewStatus');
+                    if (isValid) {
+                        statusEl.classList.remove('hidden');
+                        statusEl.className = 'mt-2 text-xs text-green-600';
+                        statusEl.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Link valid dan dapat diakses';
+                    } else {
+                        statusEl.classList.remove('hidden');
+                        statusEl.className = 'mt-2 text-xs text-red-600';
+                        statusEl.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i>Peringatan: Link mungkin tidak dapat diakses publik';
+                    }
+                });
             } else {
                 document.getElementById('previewImg').classList.add('hidden');
                 document.getElementById('previewIcon').classList.remove('hidden');
+                document.getElementById('drivePreviewStatus').classList.add('hidden');
             }
             
             document.getElementById('studentModal').classList.remove('hidden');
+            
+            // Tambahkan event listener untuk preview link
+            const photoInput = document.getElementById('studentPhoto');
+            photoInput.removeEventListener('input', previewHandler);
+            photoInput.addEventListener('input', previewHandler);
         }
 
         function closeStudentModal() {
             document.getElementById('studentModal').classList.add('hidden');
-            // Reset form
-            document.getElementById('studentForm').reset();
-            document.getElementById('studentPhoto').dataset.compressed = '';
-        }
-
-        async function previewPhoto(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                
-                if (!file.type.match('image.*')) {
-                    showToast('File harus gambar', 'error');
-                    return;
-                }
-                
-                document.getElementById('compressIndicator').classList.remove('hidden');
-                
-                try {
-                    // Kompres foto dengan ukuran 300x300 dan kualitas 85% untuk hasil yang JELAS
-                    const compressedBase64 = await compressImage(file, 300, 300, 0.85);
-                    
-                    document.getElementById('previewImg').src = compressedBase64;
-                    document.getElementById('previewImg').classList.remove('hidden');
-                    document.getElementById('previewIcon').classList.add('hidden');
-                    
-                    // Simpan foto yang sudah dikompres ke dataset
-                    document.getElementById('studentPhoto').dataset.compressed = compressedBase64;
-                    
-                    const sizeInKB = (compressedBase64.length * 0.75) / 1024;
-                    showToast(`Foto berhasil dikompres! (${sizeInKB.toFixed(1)} KB) - Kualitas tinggi`, 'success');
-                    console.log('📸 Foto dikompres, ukuran:', sizeInKB.toFixed(1), 'KB, dimensi: 300x300');
-                } catch (error) {
-                    console.error('Error kompresi:', error);
-                    showToast('Gagal kompres foto', 'error');
-                } finally {
-                    document.getElementById('compressIndicator').classList.add('hidden');
-                }
-            }
         }
 
         // ==================== FUNGSI PELANGGARAN MODAL ====================
@@ -2646,7 +2463,6 @@
                 updateClassFilter();
                 updatePelanggaranStats();
                 updatePelanggaranCharts();
-                updateStorageStats();
                 
                 showToast(`Berhasil menghapus ${totalSiswa} data siswa`, 'success');
             } catch (error) {
@@ -2700,8 +2516,8 @@
                         <td class="px-4 py-4">${p.student_nis}</td>
                         <td class="px-4 py-4">
                             <div class="flex items-center gap-2">
-                                ${p.student_photo && p.student_photo !== '' ? 
-                                    `<img src="${p.student_photo}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200 cursor-pointer" onclick="showPhotoPreview('${p.student_photo}')">` : 
+                                ${p.student_photo ? 
+                                    `<img src="${convertGoogleDriveLink(p.student_photo)}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200" onerror="this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML += '<div class=\'w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center\'><i class=\'fas fa-user text-gray-400 text-xs\'></i></div>';">` : 
                                     `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400 text-xs"></i></div>
                                 `}
                                 <span class="font-medium">${p.student_nama}</span>
@@ -2967,9 +2783,9 @@
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
                         <td class="px-4 py-4">
-                            ${student.photo && student.photo !== '' ? 
-                                `<img src="${student.photo}" class="student-photo" title="${student.nama}" onclick="showPhotoPreview('${student.photo}')">` : 
-                                `<div class="student-photo-placeholder" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})"><i class="fas fa-user"></i></div>`
+                            ${student.photo ? 
+                                `<img src="${convertGoogleDriveLink(student.photo)}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-200" onerror="this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML='<div class=\'w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center\'><i class=\'fas fa-user text-gray-400\'></i></div>';">` : 
+                                `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400"></i></div>`
                             }
                         </td>
                         <td class="px-4 py-4 font-mono">${student.nis}</td>
@@ -3017,9 +2833,9 @@
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
                         <td class="px-4 py-4">
-                            ${student.photo && student.photo !== '' ? 
-                                `<img src="${student.photo}" class="student-photo" title="${student.nama}" onclick="showPhotoPreview('${student.photo}')">` : 
-                                `<div class="student-photo-placeholder cursor-pointer" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})"><i class="fas fa-user"></i></div>`
+                            ${student.photo ? 
+                                `<img src="${convertGoogleDriveLink(student.photo)}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-200" onerror="this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML='<div class=\'w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center\'><i class=\'fas fa-user text-gray-400\'></i></div>';">` : 
+                                `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400"></i></div>`
                             }
                         </td>
                         <td class="px-4 py-4">
@@ -3052,9 +2868,6 @@
                     </tr>
                 `;
             }).join('');
-            
-            // Update storage stats setelah render
-            updateStorageStats();
         }
 
         function renderRekapTable() {
@@ -3108,8 +2921,8 @@
                         <td class="px-4 py-4 font-mono">${record.student_nis}</td>
                         <td class="px-4 py-4">
                             <div class="flex items-center gap-3">
-                                ${record.student_photo && record.student_photo !== '' ? 
-                                    `<img src="${record.student_photo}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200 cursor-pointer" onclick="showPhotoPreview('${record.student_photo}')">` : ''
+                                ${record.student_photo ? 
+                                    `<img src="${convertGoogleDriveLink(record.student_photo)}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200" onerror="this.src=''; this.classList.add('hidden');">` : ''
                                 }
                                 <span class="font-medium">${record.student_nama}</span>
                             </div>
@@ -3205,7 +3018,7 @@
             document.getElementById('totalKelasCount').textContent = kelasUnik.length;
         }
 
-        // ==================== CRUD SISWA (DIPERBAIKI) ====================
+        // ==================== CRUD SISWA ====================
         async function handleStudentSubmit(event) {
             event.preventDefault();
             
@@ -3214,6 +3027,7 @@
             const nama = document.getElementById('nama').value.trim();
             const kelas = document.getElementById('kelas').value.trim();
             const jurusan = document.getElementById('jurusan').value.trim();
+            const photoLink = document.getElementById('studentPhoto').value.trim();
             
             if (!nis || !nama || !kelas || !jurusan) {
                 showToast('Semua field wajib diisi', 'error');
@@ -3222,57 +3036,36 @@
             
             showLoading('Menyimpan data siswa...');
             
-            // Ambil foto dari dataset compressed (foto baru) atau dari currentPhoto (foto lama)
-            let photoBase64 = document.getElementById('studentPhoto').dataset.compressed;
-            
-            // Jika tidak ada foto baru, gunakan foto lama yang tersimpan di currentPhoto
-            if (!photoBase64 || photoBase64 === '') {
-                photoBase64 = document.getElementById('currentPhoto').value;
-                console.log('📸 Menggunakan foto lama');
-            } else {
-                console.log('📸 Menggunakan foto baru');
-            }
+            // Konversi link Google Drive jika ada
+            const convertedPhoto = photoLink ? convertGoogleDriveLink(photoLink) : '';
             
             if (studentId) {
-                // Edit siswa yang sudah ada
                 const index = students.findIndex(s => s.id === studentId);
                 if (index !== -1) {
-                    // Simpan data siswa dengan foto (baru atau lama)
                     students[index] = {
                         ...students[index],
                         nis,
                         nama,
                         kelas,
                         jurusan,
-                        photo: photoBase64 || students[index].photo || '' // Pertahankan foto lama jika tidak ada yang baru
+                        photo: convertedPhoto || students[index].photo
                     };
-                    console.log(`📸 Foto siswa ${nama} setelah edit:`, students[index].photo ? 'Ada' : 'Tidak ada');
                 }
             } else {
-                // Tambah siswa baru
                 const newStudent = {
                     id: generateId(),
                     nis,
                     nama,
                     kelas,
                     jurusan,
-                    photo: photoBase64 || '', // Gunakan foto jika ada
+                    photo: convertedPhoto,
                     created_at: Date.now()
                 };
                 students.push(newStudent);
-                console.log(`📸 Foto siswa baru ${nama}:`, newStudent.photo ? 'Ada' : 'Tidak ada');
             }
             
-            // Simpan ke JSONBin
-            const saveResult = await saveStudents();
+            await saveStudents();
             
-            if (!saveResult) {
-                showToast('Gagal menyimpan ke server', 'error');
-                hideLoading();
-                return;
-            }
-            
-            // Update data terkait (absensi dan pelanggaran)
             if (studentId) {
                 attendanceRecords.forEach(r => {
                     if (r.student_id === studentId) {
@@ -3280,7 +3073,7 @@
                         r.student_nama = nama;
                         r.student_kelas = kelas;
                         r.student_jurusan = jurusan;
-                        if (photoBase64) r.student_photo = photoBase64;
+                        if (convertedPhoto) r.student_photo = convertedPhoto;
                     }
                 });
                 
@@ -3289,7 +3082,7 @@
                         p.student_nis = nis;
                         p.student_nama = nama;
                         p.student_kelas = kelas;
-                        if (photoBase64) p.student_photo = photoBase64;
+                        if (convertedPhoto) p.student_photo = convertedPhoto;
                     }
                 });
                 
@@ -3299,8 +3092,6 @@
             
             hideLoading();
             closeStudentModal();
-            
-            // Update semua tampilan
             renderStudentTable();
             renderSiswaManagementTable();
             renderRekapTable();
@@ -3309,12 +3100,7 @@
             updateClassFilter();
             updatePelanggaranStats();
             updatePelanggaranCharts();
-            updateStorageStats();
-            
             showToast('Data siswa berhasil disimpan');
-            
-            // Reset dataset compressed
-            document.getElementById('studentPhoto').dataset.compressed = '';
         }
 
         function deleteStudent(id) {
@@ -3340,7 +3126,6 @@
                 <p class="font-semibold text-gray-800">${student.nama}</p>
                 <p class="text-sm text-gray-600">NIS: ${student.nis}</p>
                 <p class="text-sm text-gray-600">${student.kelas} - ${student.jurusan}</p>
-                ${student.photo && student.photo !== '' ? `<img src="${student.photo}" class="w-12 h-12 rounded-full mx-auto mt-2 border-2 border-indigo-200 cursor-pointer" onclick="showPhotoPreview('${student.photo}')">` : ''}
             `;
             
             document.getElementById('qrModal').classList.remove('hidden');
@@ -3362,14 +3147,12 @@
                         body { font-family: 'Plus Jakarta Sans', sans-serif; text-align: center; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
                         .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
                         .qr-img { width: 250px; height: 250px; margin: 20px auto; }
-                        .student-photo { width: 80px; height: 80px; border-radius: 50%; margin: 10px auto; border: 3px solid #4f46e5; }
                         .school-name { font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
                     </style>
                 </head>
                 <body>
                     <div class="container">
                         <div class="school-name">MAS IBNU HUSAIN</div>
-                        ${currentQRStudent.photo && currentQRStudent.photo !== '' ? `<img src="${currentQRStudent.photo}" class="student-photo">` : ''}
                         <img src="${document.querySelector('#qrContainer img').src}" class="qr-img">
                         <h3 style="color: #1f2937;">${currentQRStudent.nama}</h3>
                         <p style="color: #6b7280;">NIS: ${currentQRStudent.nis}</p>
@@ -3409,7 +3192,6 @@
                         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
                         .card { text-align: center; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
                         .qr-img { width: 150px; height: 150px; margin: 10px auto; }
-                        .student-photo { width: 50px; height: 50px; border-radius: 50%; margin: 5px auto; border: 2px solid #4f46e5; }
                         @media print {
                             .grid { grid-template-columns: repeat(4, 1fr); }
                         }
@@ -3426,7 +3208,6 @@
             students.forEach(student => {
                 html += `
                     <div class="card">
-                        ${student.photo && student.photo !== '' ? `<img src="${student.photo}" class="student-photo">` : ''}
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(student.nis)}" class="qr-img">
                         <h4 style="color: #1f2937; font-weight: 600;">${student.nama}</h4>
                         <p style="color: #6b7280; font-size: 12px;">NIS: ${student.nis}</p>
@@ -4092,26 +3873,7 @@
         // ==================== SAVE FUNCTIONS ====================
         async function saveStudents() {
             try {
-                // Hitung total ukuran data
-                const totalSize = JSON.stringify(students).length;
-                const totalSizeKB = (totalSize / 1024).toFixed(2);
-                console.log(`📊 Total ukuran data siswa: ${totalSizeKB} KB`);
-                
-                // Hitung siswa dengan foto
-                const studentsWithPhoto = students.filter(s => s.photo && s.photo !== '').length;
-                console.log(`📸 Menyimpan ${studentsWithPhoto} dari ${students.length} siswa dengan foto`);
-                
-                // Estimasi ukuran per foto
-                let totalPhotoSize = 0;
-                students.forEach(s => {
-                    if (s.photo) {
-                        totalPhotoSize += (s.photo.length * 0.75);
-                    }
-                });
-                const totalPhotoSizeKB = (totalPhotoSize / 1024).toFixed(2);
-                console.log(`📸 Total ukuran foto: ${totalPhotoSizeKB} KB`);
-                
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
                     method: 'PUT',
                     headers: {
                         'X-Master-Key': JSONBIN_CONFIG.API_KEY,
@@ -4119,35 +3881,10 @@
                     },
                     body: JSON.stringify(students)
                 });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-                
-                const result = await response.json();
-                console.log('✅ Students saved to JSONBin');
-                
-                // Update storage stats
-                updateStorageStats();
-                
-                return true;
-                
+                console.log('✅ Students saved');
             } catch (error) {
                 console.error('❌ Gagal simpan siswa:', error);
-                
-                // Jika error karena ukuran terlalu besar, beri tahu user
-                if (error.message.includes('413') || error.message.includes('too large')) {
-                    showToast('Ukuran data terlalu besar. Coba kompres foto lebih kecil.', 'error');
-                    
-                    // Tampilkan saran
-                    const totalSize = JSON.stringify(students).length;
-                    const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
-                    showToast(`Total data: ${totalSizeMB} MB. Maksimal biasanya 10 MB.`, 'warning');
-                }
-                
-                showToast('Gagal simpan siswa: ' + error.message, 'error');
-                return false;
+                showToast('Gagal simpan siswa', 'error');
             }
         }
 
@@ -4196,7 +3933,6 @@
             updateClassFilter();
             updatePelanggaranStats();
             updatePelanggaranCharts();
-            updateStorageStats();
             
             closeOpening();
             
@@ -4229,7 +3965,9 @@
         window.openTambahSiswaModal = openTambahSiswaModal;
         window.openEditSiswaModal = openEditSiswaModal;
         window.closeStudentModal = closeStudentModal;
-        window.previewPhoto = previewPhoto;
+        window.previewGoogleDriveLink = previewGoogleDriveLink;
+        window.showDriveGuide = showDriveGuide;
+        window.closeDriveGuide = closeDriveGuide;
         window.handleStudentSubmit = handleStudentSubmit;
         window.deleteStudent = deleteStudent;
         window.closeDeleteModal = closeDeleteModal;
@@ -4269,10 +4007,8 @@
         window.confirmDeleteAllStudents = confirmDeleteAllStudents;
         window.closeDeleteAllStudentsModal = closeDeleteAllStudentsModal;
         window.handleExcelImport = handleExcelImport;
-        window.removePhoto = removePhoto;
-        window.showPhotoPreview = showPhotoPreview;
-        window.closePhotoPreview = closePhotoPreview;
+        window.convertGoogleDriveLink = convertGoogleDriveLink;
+        window.validateGoogleDriveLink = validateGoogleDriveLink;
     </script>
 </body>
 </html>
-
