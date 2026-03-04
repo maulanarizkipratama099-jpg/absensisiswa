@@ -14,6 +14,7 @@
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
+        /* ... (CSS tetap sama seperti sebelumnya) ... */
         * {
             margin: 0;
             padding: 0;
@@ -27,7 +28,6 @@
             position: relative;
         }
 
-        /* Opening Animation */
         .opening-overlay {
             position: fixed;
             top: 0;
@@ -126,7 +126,6 @@
             100% { width: 100%; }
         }
 
-        /* Modern Glass Effect */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -141,7 +140,6 @@
             box-shadow: 0 30px 60px -12px rgba(79, 70, 229, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2);
         }
 
-        /* Modern Badges */
         .status-badge {
             padding: 8px 16px;
             border-radius: 30px;
@@ -175,7 +173,6 @@
             color: white;
         }
 
-        /* Modern Table */
         .modern-table {
             border-collapse: separate;
             border-spacing: 0 8px;
@@ -215,7 +212,6 @@
             border-radius: 0 16px 16px 0;
         }
 
-        /* Modern Buttons */
         .btn-modern {
             position: relative;
             overflow: hidden;
@@ -246,7 +242,6 @@
             box-shadow: 0 20px 30px -8px rgba(79, 70, 229, 0.5);
         }
 
-        /* Danger Button */
         .btn-danger {
             background: linear-gradient(145deg, #dc2626, #b91c1c);
             box-shadow: 0 10px 20px -5px rgba(220, 38, 38, 0.4);
@@ -256,7 +251,6 @@
             box-shadow: 0 20px 30px -8px rgba(220, 38, 38, 0.5);
         }
 
-        /* Navigation */
         .nav-btn {
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
@@ -278,7 +272,6 @@
             color: #4f46e5;
         }
 
-        /* Modal */
         .modal-content {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
@@ -299,7 +292,6 @@
             }
         }
 
-        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -334,7 +326,6 @@
             }
         }
 
-        /* Loading Spinner */
         .loading-spinner {
             width: 50px;
             height: 50px;
@@ -350,7 +341,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Logo Upload */
         .logo-uploader {
             position: relative;
             cursor: pointer;
@@ -388,7 +378,6 @@
             transform: scale(1);
         }
 
-        /* Location Badge */
         .location-badge {
             padding: 6px 12px;
             border-radius: 30px;
@@ -405,7 +394,6 @@
             border: 1px solid rgba(220, 38, 38, 0.2);
         }
 
-        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -425,7 +413,6 @@
             background: linear-gradient(145deg, #7c3aed, #4f46e5);
         }
 
-        /* Pulse Animation */
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -435,14 +422,6 @@
             animation: pulse 2s infinite;
         }
 
-        /* Input Focus */
-        .modern-input:focus {
-            outline: none;
-            ring: 2px solid #4f46e5;
-            border-color: transparent;
-        }
-
-        /* Photo Upload */
         .photo-upload-area {
             position: relative;
             cursor: pointer;
@@ -480,7 +459,6 @@
             transform: scale(1);
         }
 
-        /* Student Photo in Table */
         .student-photo {
             width: 50px;
             height: 50px;
@@ -515,7 +493,6 @@
             background: linear-gradient(145deg, #c7d2fe, #a5b4fc);
         }
 
-        /* Import Progress */
         .import-progress {
             position: fixed;
             top: 50%;
@@ -1190,10 +1167,10 @@
                                 <i class="fas fa-upload mr-2"></i>Pilih Foto
                             </button>
                             <p class="text-xs text-gray-500 mt-2">
-                                Format: JPG, JPEG, PNG. Maks 2MB (akan dikompres otomatis)
+                                Format: JPG, JPEG, PNG. Maks 2MB (akan dikompres dan diupload ke server)
                             </p>
                             <div id="compressIndicator" class="hidden text-xs text-indigo-600 mt-2">
-                                <i class="fas fa-spinner fa-spin mr-1"></i>Mengompres foto...
+                                <i class="fas fa-spinner fa-spin mr-1"></i>Mengupload foto...
                             </div>
                             <button type="button" onclick="removePhoto()" class="text-xs text-red-600 mt-2 hover:text-red-800 transition">
                                 <i class="fas fa-trash-alt mr-1"></i>Hapus Foto
@@ -1392,7 +1369,7 @@
     <div id="toastContainer"></div>
 
     <script>
-        // ==================== KONFIGURASI JSONBIN ====================
+        // ==================== KONFIGURASI ====================
         const JSONBIN_CONFIG = {
             API_KEY: "$2a$10$uIB7UH1hUV6kFv7v4l21puJBjd.1.r9SYqT8XT94RkJyHCyzGQQFm",
             BINS: {
@@ -1405,7 +1382,12 @@
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
 
-        // ==================== KONSTANTA LOKASI ====================
+        // Konfigurasi ImgBB (GRATIS)
+        const IMGBB_CONFIG = {
+            API_KEY: "bf27dc3f1d0a5a97a2a2e613ca1b3b1f", // API Key publik untuk demo, ganti dengan punya Anda
+            UPLOAD_URL: "https://api.imgbb.com/1/upload"
+        };
+
         const SCHOOL_LOCATION = {
             lat: -7.230636,
             lng: 112.749601,
@@ -1497,8 +1479,35 @@
             document.getElementById('importProgress').classList.add('hidden');
         }
 
+        // ==================== FUNGSI UPLOAD FOTO KE IMGBB ====================
+        async function uploadToImgBB(base64Image) {
+            try {
+                // Hapus prefix data:image/jpeg;base64, jika ada
+                const base64Data = base64Image.split(',')[1] || base64Image;
+                
+                const formData = new FormData();
+                formData.append('key', IMGBB_CONFIG.API_KEY);
+                formData.append('image', base64Data);
+                
+                const response = await fetch(IMGBB_CONFIG.UPLOAD_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Gagal upload ke ImgBB');
+                
+                const data = await response.json();
+                console.log('✅ Foto berhasil diupload ke ImgBB:', data.data.url);
+                return data.data.url; // URL foto
+                
+            } catch (error) {
+                console.error('❌ Gagal upload foto:', error);
+                throw error;
+            }
+        }
+
         // ==================== FUNGSI KOMPRESI FOTO ====================
-        function compressImage(file, maxWidth = 300, maxHeight = 300, quality = 0.7) {
+        function compressImage(file, maxWidth = 400, maxHeight = 400, quality = 0.8) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -1529,7 +1538,7 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Kompres dengan kualitas lebih rendah untuk mengurangi ukuran
+                        // Kompres dengan kualitas tertentu
                         canvas.toBlob((blob) => {
                             const compressedReader = new FileReader();
                             compressedReader.readAsDataURL(blob);
@@ -1591,19 +1600,20 @@
                     return;
                 }
                 
-                showLoading('Mengompres logo...');
+                showLoading('Mengupload logo...');
                 
                 try {
                     const compressedBase64 = await compressImage(file, 200, 200, 0.7);
+                    const photoUrl = await uploadToImgBB(compressedBase64);
                     
-                    configData.school_logo = compressedBase64;
+                    configData.school_logo = photoUrl;
                     await saveConfig();
                     
-                    document.getElementById('logoImage').src = compressedBase64;
+                    document.getElementById('logoImage').src = photoUrl;
                     document.getElementById('logoImage').classList.remove('hidden');
                     document.getElementById('logoDefault').classList.add('hidden');
                     
-                    document.getElementById('openingLogoImage').src = compressedBase64;
+                    document.getElementById('openingLogoImage').src = photoUrl;
                     document.getElementById('openingLogoImage').classList.remove('hidden');
                     document.getElementById('openingLogoIcon').classList.add('hidden');
                     
@@ -1785,7 +1795,7 @@
                 // Log untuk debug foto
                 students.forEach(s => {
                     if (s.photo) {
-                        console.log(`📸 Siswa ${s.nama} memiliki foto: ${s.photo.substring(0, 50)}...`);
+                        console.log(`📸 Siswa ${s.nama} memiliki foto URL:`, s.photo);
                     }
                 });
                 
@@ -2087,7 +2097,7 @@
                 document.getElementById('previewImg').src = student.photo;
                 document.getElementById('previewImg').classList.remove('hidden');
                 document.getElementById('previewIcon').classList.add('hidden');
-                console.log('📸 Menampilkan foto untuk edit:', student.photo.substring(0, 50) + '...');
+                console.log('📸 Menampilkan foto untuk edit URL:', student.photo);
             } else {
                 document.getElementById('previewImg').classList.add('hidden');
                 document.getElementById('previewIcon').classList.remove('hidden');
@@ -2112,24 +2122,34 @@
                     return;
                 }
                 
-                document.getElementById('compressIndicator').classList.remove('hidden');
-                
-                try {
-                    // Kompres foto dengan ukuran kecil agar muat di JSONBin
-                    const compressedBase64 = await compressImage(file, 300, 300, 0.7);
-                    
-                    document.getElementById('previewImg').src = compressedBase64;
+                // Tampilkan preview lokal dulu
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('previewImg').src = e.target.result;
                     document.getElementById('previewImg').classList.remove('hidden');
                     document.getElementById('previewIcon').classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+                
+                // Kompres dan upload ke ImgBB
+                document.getElementById('compressIndicator').classList.remove('hidden');
+                document.getElementById('compressIndicator').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Mengupload foto ke server...';
+                
+                try {
+                    // Kompres foto
+                    const compressedBase64 = await compressImage(file, 400, 400, 0.8);
                     
-                    // Simpan foto yang sudah dikompres ke dataset
-                    document.getElementById('studentPhoto').dataset.compressed = compressedBase64;
+                    // Upload ke ImgBB
+                    const photoUrl = await uploadToImgBB(compressedBase64);
                     
-                    showToast('Foto berhasil dikompres!', 'success');
-                    console.log('📸 Foto dikompres, panjang base64:', compressedBase64.length);
+                    // Simpan URL foto ke dataset
+                    document.getElementById('studentPhoto').dataset.compressed = photoUrl;
+                    
+                    showToast('Foto berhasil diupload!', 'success');
+                    console.log('📸 Foto diupload, URL:', photoUrl);
                 } catch (error) {
-                    console.error('Error kompresi:', error);
-                    showToast('Gagal kompres foto', 'error');
+                    console.error('Error upload foto:', error);
+                    showToast('Gagal upload foto. Coba lagi.', 'error');
                 } finally {
                     document.getElementById('compressIndicator').classList.add('hidden');
                 }
@@ -2493,7 +2513,7 @@
                         <td class="px-4 py-4">${p.student_nis}</td>
                         <td class="px-4 py-4">
                             <div class="flex items-center gap-2">
-                                ${p.student_photo ? 
+                                ${p.student_photo && p.student_photo !== '' ? 
                                     `<img src="${p.student_photo}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200">` : 
                                     `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400 text-xs"></i></div>
                                 `}
@@ -3012,15 +3032,15 @@
             
             showLoading('Menyimpan data siswa...');
             
-            // Ambil foto dari dataset compressed (foto baru) atau dari currentPhoto (foto lama)
-            let photoBase64 = document.getElementById('studentPhoto').dataset.compressed;
+            // Ambil foto URL dari dataset compressed (foto baru) atau dari currentPhoto (foto lama)
+            let photoUrl = document.getElementById('studentPhoto').dataset.compressed;
             
             // Jika tidak ada foto baru, gunakan foto lama yang tersimpan di currentPhoto
-            if (!photoBase64 || photoBase64 === '') {
-                photoBase64 = document.getElementById('currentPhoto').value;
-                console.log('📸 Menggunakan foto lama');
+            if (!photoUrl || photoUrl === '') {
+                photoUrl = document.getElementById('currentPhoto').value;
+                console.log('📸 Menggunakan foto lama:', photoUrl);
             } else {
-                console.log('📸 Menggunakan foto baru, panjang:', photoBase64.length);
+                console.log('📸 Menggunakan foto baru URL:', photoUrl);
             }
             
             if (studentId) {
@@ -3034,7 +3054,7 @@
                         nama,
                         kelas,
                         jurusan,
-                        photo: photoBase64 || students[index].photo || '' // Pertahankan foto lama jika tidak ada yang baru
+                        photo: photoUrl || students[index].photo || '' // Pertahankan foto lama jika tidak ada yang baru
                     };
                     console.log('📸 Foto siswa setelah edit:', students[index].photo ? 'Ada' : 'Tidak ada');
                 }
@@ -3046,7 +3066,7 @@
                     nama,
                     kelas,
                     jurusan,
-                    photo: photoBase64 || '', // Gunakan foto jika ada
+                    photo: photoUrl || '', // Gunakan foto jika ada
                     created_at: Date.now()
                 };
                 students.push(newStudent);
@@ -3065,7 +3085,7 @@
                         r.student_nama = nama;
                         r.student_kelas = kelas;
                         r.student_jurusan = jurusan;
-                        if (photoBase64) r.student_photo = photoBase64;
+                        if (photoUrl) r.student_photo = photoUrl;
                     }
                 });
                 
@@ -3074,7 +3094,7 @@
                         p.student_nis = nis;
                         p.student_nama = nama;
                         p.student_kelas = kelas;
-                        if (photoBase64) p.student_photo = photoBase64;
+                        if (photoUrl) p.student_photo = photoUrl;
                     }
                 });
                 
@@ -3878,11 +3898,6 @@
             try {
                 // Log sebelum menyimpan untuk debug
                 console.log('📤 Menyimpan siswa ke JSONBin. Total:', students.length);
-                students.forEach(s => {
-                    if (s.photo) {
-                        console.log(`📸 Siswa ${s.nama} memiliki foto: ${s.photo.substring(0, 50)}...`);
-                    }
-                });
                 
                 const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
                     method: 'PUT',
@@ -3895,7 +3910,6 @@
                 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
-                const result = await response.json();
                 console.log('✅ Students saved to JSONBin');
                 return true;
             } catch (error) {
