@@ -1382,9 +1382,9 @@
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
 
-        // Konfigurasi ImgBB (GRATIS)
+        // Konfigurasi ImgBB dengan API KEY ANDA
         const IMGBB_CONFIG = {
-            API_KEY: "bf27dc3f1d0a5a97a2a2e613ca1b3b1f", // API Key publik untuk demo, ganti dengan punya Anda
+            API_KEY: "bf27dc3f1d0a5a97a2a2e613ca1b3b1f", // API KEY ANDA SUDAH BENAR
             UPLOAD_URL: "https://api.imgbb.com/1/upload"
         };
 
@@ -1482,6 +1482,8 @@
         // ==================== FUNGSI UPLOAD FOTO KE IMGBB ====================
         async function uploadToImgBB(base64Image) {
             try {
+                console.log('📤 Memulai upload ke ImgBB...');
+                
                 // Hapus prefix data:image/jpeg;base64, jika ada
                 const base64Data = base64Image.split(',')[1] || base64Image;
                 
@@ -1494,11 +1496,21 @@
                     body: formData
                 });
                 
-                if (!response.ok) throw new Error('Gagal upload ke ImgBB');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Response error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
                 
                 const data = await response.json();
-                console.log('✅ Foto berhasil diupload ke ImgBB:', data.data.url);
-                return data.data.url; // URL foto
+                console.log('✅ Respon ImgBB:', data);
+                
+                if (data.success) {
+                    console.log('✅ Foto berhasil diupload ke ImgBB:', data.data.url);
+                    return data.data.url; // URL foto
+                } else {
+                    throw new Error('Gagal upload: ' + (data.error?.message || 'Unknown error'));
+                }
                 
             } catch (error) {
                 console.error('❌ Gagal upload foto:', error);
@@ -1620,7 +1632,7 @@
                     showToast('Logo berhasil diupload!', 'success');
                 } catch (error) {
                     console.error('Error:', error);
-                    showToast('Gagal upload logo', 'error');
+                    showToast('Gagal upload logo: ' + error.message, 'error');
                 } finally {
                     hideLoading();
                 }
@@ -2149,7 +2161,7 @@
                     console.log('📸 Foto diupload, URL:', photoUrl);
                 } catch (error) {
                     console.error('Error upload foto:', error);
-                    showToast('Gagal upload foto. Coba lagi.', 'error');
+                    showToast('Gagal upload foto: ' + error.message, 'error');
                 } finally {
                     document.getElementById('compressIndicator').classList.add('hidden');
                 }
