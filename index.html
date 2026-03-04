@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> TATA USAHA | MAS IBNU HUSAIN</title>
+    <title>✨ Admin Absensi | MAS IBNU HUSAIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/_sdk/data_sdk.js"></script>
     <script src="/_sdk/element_sdk.js"></script>
@@ -442,38 +442,71 @@
             border-color: transparent;
         }
 
-        /* Import Progress */
-        .import-progress {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-            z-index: 10000;
-            text-align: center;
-            min-width: 300px;
+        /* Photo Upload */
+        .photo-upload-area {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .import-progress.hidden {
-            display: none;
+        .photo-upload-area:hover {
+            transform: scale(1.02);
         }
 
-        .progress-bar-import {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 15px 0;
+        .photo-upload-area::after {
+            content: '\f030';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s ease;
         }
 
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4f46e5, #7c3aed);
-            transition: width 0.3s ease;
+        .photo-upload-area:hover::after {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Student Photo in Table */
+        .student-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid #4f46e5;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .student-photo:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 15px rgba(79, 70, 229, 0.4);
+        }
+
+        .student-photo-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #e0e7ff, #c7d2fe);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4f46e5;
+            font-size: 20px;
+            border: 2px dashed #4f46e5;
         }
     </style>
 </head>
@@ -505,16 +538,18 @@
         </div>
 
         <!-- Import Progress Modal -->
-        <div id="importProgress" class="import-progress hidden">
-            <div class="text-4xl mb-3 text-indigo-600">
-                <i class="fas fa-file-import"></i>
+        <div id="importProgress" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-3xl p-8 text-center max-w-sm">
+                <div class="text-4xl mb-3 text-indigo-600">
+                    <i class="fas fa-file-import"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Mengimpor Data</h3>
+                <p id="importStatus" class="text-gray-600 mb-3">Memproses file...</p>
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                    <div id="importProgressBar" class="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="importCounter" class="text-sm text-gray-500">0 data diproses</p>
             </div>
-            <h3 class="text-xl font-bold mb-2">Mengimpor Data</h3>
-            <p id="importStatus" class="text-gray-600 mb-3">Memproses file...</p>
-            <div class="progress-bar-import">
-                <div id="importProgressBar" class="progress-bar-fill" style="width: 0%"></div>
-            </div>
-            <p id="importCounter" class="text-sm text-gray-500">0 data diproses</p>
         </div>
 
         <!-- Loading Awal -->
@@ -1096,15 +1131,16 @@
     <!-- MODAL TAMBAH/EDIT SISWA -->
     <div id="studentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="modal-content w-full max-w-2xl p-8">
-            <h3 id="modalTitle" class="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Tambah Siswa Baru</h3>
+            <h3 id="modalTitle" class="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Tambah/Edit Siswa</h3>
             <form id="studentForm" onsubmit="handleStudentSubmit(event)">
                 <input type="hidden" id="studentId">
+                <input type="hidden" id="currentPhoto" value="">
                 
                 <!-- Upload Foto dengan Kompresi -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium mb-2 text-gray-700">Foto Siswa</label>
                     <div class="flex items-center gap-6">
-                        <div id="photoPreview" class="w-32 h-32 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-indigo-200">
+                        <div id="photoPreview" class="photo-upload-area w-32 h-32 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-indigo-200" onclick="document.getElementById('studentPhoto').click()">
                             <img id="previewImg" src="" alt="Preview" class="w-full h-full object-cover hidden">
                             <i class="fas fa-user text-4xl text-gray-400" id="previewIcon"></i>
                         </div>
@@ -1119,6 +1155,9 @@
                             <div id="compressIndicator" class="hidden text-xs text-indigo-600 mt-2">
                                 <i class="fas fa-spinner fa-spin mr-1"></i>Mengompres foto...
                             </div>
+                            <button type="button" onclick="removePhoto()" class="text-xs text-red-600 mt-2 hover:text-red-800 transition">
+                                <i class="fas fa-trash-alt mr-1"></i>Hapus Foto
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1318,10 +1357,10 @@
             API_KEY: "$2a$10$uIB7UH1hUV6kFv7v4l21puJBjd.1.r9SYqT8XT94RkJyHCyzGQQFm",
             BINS: {
                 STUDENTS: "699ffd15ae596e708f4b42a4",
-                ATTENDANCE: "69a57b3243b1c97be9abe8ac",
-                CONFIG: "69a748b1d0ea881f40ebb17c",
+                ATTENDANCE: "699ffd3c43b1c97be99f754c",
+                CONFIG: "699e9aead0ea881f40d72ba1",
                 PELANGGARAN: "69a3f6e5d0ea881f40e42434",
-                LOCATIONS: "69a51fe7ae596e708f56d415"
+                LOCATIONS: "69a51fe7ae596e708f56d415_locations"
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
@@ -1355,9 +1394,6 @@
         let isLoading = false;
         let dateRangeFilter = { start: null, end: null };
         let currentPelanggaranTab = 'list';
-        
-        // Variabel untuk menyimpan foto sementara saat modal terbuka
-        let tempPhotoBase64 = '';
 
         // ==================== FUNGSI OPENING ====================
         async function loadOpeningLogo() {
@@ -1433,14 +1469,15 @@
                         let width = img.width;
                         let height = img.height;
                         
+                        // Hitung dimensi baru dengan mempertahankan aspect ratio
                         if (width > height) {
                             if (width > maxWidth) {
-                                height *= maxWidth / width;
+                                height = Math.round(height * (maxWidth / width));
                                 width = maxWidth;
                             }
                         } else {
                             if (height > maxHeight) {
-                                width *= maxHeight / height;
+                                width = Math.round(width * (maxHeight / height));
                                 height = maxHeight;
                             }
                         }
@@ -1618,7 +1655,7 @@
                             nama: nama.toString(),
                             kelas: kelas.toString(),
                             jurusan: jurusan.toString(),
-                            photo: '',
+                            photo: '', // Kosongkan foto untuk import Excel
                             created_at: Date.now()
                         };
 
@@ -1962,24 +1999,28 @@
             }).join('');
         }
 
-        // ==================== FUNGSI MODAL & FOTO ====================
-        function resetPhotoPreview() {
-            // Reset preview foto ke default
+        // ==================== FUNGSI FOTO SISWA ====================
+        function removePhoto() {
+            document.getElementById('previewImg').src = '';
             document.getElementById('previewImg').classList.add('hidden');
             document.getElementById('previewIcon').classList.remove('hidden');
-            document.getElementById('previewImg').src = '';
-            // Reset variabel temporary
-            tempPhotoBase64 = '';
-            // Reset input file
-            document.getElementById('studentPhoto').value = '';
+            document.getElementById('studentPhoto').dataset.compressed = '';
+            document.getElementById('currentPhoto').value = '';
         }
 
         function openTambahSiswaModal() {
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
             document.getElementById('studentId').value = '';
-            resetPhotoPreview();
+            document.getElementById('currentPhoto').value = '';
+            
+            // Reset preview foto
+            document.getElementById('previewImg').src = '';
+            document.getElementById('previewImg').classList.add('hidden');
+            document.getElementById('previewIcon').classList.remove('hidden');
             document.getElementById('compressIndicator').classList.add('hidden');
+            document.getElementById('studentPhoto').dataset.compressed = '';
+            
             document.getElementById('studentModal').classList.remove('hidden');
         }
 
@@ -1990,17 +2031,20 @@
             document.getElementById('nama').value = student.nama;
             document.getElementById('kelas').value = student.kelas;
             document.getElementById('jurusan').value = student.jurusan;
+            document.getElementById('currentPhoto').value = student.photo || '';
             document.getElementById('compressIndicator').classList.add('hidden');
             
-            // Reset preview dulu
-            resetPhotoPreview();
+            // Reset dataset compressed
+            document.getElementById('studentPhoto').dataset.compressed = '';
             
-            // Tampilkan foto yang sudah ada jika ada
+            // Tampilkan foto jika ada
             if (student.photo) {
                 document.getElementById('previewImg').src = student.photo;
                 document.getElementById('previewImg').classList.remove('hidden');
                 document.getElementById('previewIcon').classList.add('hidden');
-                tempPhotoBase64 = student.photo; // Simpan foto lama ke temporary
+            } else {
+                document.getElementById('previewImg').classList.add('hidden');
+                document.getElementById('previewIcon').classList.remove('hidden');
             }
             
             document.getElementById('studentModal').classList.remove('hidden');
@@ -2008,7 +2052,9 @@
 
         function closeStudentModal() {
             document.getElementById('studentModal').classList.add('hidden');
-            resetPhotoPreview(); // Reset preview saat modal ditutup
+            // Reset form
+            document.getElementById('studentForm').reset();
+            document.getElementById('studentPhoto').dataset.compressed = '';
         }
 
         async function previewPhoto(input) {
@@ -2025,13 +2071,12 @@
                 try {
                     const compressedBase64 = await compressImage(file, 800, 800, 0.8);
                     
-                    // Simpan ke temporary variable
-                    tempPhotoBase64 = compressedBase64;
-                    
-                    // Tampilkan preview
                     document.getElementById('previewImg').src = compressedBase64;
                     document.getElementById('previewImg').classList.remove('hidden');
                     document.getElementById('previewIcon').classList.add('hidden');
+                    
+                    // Simpan foto yang sudah dikompres ke dataset
+                    document.getElementById('studentPhoto').dataset.compressed = compressedBase64;
                     
                     showToast('Foto berhasil dikompres!', 'success');
                 } catch (error) {
@@ -2668,8 +2713,8 @@
                         <td class="px-4 py-4 text-center">${index + 1}</td>
                         <td class="px-4 py-4">
                             ${student.photo ? 
-                                `<img src="${student.photo}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-200">` : 
-                                `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400"></i></div>`
+                                `<img src="${student.photo}" class="student-photo" title="${student.nama}">` : 
+                                `<div class="student-photo-placeholder"><i class="fas fa-user"></i></div>`
                             }
                         </td>
                         <td class="px-4 py-4 font-mono">${student.nis}</td>
@@ -2718,8 +2763,8 @@
                         <td class="px-4 py-4 text-center">${index + 1}</td>
                         <td class="px-4 py-4">
                             ${student.photo ? 
-                                `<img src="${student.photo}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-200">` : 
-                                `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400"></i></div>`
+                                `<img src="${student.photo}" class="student-photo" title="${student.nama}" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})">` : 
+                                `<div class="student-photo-placeholder cursor-pointer" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})"><i class="fas fa-user"></i></div>`
                             }
                         </td>
                         <td class="px-4 py-4">
@@ -2919,10 +2964,16 @@
             
             showLoading('Menyimpan data siswa...');
             
-            // Gunakan foto dari temporary variable
-            const photoBase64 = tempPhotoBase64;
+            // Ambil foto dari dataset compressed atau dari currentPhoto jika tidak ada perubahan
+            let photoBase64 = document.getElementById('studentPhoto').dataset.compressed;
+            
+            // Jika tidak ada foto baru, gunakan foto lama
+            if (!photoBase64) {
+                photoBase64 = document.getElementById('currentPhoto').value;
+            }
             
             if (studentId) {
+                // Edit siswa yang sudah ada
                 const index = students.findIndex(s => s.id === studentId);
                 if (index !== -1) {
                     students[index] = {
@@ -2931,24 +2982,27 @@
                         nama,
                         kelas,
                         jurusan,
-                        ...(photoBase64 && { photo: photoBase64 })
+                        photo: photoBase64 || students[index].photo || '' // Pertahankan foto lama jika tidak ada yang baru
                     };
                 }
             } else {
+                // Tambah siswa baru
                 const newStudent = {
                     id: generateId(),
                     nis,
                     nama,
                     kelas,
                     jurusan,
-                    photo: photoBase64 || '',
+                    photo: photoBase64 || '', // Gunakan foto jika ada
                     created_at: Date.now()
                 };
                 students.push(newStudent);
             }
             
+            // Simpan ke JSONBin
             await saveStudents();
             
+            // Update data terkait (absensi dan pelanggaran)
             if (studentId) {
                 attendanceRecords.forEach(r => {
                     if (r.student_id === studentId) {
@@ -2975,6 +3029,8 @@
             
             hideLoading();
             closeStudentModal();
+            
+            // Update semua tampilan
             renderStudentTable();
             renderSiswaManagementTable();
             renderRekapTable();
@@ -2983,7 +3039,11 @@
             updateClassFilter();
             updatePelanggaranStats();
             updatePelanggaranCharts();
+            
             showToast('Data siswa berhasil disimpan');
+            
+            // Reset dataset compressed
+            document.getElementById('studentPhoto').dataset.compressed = '';
         }
 
         function deleteStudent(id) {
@@ -3009,6 +3069,7 @@
                 <p class="font-semibold text-gray-800">${student.nama}</p>
                 <p class="text-sm text-gray-600">NIS: ${student.nis}</p>
                 <p class="text-sm text-gray-600">${student.kelas} - ${student.jurusan}</p>
+                ${student.photo ? `<img src="${student.photo}" class="w-12 h-12 rounded-full mx-auto mt-2 border-2 border-indigo-200">` : ''}
             `;
             
             document.getElementById('qrModal').classList.remove('hidden');
@@ -3030,12 +3091,14 @@
                         body { font-family: 'Plus Jakarta Sans', sans-serif; text-align: center; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
                         .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
                         .qr-img { width: 250px; height: 250px; margin: 20px auto; }
+                        .student-photo { width: 80px; height: 80px; border-radius: 50%; margin: 10px auto; border: 3px solid #4f46e5; }
                         .school-name { font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
                     </style>
                 </head>
                 <body>
                     <div class="container">
                         <div class="school-name">MAS IBNU HUSAIN</div>
+                        ${currentQRStudent.photo ? `<img src="${currentQRStudent.photo}" class="student-photo">` : ''}
                         <img src="${document.querySelector('#qrContainer img').src}" class="qr-img">
                         <h3 style="color: #1f2937;">${currentQRStudent.nama}</h3>
                         <p style="color: #6b7280;">NIS: ${currentQRStudent.nis}</p>
@@ -3075,6 +3138,7 @@
                         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
                         .card { text-align: center; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
                         .qr-img { width: 150px; height: 150px; margin: 10px auto; }
+                        .student-photo { width: 50px; height: 50px; border-radius: 50%; margin: 5px auto; border: 2px solid #4f46e5; }
                         @media print {
                             .grid { grid-template-columns: repeat(4, 1fr); }
                         }
@@ -3091,6 +3155,7 @@
             students.forEach(student => {
                 html += `
                     <div class="card">
+                        ${student.photo ? `<img src="${student.photo}" class="student-photo">` : ''}
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(student.nis)}" class="qr-img">
                         <h4 style="color: #1f2937; font-weight: 600;">${student.nama}</h4>
                         <p style="color: #6b7280; font-size: 12px;">NIS: ${student.nis}</p>
@@ -3888,7 +3953,7 @@
         window.confirmDeleteAllStudents = confirmDeleteAllStudents;
         window.closeDeleteAllStudentsModal = closeDeleteAllStudentsModal;
         window.handleExcelImport = handleExcelImport;
+        window.removePhoto = removePhoto;
     </script>
 </body>
 </html>
-
