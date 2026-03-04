@@ -441,6 +441,40 @@
             ring: 2px solid #4f46e5;
             border-color: transparent;
         }
+
+        /* Import Progress */
+        .import-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            z-index: 10000;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .import-progress.hidden {
+            display: none;
+        }
+
+        .progress-bar-import {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -468,6 +502,19 @@
                 <p id="loadingMessage" class="text-white font-medium text-lg">Memproses...</p>
                 <p class="text-white/60 text-sm mt-2">Harap tunggu, jangan tutup halaman</p>
             </div>
+        </div>
+
+        <!-- Import Progress Modal -->
+        <div id="importProgress" class="import-progress hidden">
+            <div class="text-4xl mb-3 text-indigo-600">
+                <i class="fas fa-file-import"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Mengimpor Data</h3>
+            <p id="importStatus" class="text-gray-600 mb-3">Memproses file...</p>
+            <div class="progress-bar-import">
+                <div id="importProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <p id="importCounter" class="text-sm text-gray-500">0 data diproses</p>
         </div>
 
         <!-- Loading Awal -->
@@ -601,7 +648,7 @@
                         <button onclick="openTambahSiswaModal()" class="btn-modern px-8 py-4 rounded-xl font-semibold">
                             <i class="fas fa-user-plus mr-2"></i>Tambah Siswa
                         </button>
-                        <input type="file" id="importExcel" accept=".xlsx,.xls,.csv" class="hidden">
+                        <input type="file" id="importExcel" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleExcelImport(this)">
                         <button onclick="document.getElementById('importExcel').click()" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all">
                             <i class="fas fa-file-import mr-2"></i>Import Excel/CSV
                         </button>
@@ -1353,6 +1400,24 @@
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
+        // ==================== FUNGSI IMPORT PROGRESS ====================
+        function showImportProgress() {
+            document.getElementById('importProgress').classList.remove('hidden');
+            document.getElementById('importProgressBar').style.width = '0%';
+            document.getElementById('importCounter').textContent = '0 data diproses';
+            document.getElementById('importStatus').textContent = 'Memproses file...';
+        }
+
+        function updateImportProgress(current, total) {
+            const percentage = (current / total) * 100;
+            document.getElementById('importProgressBar').style.width = percentage + '%';
+            document.getElementById('importCounter').textContent = `${current} dari ${total} data diproses`;
+        }
+
+        function hideImportProgress() {
+            document.getElementById('importProgress').classList.add('hidden');
+        }
+
         // ==================== FUNGSI KOMPRESI FOTO ====================
         function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
             return new Promise((resolve, reject) => {
@@ -1473,6 +1538,160 @@
                     hideLoading();
                 }
             }
+        }
+
+        // ==================== FUNGSI IMPORT EXCEL ====================
+        async function handleExcelImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Validasi file
+            const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+            if (!validTypes.includes(file.type) && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls') && !file.name.endsWith('.csv')) {
+                showToast('Format file tidak didukung. Gunakan file Excel (.xlsx, .xls) atau CSV', 'error');
+                input.value = '';
+                return;
+            }
+
+            showImportProgress();
+
+            try {
+                const data = await readExcelFile(file);
+                
+                if (!data || data.length === 0) {
+                    showToast('File Excel kosong atau format tidak sesuai', 'error');
+                    hideImportProgress();
+                    input.value = '';
+                    return;
+                }
+
+                document.getElementById('importStatus').textContent = 'Memvalidasi data...';
+                
+                // Validasi header
+                const headers = Object.keys(data[0]);
+                const requiredColumns = ['nis', 'nama', 'kelas', 'jurusan'];
+                const missingColumns = requiredColumns.filter(col => !headers.some(h => h.toLowerCase() === col.toLowerCase()));
+                
+                if (missingColumns.length > 0) {
+                    showToast(`Kolom wajib tidak ditemukan: ${missingColumns.join(', ')}`, 'error');
+                    hideImportProgress();
+                    input.value = '';
+                    return;
+                }
+
+                // Proses import
+                let importedCount = 0;
+                let duplicateCount = 0;
+                let errorCount = 0;
+
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i];
+                    updateImportProgress(i + 1, data.length);
+                    
+                    try {
+                        // Cari kolom dengan berbagai kemungkinan nama
+                        const nis = row.nis || row.NIS || row.Nis || '';
+                        const nama = row.nama || row.Nama || row.NAMA || '';
+                        const kelas = row.kelas || row.Kelas || row.KELAS || '';
+                        const jurusan = row.jurusan || row.Jurusan || row.JURUSAN || '';
+
+                        if (!nis || !nama || !kelas || !jurusan) {
+                            errorCount++;
+                            console.warn(`Baris ${i + 2}: Data tidak lengkap`, row);
+                            continue;
+                        }
+
+                        // Cek duplikat
+                        const existingStudent = students.find(s => s.nis === nis.toString());
+                        if (existingStudent) {
+                            duplicateCount++;
+                            continue;
+                        }
+
+                        // Buat siswa baru
+                        const newStudent = {
+                            id: generateId(),
+                            nis: nis.toString(),
+                            nama: nama.toString(),
+                            kelas: kelas.toString(),
+                            jurusan: jurusan.toString(),
+                            photo: '',
+                            created_at: Date.now()
+                        };
+
+                        students.push(newStudent);
+                        importedCount++;
+
+                    } catch (err) {
+                        console.error(`Error memproses baris ${i + 2}:`, err);
+                        errorCount++;
+                    }
+                }
+
+                // Simpan ke JSONBin
+                if (importedCount > 0) {
+                    await saveStudents();
+                }
+
+                // Update UI
+                renderSiswaManagementTable();
+                updateClassFilter();
+
+                // Tampilkan hasil
+                const resultMessage = `✅ Berhasil: ${importedCount} data, ⚠️ Duplikat: ${duplicateCount}, ❌ Error: ${errorCount}`;
+                showToast(resultMessage, importedCount > 0 ? 'success' : 'warning');
+
+            } catch (error) {
+                console.error('Error membaca file Excel:', error);
+                showToast('Gagal membaca file Excel: ' + error.message, 'error');
+            } finally {
+                hideImportProgress();
+                input.value = ''; // Reset input
+            }
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    try {
+                        const data = e.target.result;
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                        if (jsonData.length < 2) {
+                            resolve([]);
+                            return;
+                        }
+
+                        // Ambil header dari baris pertama
+                        const headers = jsonData[0].map(h => String(h).trim().toLowerCase());
+                        const rows = jsonData.slice(1);
+
+                        // Konversi ke array of objects
+                        const result = rows.map(row => {
+                            const obj = {};
+                            headers.forEach((header, index) => {
+                                if (row[index] !== undefined && row[index] !== null) {
+                                    obj[header] = String(row[index]).trim();
+                                }
+                            });
+                            return obj;
+                        }).filter(row => Object.keys(row).length > 0); // Hapus baris kosong
+
+                        resolve(result);
+
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+
+                reader.onerror = (err) => reject(err);
+                reader.readAsBinaryString(file);
+            });
         }
 
         // ==================== FUNGSI DATABASE ====================
@@ -3648,7 +3867,7 @@
         window.loadPelanggaran = loadPelanggaran;
         window.confirmDeleteAllStudents = confirmDeleteAllStudents;
         window.closeDeleteAllStudentsModal = closeDeleteAllStudentsModal;
+        window.handleExcelImport = handleExcelImport;
     </script>
 </body>
 </html>
-
