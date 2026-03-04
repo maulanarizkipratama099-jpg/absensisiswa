@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> TATA USAHA | MAS IBNU HUSAIN</title>
+    <title>✨ Admin Absensi | MAS IBNU HUSAIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/_sdk/data_sdk.js"></script>
     <script src="/_sdk/element_sdk.js"></script>
@@ -489,6 +489,7 @@
             border: 2px solid #4f46e5;
             box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
             transition: all 0.3s ease;
+            cursor: pointer;
         }
 
         .student-photo:hover {
@@ -507,6 +508,45 @@
             color: #4f46e5;
             font-size: 20px;
             border: 2px dashed #4f46e5;
+            cursor: pointer;
+        }
+
+        .student-photo-placeholder:hover {
+            background: linear-gradient(145deg, #c7d2fe, #a5b4fc);
+        }
+
+        /* Import Progress */
+        .import-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            z-index: 10000;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .import-progress.hidden {
+            display: none;
+        }
+
+        .progress-bar-import {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            transition: width 0.3s ease;
         }
     </style>
 </head>
@@ -1458,7 +1498,7 @@
         }
 
         // ==================== FUNGSI KOMPRESI FOTO ====================
-        function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
+        function compressImage(file, maxWidth = 300, maxHeight = 300, quality = 0.7) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -1489,17 +1529,14 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
+                        // Kompres dengan kualitas lebih rendah untuk mengurangi ukuran
                         canvas.toBlob((blob) => {
-                            const compressedFile = new File([blob], file.name, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now()
-                            });
-                            
                             const compressedReader = new FileReader();
-                            compressedReader.readAsDataURL(compressedFile);
+                            compressedReader.readAsDataURL(blob);
                             compressedReader.onload = () => {
-                                console.log(`📸 Kompresi: ${(file.size/1024).toFixed(2)}KB → ${(blob.size/1024).toFixed(2)}KB`);
-                                resolve(compressedReader.result);
+                                const base64 = compressedReader.result;
+                                console.log(`📸 Kompresi: ${(file.size/1024).toFixed(2)}KB → ${(base64.length * 0.75 / 1024).toFixed(2)}KB`);
+                                resolve(base64);
                             };
                         }, 'image/jpeg', quality);
                     };
@@ -1557,7 +1594,7 @@
                 showLoading('Mengompres logo...');
                 
                 try {
-                    const compressedBase64 = await compressImage(file, 300, 300, 0.8);
+                    const compressedBase64 = await compressImage(file, 200, 200, 0.7);
                     
                     configData.school_logo = compressedBase64;
                     await saveConfig();
@@ -1648,14 +1685,14 @@
                             continue;
                         }
 
-                        // Buat siswa baru
+                        // Buat siswa baru (foto dikosongkan dulu)
                         const newStudent = {
                             id: generateId(),
                             nis: nis.toString(),
                             nama: nama.toString(),
                             kelas: kelas.toString(),
                             jurusan: jurusan.toString(),
-                            photo: '', // Kosongkan foto untuk import Excel
+                            photo: '',
                             created_at: Date.now()
                         };
 
@@ -1744,6 +1781,14 @@
                 const data = await response.json();
                 students = Array.isArray(data) ? data : [];
                 console.log('✅ Loaded students:', students.length);
+                
+                // Log untuk debug foto
+                students.forEach(s => {
+                    if (s.photo) {
+                        console.log(`📸 Siswa ${s.nama} memiliki foto: ${s.photo.substring(0, 50)}...`);
+                    }
+                });
+                
                 return students;
             } catch (error) {
                 console.error('❌ Gagal load siswa:', error);
@@ -1999,7 +2044,7 @@
             }).join('');
         }
 
-        // ==================== FUNGSI FOTO SISWA ====================
+        // ==================== FUNGSI FOTO SISWA (YANG DIPERBAIKI) ====================
         function removePhoto() {
             document.getElementById('previewImg').src = '';
             document.getElementById('previewImg').classList.add('hidden');
@@ -2038,10 +2083,11 @@
             document.getElementById('studentPhoto').dataset.compressed = '';
             
             // Tampilkan foto jika ada
-            if (student.photo) {
+            if (student.photo && student.photo !== '') {
                 document.getElementById('previewImg').src = student.photo;
                 document.getElementById('previewImg').classList.remove('hidden');
                 document.getElementById('previewIcon').classList.add('hidden');
+                console.log('📸 Menampilkan foto untuk edit:', student.photo.substring(0, 50) + '...');
             } else {
                 document.getElementById('previewImg').classList.add('hidden');
                 document.getElementById('previewIcon').classList.remove('hidden');
@@ -2069,7 +2115,8 @@
                 document.getElementById('compressIndicator').classList.remove('hidden');
                 
                 try {
-                    const compressedBase64 = await compressImage(file, 800, 800, 0.8);
+                    // Kompres foto dengan ukuran kecil agar muat di JSONBin
+                    const compressedBase64 = await compressImage(file, 300, 300, 0.7);
                     
                     document.getElementById('previewImg').src = compressedBase64;
                     document.getElementById('previewImg').classList.remove('hidden');
@@ -2079,6 +2126,7 @@
                     document.getElementById('studentPhoto').dataset.compressed = compressedBase64;
                     
                     showToast('Foto berhasil dikompres!', 'success');
+                    console.log('📸 Foto dikompres, panjang base64:', compressedBase64.length);
                 } catch (error) {
                     console.error('Error kompresi:', error);
                     showToast('Gagal kompres foto', 'error');
@@ -2712,9 +2760,9 @@
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
                         <td class="px-4 py-4">
-                            ${student.photo ? 
-                                `<img src="${student.photo}" class="student-photo" title="${student.nama}">` : 
-                                `<div class="student-photo-placeholder"><i class="fas fa-user"></i></div>`
+                            ${student.photo && student.photo !== '' ? 
+                                `<img src="${student.photo}" class="student-photo" title="${student.nama}" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})">` : 
+                                `<div class="student-photo-placeholder" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})"><i class="fas fa-user"></i></div>`
                             }
                         </td>
                         <td class="px-4 py-4 font-mono">${student.nis}</td>
@@ -2762,7 +2810,7 @@
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
                         <td class="px-4 py-4">
-                            ${student.photo ? 
+                            ${student.photo && student.photo !== '' ? 
                                 `<img src="${student.photo}" class="student-photo" title="${student.nama}" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})">` : 
                                 `<div class="student-photo-placeholder cursor-pointer" onclick="openEditSiswaModal(${JSON.stringify(student).replace(/'/g, "\\'")})"><i class="fas fa-user"></i></div>`
                             }
@@ -2850,7 +2898,7 @@
                         <td class="px-4 py-4 font-mono">${record.student_nis}</td>
                         <td class="px-4 py-4">
                             <div class="flex items-center gap-3">
-                                ${record.student_photo ? 
+                                ${record.student_photo && record.student_photo !== '' ? 
                                     `<img src="${record.student_photo}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200">` : ''
                                 }
                                 <span class="font-medium">${record.student_nama}</span>
@@ -2947,7 +2995,7 @@
             document.getElementById('totalKelasCount').textContent = kelasUnik.length;
         }
 
-        // ==================== CRUD SISWA ====================
+        // ==================== CRUD SISWA (YANG DIPERBAIKI) ====================
         async function handleStudentSubmit(event) {
             event.preventDefault();
             
@@ -2964,18 +3012,22 @@
             
             showLoading('Menyimpan data siswa...');
             
-            // Ambil foto dari dataset compressed atau dari currentPhoto jika tidak ada perubahan
+            // Ambil foto dari dataset compressed (foto baru) atau dari currentPhoto (foto lama)
             let photoBase64 = document.getElementById('studentPhoto').dataset.compressed;
             
-            // Jika tidak ada foto baru, gunakan foto lama
-            if (!photoBase64) {
+            // Jika tidak ada foto baru, gunakan foto lama yang tersimpan di currentPhoto
+            if (!photoBase64 || photoBase64 === '') {
                 photoBase64 = document.getElementById('currentPhoto').value;
+                console.log('📸 Menggunakan foto lama');
+            } else {
+                console.log('📸 Menggunakan foto baru, panjang:', photoBase64.length);
             }
             
             if (studentId) {
                 // Edit siswa yang sudah ada
                 const index = students.findIndex(s => s.id === studentId);
                 if (index !== -1) {
+                    // Simpan data siswa dengan foto (baru atau lama)
                     students[index] = {
                         ...students[index],
                         nis,
@@ -2984,6 +3036,7 @@
                         jurusan,
                         photo: photoBase64 || students[index].photo || '' // Pertahankan foto lama jika tidak ada yang baru
                     };
+                    console.log('📸 Foto siswa setelah edit:', students[index].photo ? 'Ada' : 'Tidak ada');
                 }
             } else {
                 // Tambah siswa baru
@@ -2997,10 +3050,12 @@
                     created_at: Date.now()
                 };
                 students.push(newStudent);
+                console.log('📸 Foto siswa baru:', newStudent.photo ? 'Ada' : 'Tidak ada');
             }
             
             // Simpan ke JSONBin
             await saveStudents();
+            console.log('✅ Data siswa tersimpan di JSONBin');
             
             // Update data terkait (absensi dan pelanggaran)
             if (studentId) {
@@ -3069,7 +3124,7 @@
                 <p class="font-semibold text-gray-800">${student.nama}</p>
                 <p class="text-sm text-gray-600">NIS: ${student.nis}</p>
                 <p class="text-sm text-gray-600">${student.kelas} - ${student.jurusan}</p>
-                ${student.photo ? `<img src="${student.photo}" class="w-12 h-12 rounded-full mx-auto mt-2 border-2 border-indigo-200">` : ''}
+                ${student.photo && student.photo !== '' ? `<img src="${student.photo}" class="w-12 h-12 rounded-full mx-auto mt-2 border-2 border-indigo-200">` : ''}
             `;
             
             document.getElementById('qrModal').classList.remove('hidden');
@@ -3098,7 +3153,7 @@
                 <body>
                     <div class="container">
                         <div class="school-name">MAS IBNU HUSAIN</div>
-                        ${currentQRStudent.photo ? `<img src="${currentQRStudent.photo}" class="student-photo">` : ''}
+                        ${currentQRStudent.photo && currentQRStudent.photo !== '' ? `<img src="${currentQRStudent.photo}" class="student-photo">` : ''}
                         <img src="${document.querySelector('#qrContainer img').src}" class="qr-img">
                         <h3 style="color: #1f2937;">${currentQRStudent.nama}</h3>
                         <p style="color: #6b7280;">NIS: ${currentQRStudent.nis}</p>
@@ -3155,7 +3210,7 @@
             students.forEach(student => {
                 html += `
                     <div class="card">
-                        ${student.photo ? `<img src="${student.photo}" class="student-photo">` : ''}
+                        ${student.photo && student.photo !== '' ? `<img src="${student.photo}" class="student-photo">` : ''}
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(student.nis)}" class="qr-img">
                         <h4 style="color: #1f2937; font-weight: 600;">${student.nama}</h4>
                         <p style="color: #6b7280; font-size: 12px;">NIS: ${student.nis}</p>
@@ -3821,7 +3876,15 @@
         // ==================== SAVE FUNCTIONS ====================
         async function saveStudents() {
             try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
+                // Log sebelum menyimpan untuk debug
+                console.log('📤 Menyimpan siswa ke JSONBin. Total:', students.length);
+                students.forEach(s => {
+                    if (s.photo) {
+                        console.log(`📸 Siswa ${s.nama} memiliki foto: ${s.photo.substring(0, 50)}...`);
+                    }
+                });
+                
+                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
                     method: 'PUT',
                     headers: {
                         'X-Master-Key': JSONBIN_CONFIG.API_KEY,
@@ -3829,10 +3892,16 @@
                     },
                     body: JSON.stringify(students)
                 });
-                console.log('✅ Students saved');
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const result = await response.json();
+                console.log('✅ Students saved to JSONBin');
+                return true;
             } catch (error) {
                 console.error('❌ Gagal simpan siswa:', error);
                 showToast('Gagal simpan siswa', 'error');
+                return false;
             }
         }
 
@@ -3957,5 +4026,3 @@
     </script>
 </body>
 </html>
-
-
