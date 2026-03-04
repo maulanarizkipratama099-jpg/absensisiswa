@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> TATA USAHA | MAS IBNU HUSAIN</title>
+    <title>✨ Admin Absensi | MAS IBNU HUSAIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/_sdk/data_sdk.js"></script>
     <script src="/_sdk/element_sdk.js"></script>
@@ -1355,6 +1355,9 @@
         let isLoading = false;
         let dateRangeFilter = { start: null, end: null };
         let currentPelanggaranTab = 'list';
+        
+        // Variabel untuk menyimpan foto sementara saat modal terbuka
+        let tempPhotoBase64 = '';
 
         // ==================== FUNGSI OPENING ====================
         async function loadOpeningLogo() {
@@ -1960,12 +1963,22 @@
         }
 
         // ==================== FUNGSI MODAL & FOTO ====================
+        function resetPhotoPreview() {
+            // Reset preview foto ke default
+            document.getElementById('previewImg').classList.add('hidden');
+            document.getElementById('previewIcon').classList.remove('hidden');
+            document.getElementById('previewImg').src = '';
+            // Reset variabel temporary
+            tempPhotoBase64 = '';
+            // Reset input file
+            document.getElementById('studentPhoto').value = '';
+        }
+
         function openTambahSiswaModal() {
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
             document.getElementById('studentId').value = '';
-            document.getElementById('previewImg').classList.add('hidden');
-            document.getElementById('previewIcon').classList.remove('hidden');
+            resetPhotoPreview();
             document.getElementById('compressIndicator').classList.add('hidden');
             document.getElementById('studentModal').classList.remove('hidden');
         }
@@ -1979,10 +1992,15 @@
             document.getElementById('jurusan').value = student.jurusan;
             document.getElementById('compressIndicator').classList.add('hidden');
             
+            // Reset preview dulu
+            resetPhotoPreview();
+            
+            // Tampilkan foto yang sudah ada jika ada
             if (student.photo) {
                 document.getElementById('previewImg').src = student.photo;
                 document.getElementById('previewImg').classList.remove('hidden');
                 document.getElementById('previewIcon').classList.add('hidden');
+                tempPhotoBase64 = student.photo; // Simpan foto lama ke temporary
             }
             
             document.getElementById('studentModal').classList.remove('hidden');
@@ -1990,6 +2008,7 @@
 
         function closeStudentModal() {
             document.getElementById('studentModal').classList.add('hidden');
+            resetPhotoPreview(); // Reset preview saat modal ditutup
         }
 
         async function previewPhoto(input) {
@@ -2006,11 +2025,13 @@
                 try {
                     const compressedBase64 = await compressImage(file, 800, 800, 0.8);
                     
+                    // Simpan ke temporary variable
+                    tempPhotoBase64 = compressedBase64;
+                    
+                    // Tampilkan preview
                     document.getElementById('previewImg').src = compressedBase64;
                     document.getElementById('previewImg').classList.remove('hidden');
                     document.getElementById('previewIcon').classList.add('hidden');
-                    
-                    document.getElementById('studentPhoto').dataset.compressed = compressedBase64;
                     
                     showToast('Foto berhasil dikompres!', 'success');
                 } catch (error) {
@@ -2898,7 +2919,8 @@
             
             showLoading('Menyimpan data siswa...');
             
-            let photoBase64 = document.getElementById('studentPhoto').dataset.compressed || '';
+            // Gunakan foto dari temporary variable
+            const photoBase64 = tempPhotoBase64;
             
             if (studentId) {
                 const index = students.findIndex(s => s.id === studentId);
@@ -2962,8 +2984,6 @@
             updatePelanggaranStats();
             updatePelanggaranCharts();
             showToast('Data siswa berhasil disimpan');
-            
-            document.getElementById('studentPhoto').dataset.compressed = '';
         }
 
         function deleteStudent(id) {
