@@ -12,6 +12,7 @@
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
+        /* [SAME STYLES AS BEFORE] */
         * {
             margin: 0;
             padding: 0;
@@ -629,7 +630,7 @@
                         <!-- Tahun Ajaran Selector -->
                         <div class="relative">
                             <select id="tahunAjaranSelect" class="tahun-ajaran-selector appearance-none pr-10" onchange="ubahTahunAjaran()">
-                                <option value="2024/2025">2024/2025</option>
+                                <option value="">Pilih Tahun Ajaran</option>
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-indigo-600 pointer-events-none"></i>
                         </div>
@@ -662,7 +663,7 @@
                         <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent" id="schoolNameHeader">MAS IBNU HUSAIN</h1>
                         <div class="tahun-ajaran-badge" id="tahunAjaranBadge">
                             <i class="fas fa-calendar-alt"></i>
-                            <span id="tahunAjaranDisplay">2024/2025</span>
+                            <span id="tahunAjaranDisplay">-</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -738,7 +739,7 @@
                         <h2 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Manajemen Data Siswa</h2>
                         <div class="tahun-ajaran-badge" id="tahunAjaranBadgeData">
                             <i class="fas fa-calendar-alt"></i>
-                            <span id="tahunAjaranDisplayData">2024/2025</span>
+                            <span id="tahunAjaranDisplayData">-</span>
                         </div>
                     </div>
                     
@@ -1206,7 +1207,7 @@
 
                 <div class="mb-6">
                     <label class="block text-sm font-medium mb-2 text-gray-700">Tahun Ajaran *</label>
-                    <input type="text" id="tahunAjaranInput" value="2024/2025" required placeholder="Contoh: 2024/2025" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="tahunAjaranInput" required placeholder="Contoh: 2024/2025" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
                     <p class="text-xs text-gray-500 mt-1">Format: YYYY/YYYY (contoh: 2024/2025). Ketik tahun ajaran baru, otomatis akan muncul di dropdown.</p>
                 </div>
 
@@ -1385,7 +1386,7 @@
     <script>
         // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
         // GANTI URL INI DENGAN URL WEB APP ANDA!
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyrQouNBOsJPSDP0Mo0G8r91DCOn7viODEt9mMfxUv0B6dqMPAj1w-Kx8Q7cte5qUqhYw/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOo5mv091NRmrQiihhMjeoct1OjDSjc1Q2UkUVBS4_zlpovH-potkFFtkZ5bKqpOx8/exec';
         
         // Sheet names
         const SHEETS = {
@@ -1429,7 +1430,7 @@
         let studentCache = new Map();
         
         // Tahun Ajaran
-        let tahunAjaran = '2024/2025';
+        let tahunAjaran = '';
         let daftarTahunAjaran = [];
 
         // ==================== FUNGSI API GOOGLE APPS SCRIPT ====================
@@ -1541,6 +1542,15 @@
                 if (result.success) {
                     daftarTahunAjaran = result.data || [];
                     updateTahunAjaranDropdown();
+                    
+                    // Jika ada tahun ajaran dan belum dipilih, pilih yang pertama
+                    if (daftarTahunAjaran.length > 0 && !tahunAjaran) {
+                        tahunAjaran = daftarTahunAjaran[0];
+                        document.getElementById('tahunAjaranSelect').value = tahunAjaran;
+                        document.getElementById('tahunAjaranDisplay').textContent = tahunAjaran;
+                        document.getElementById('tahunAjaranDisplayData').textContent = tahunAjaran;
+                    }
+                    
                     return daftarTahunAjaran;
                 } else {
                     console.error('Error fetching tahun ajaran:', result.error);
@@ -1592,7 +1602,6 @@
         // ==================== FUNGSI TAHUN AJARAN ====================
         function updateTahunAjaranDropdown() {
             const select = document.getElementById('tahunAjaranSelect');
-            const currentValue = select.value;
             
             // Urutkan descending (terbaru di atas)
             daftarTahunAjaran.sort((a, b) => {
@@ -1601,15 +1610,10 @@
                 return tahunB - tahunA;
             });
             
-            let options = '';
+            let options = '<option value="">Pilih Tahun Ajaran</option>';
             daftarTahunAjaran.forEach(ta => {
-                options += `<option value="${ta}" ${ta === currentValue ? 'selected' : ''}>${ta}</option>`;
+                options += `<option value="${ta}" ${ta === tahunAjaran ? 'selected' : ''}>${ta}</option>`;
             });
-            
-            // Jika tidak ada, tambah default
-            if (daftarTahunAjaran.length === 0) {
-                options = '<option value="2024/2025">2024/2025</option>';
-            }
             
             select.innerHTML = options;
         }
@@ -1629,6 +1633,21 @@
         function ubahTahunAjaran() {
             const select = document.getElementById('tahunAjaranSelect');
             tahunAjaran = select.value;
+            
+            if (!tahunAjaran) {
+                // Jika tidak ada tahun ajaran dipilih, kosongkan tampilan
+                document.getElementById('tahunAjaranDisplay').textContent = '-';
+                document.getElementById('tahunAjaranDisplayData').textContent = '-';
+                students = [];
+                attendanceRecords = [];
+                pelanggaranRecords = [];
+                renderStudentTable();
+                renderSiswaManagementTable();
+                renderRekapTable();
+                renderPelanggaranTable();
+                return;
+            }
+            
             document.getElementById('tahunAjaranDisplay').textContent = tahunAjaran;
             document.getElementById('tahunAjaranDisplayData').textContent = tahunAjaran;
             document.getElementById('tahunAjaranInput').value = tahunAjaran;
@@ -1639,6 +1658,8 @@
         }
 
         async function loadDataForTahunAjaran() {
+            if (!tahunAjaran) return;
+            
             showLoading('Memuat data...');
             
             try {
@@ -2002,6 +2023,8 @@
 
         // ==================== FUNGSI DATABASE ====================
         async function loadStudents() {
+            if (!tahunAjaran) return [];
+            
             try {
                 const data = await fetchSheetData(SHEETS.SISWA, tahunAjaran);
                 students = data || [];
@@ -2023,6 +2046,8 @@
         }
 
         async function loadAttendance() {
+            if (!tahunAjaran) return [];
+            
             try {
                 const data = await fetchSheetData(SHEETS.ABSENSI, tahunAjaran);
                 attendanceRecords = data || [];
@@ -2104,27 +2129,27 @@
                     
                     for (let i = 0; i < data.length; i++) {
                         const row = data[i];
-                        if (row.length < 4) continue;
+                        if (row.length < 5) continue; // Minimal 5 kolom: NIS, Nama, Kelas, Jurusan, Tahun Ajaran
                         
                         const nis = row[0]?.toString().trim() || '';
                         const nama = row[1]?.toString().trim() || '';
                         const kelas = row[2]?.toString().trim() || '';
                         const jurusan = row[3]?.toString().trim() || '';
                         const photo = row[4]?.toString().trim() || '';
-                        const ta = row[5]?.toString().trim() || tahunAjaran; // Ambil tahun ajaran dari kolom ke-6 jika ada
+                        const ta = row[5]?.toString().trim() || ''; // Tahun Ajaran dari kolom ke-6
                         
                         if (!nis || !nama || !kelas || !jurusan) {
                             errorCount++;
                             continue;
                         }
                         
-                        // Validasi format tahun ajaran
-                        if (!ta.match(/^\d{4}\/\d{4}$/)) {
+                        // Validasi tahun ajaran - WAJIB ADA
+                        if (!ta || !ta.match(/^\d{4}\/\d{4}$/)) {
                             errorCount++;
                             continue;
                         }
                         
-                        // Cek duplikat
+                        // Cek duplikat (berdasarkan NIS dan Tahun Ajaran)
                         const existingStudent = students.find(s => s.nis === nis && s.tahun_ajaran === ta);
                         if (existingStudent) {
                             errorCount++;
@@ -2156,6 +2181,7 @@
                         }
                     }
                     
+                    // Gabungkan dengan data existing
                     students = [...students, ...newStudents];
                     
                     // Tambah tahun ajaran baru ke daftar
@@ -2165,29 +2191,40 @@
                         }
                     });
                     
+                    // Urutkan dan update dropdown
                     daftarTahunAjaran.sort((a, b) => {
                         const tahunA = parseInt(a.split('/')[0]);
                         const tahunB = parseInt(b.split('/')[0]);
                         return tahunB - tahunA;
                     });
-                    
                     updateTahunAjaranDropdown();
                     
                     document.getElementById('importProgressBar').style.width = '90%';
                     document.getElementById('importStatus').textContent = 'Menyimpan ke database...';
                     
+                    // Simpan semua siswa ke Google Sheets
                     await saveAllStudentsToSheet();
                     
                     document.getElementById('importProgressBar').style.width = '100%';
                     
                     showToast(`Berhasil mengimpor ${successCount} data siswa`, 'success');
                     if (errorCount > 0) {
-                        showToast(`${errorCount} data gagal`, 'warning');
+                        showToast(`${errorCount} data gagal (tahun ajaran tidak valid atau duplikat)`, 'warning');
                     }
                     
-                    renderSiswaManagementTable();
-                    updateClassFilter();
-                    updatePelanggaranKelasFilter();
+                    // Jika belum ada tahun ajaran yang dipilih, pilih yang pertama
+                    if (!tahunAjaran && daftarTahunAjaran.length > 0) {
+                        tahunAjaran = daftarTahunAjaran[0];
+                        document.getElementById('tahunAjaranSelect').value = tahunAjaran;
+                        document.getElementById('tahunAjaranDisplay').textContent = tahunAjaran;
+                        document.getElementById('tahunAjaranDisplayData').textContent = tahunAjaran;
+                        await loadDataForTahunAjaran();
+                    } else {
+                        // Refresh tampilan
+                        renderSiswaManagementTable();
+                        updateClassFilter();
+                        updatePelanggaranKelasFilter();
+                    }
                     
                 } catch (error) {
                     console.error('Error importing Excel:', error);
@@ -2202,8 +2239,10 @@
         }
 
         async function saveAllStudentsToSheet() {
+            // Hapus semua data siswa dulu
             await deleteAllFromSheet(SHEETS.SISWA);
             
+            // Simpan semua siswa
             const rowsData = students.map(s => [
                 s.id || '',
                 s.nis || '',
@@ -2211,7 +2250,7 @@
                 s.kelas || '',
                 s.jurusan || '',
                 s.photo || '',
-                s.tahun_ajaran || tahunAjaran,
+                s.tahun_ajaran || '',
                 s.created_at || Date.now()
             ]);
             
@@ -2234,6 +2273,7 @@
                         
                         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                         
+                        // Hapus baris header (anggap baris pertama adalah header)
                         const dataRows = jsonData.slice(1);
                         
                         resolve(dataRows);
@@ -2297,7 +2337,7 @@
                             <div class="data-value">${student.jurusan}</div>
                             
                             <div class="data-label">TAHUN AJARAN</div>
-                            <div class="data-value">${student.tahun_ajaran || tahunAjaran}</div>
+                            <div class="data-value">${student.tahun_ajaran || '-'}</div>
                         </div>
                         
                         <div class="qr-note">
@@ -2308,7 +2348,7 @@
                         </div>
                         
                         <div class="footer-note">
-                            * Kartu ini berlaku selama tahun ajaran ${student.tahun_ajaran || tahunAjaran}
+                            * Kartu ini berlaku selama tahun ajaran ${student.tahun_ajaran || '-'}
                         </div>
                     </div>
                 </div>
@@ -2866,7 +2906,7 @@
                 <p class="font-semibold text-gray-800">${student.nama}</p>
                 <p class="text-sm text-gray-600">NIS: ${student.nis}</p>
                 <p class="text-sm text-gray-600">${student.kelas} - ${student.jurusan}</p>
-                <p class="text-xs text-indigo-600 mt-1">T.A. ${student.tahun_ajaran || tahunAjaran}</p>
+                <p class="text-xs text-indigo-600 mt-1">T.A. ${student.tahun_ajaran || '-'}</p>
             `;
             
             document.getElementById('qrModal').classList.remove('hidden');
@@ -2899,7 +2939,7 @@
                         <h3 style="color: #1f2937;">${currentQRStudent.nama}</h3>
                         <p style="color: #6b7280;">NIS: ${currentQRStudent.nis}</p>
                         <p style="color: #6b7280;">${currentQRStudent.kelas} - ${currentQRStudent.jurusan}</p>
-                        <p class="tahun-ajaran">Tahun Ajaran: ${currentQRStudent.tahun_ajaran || tahunAjaran}</p>
+                        <p class="tahun-ajaran">Tahun Ajaran: ${currentQRStudent.tahun_ajaran || '-'}</p>
                         <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">QR Code untuk absen hadir & pulang</p>
                     </div>
                 </body>
@@ -2958,7 +2998,7 @@
                         <h4 style="color: #1f2937; font-weight: 600;">${student.nama}</h4>
                         <p style="color: #6b7280; font-size: 12px;">NIS: ${student.nis}</p>
                         <p style="color: #6b7280; font-size: 12px;">${student.kelas} - ${student.jurusan}</p>
-                        <p class="tahun-ajaran">T.A. ${student.tahun_ajaran || tahunAjaran}</p>
+                        <p class="tahun-ajaran">T.A. ${student.tahun_ajaran || '-'}</p>
                     </div>
                 `;
             });
@@ -2971,6 +3011,8 @@
 
         // ==================== FUNGSI PELANGGARAN ====================
         async function loadPelanggaran() {
+            if (!tahunAjaran) return [];
+            
             try {
                 const data = await fetchSheetData(SHEETS.PELANGGARAN, tahunAjaran);
                 pelanggaranRecords = data || [];
@@ -3144,7 +3186,7 @@
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
             document.getElementById('studentId').value = '';
-            document.getElementById('tahunAjaranInput').value = tahunAjaran;
+            document.getElementById('tahunAjaranInput').value = '';
             
             document.getElementById('previewImg').classList.add('hidden');
             document.getElementById('previewImg').src = '';
@@ -3164,7 +3206,7 @@
             document.getElementById('kelas').value = student.kelas;
             document.getElementById('jurusan').value = student.jurusan;
             document.getElementById('studentPhoto').value = student.photo || '';
-            document.getElementById('tahunAjaranInput').value = student.tahun_ajaran || tahunAjaran;
+            document.getElementById('tahunAjaranInput').value = student.tahun_ajaran || '';
             
             document.getElementById('driveGuide').classList.add('hidden');
             document.getElementById('previewLoading').classList.add('hidden');
@@ -3515,6 +3557,11 @@
             const tbody = document.getElementById('studentTableBody');
             if (!tbody) return;
             
+            if (!tahunAjaran) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-500">Pilih tahun ajaran terlebih dahulu</td></tr>';
+                return;
+            }
+            
             const filteredStudents = getFilteredStudents();
             
             if (filteredStudents.length === 0) {
@@ -3580,6 +3627,11 @@
             const tbody = document.getElementById('siswaManagementTableBody');
             if (!tbody) return;
             
+            if (!tahunAjaran) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-500">Pilih tahun ajaran terlebih dahulu</td></tr>';
+                return;
+            }
+            
             if (students.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-500">Belum ada data siswa</td></tr>';
                 return;
@@ -3608,7 +3660,7 @@
                             <input type="text" value="${student.jurusan}" class="border border-gray-200 rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500" onchange="updateStudentField('${student.id}', 'jurusan', this.value)">
                         </td>
                         <td class="px-4 py-4">
-                            <input type="text" value="${student.tahun_ajaran || tahunAjaran}" class="border border-gray-200 rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500" onchange="updateTahunAjaranField('${student.id}', this.value)">
+                            <input type="text" value="${student.tahun_ajaran || ''}" class="border border-gray-200 rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500" onchange="updateTahunAjaranField('${student.id}', this.value)">
                         </td>
                         <td class="px-4 py-4 text-center">
                             <div class="flex flex-col gap-2 items-center">
@@ -3670,13 +3722,13 @@
                 // Update attendance dan pelanggaran yang terkait
                 attendanceRecords.forEach(r => {
                     if (r.student_id === studentId) {
-                        r.tahun_ajaran = value;
+                        r.student_tahun_ajaran = value;
                     }
                 });
                 
                 pelanggaranRecords.forEach(p => {
                     if (p.student_id === studentId) {
-                        p.tahun_ajaran = value;
+                        p.student_tahun_ajaran = value;
                     }
                 });
                 
@@ -3720,6 +3772,11 @@
         function renderPelanggaranTable() {
             const tbody = document.getElementById('pelanggaranTableBody');
             if (!tbody) return;
+            
+            if (!tahunAjaran) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-500">Pilih tahun ajaran terlebih dahulu</td></tr>';
+                return;
+            }
             
             const filterKelas = document.getElementById('pelanggaranFilterKelas')?.value || '';
             const filterBulan = document.getElementById('pelanggaranFilterBulan')?.value || '';
@@ -3787,6 +3844,11 @@
         function renderRekapTable() {
             const tbody = document.getElementById('rekapTableBody');
             if (!tbody) return;
+            
+            if (!tahunAjaran) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Pilih tahun ajaran terlebih dahulu</td></tr>';
+                return;
+            }
             
             const filterKelas = document.getElementById('filterKelasRekap')?.value || '';
             const filterBulan = document.getElementById('filterBulan')?.value || '';
@@ -4102,13 +4164,16 @@
             
             hideLoading();
             closeStudentModal();
-            renderStudentTable();
-            renderSiswaManagementTable();
-            renderRekapTable();
-            renderLokasiTable();
-            renderPelanggaranTable();
-            updateClassFilter();
-            updatePelanggaranStats();
+            
+            // Jika tahun yang disimpan adalah tahun yang sedang aktif, reload data
+            if (tahunAjaranInput === tahunAjaran) {
+                await loadDataForTahunAjaran();
+            } else {
+                renderSiswaManagementTable();
+                updateClassFilter();
+                updatePelanggaranKelasFilter();
+            }
+            
             showToast('Data siswa berhasil disimpan');
         }
 
@@ -4569,7 +4634,7 @@
                 periodText = `${monthNames[parseInt(filterBulan) - 1]} ${new Date().getFullYear()}`;
             }
             if (filterKelas) periodText += ` - Kelas ${filterKelas}`;
-            periodText += ` | Tahun Ajaran: ${tahunAjaran}`;
+            periodText += ` | Tahun Ajaran: ${tahunAjaran || '-'}`;
             
             printWindow.document.write(`
                 <html>
@@ -4595,7 +4660,7 @@
                         ${logoSrc ? `<img src="${logoSrc}" style="width:80px; height:80px; border-radius:50%; margin-bottom:10px;">` : ''}
                         <div class="school-name">MAS IBNU HUSAIN</div>
                         <div style="color: #4b5563;">JL. Irawati 1 No. 15-17, Surabaya</div>
-                        <div class="tahun-ajaran">Tahun Ajaran: ${tahunAjaran}</div>
+                        <div class="tahun-ajaran">Tahun Ajaran: ${tahunAjaran || '-'}</div>
                         <div class="period">Periode: ${periodText}</div>
                         <div class="location-info">Lokasi Sekolah: -7.230636, 112.749601 (Radius 100m)</div>
                     </div>
@@ -4649,7 +4714,7 @@
                     </div>
                     
                     <div class="footer">
-                        Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN - Tahun Ajaran ${tahunAjaran}
+                        Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN - Tahun Ajaran ${tahunAjaran || '-'}
                     </div>
                 </body>
                 </html>
@@ -4750,7 +4815,7 @@
                         ${logoSrc ? `<img src="${logoSrc}" style="width:80px; height:80px; border-radius:50%; margin-bottom:10px;">` : ''}
                         <div class="school-name">MAS IBNU HUSAIN</div>
                         <div style="color: #4b5563;">JL. Irawati 1 No. 15-17, Surabaya</div>
-                        <div class="tahun-ajaran">Tahun Ajaran: ${tahunAjaran}</div>
+                        <div class="tahun-ajaran">Tahun Ajaran: ${tahunAjaran || '-'}</div>
                         <div class="period">Periode: ${periodText}</div>
                         <div>Lokasi Sekolah: -7.230636, 112.749601 (Radius 100m)</div>
                     </div>
@@ -4869,7 +4934,7 @@
                 </div>
                 
                 <div class="footer">
-                    Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN - Tahun Ajaran ${tahunAjaran}
+                    Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN - Tahun Ajaran ${tahunAjaran || '-'}
                 </div>
                 </body>
                 </html>
@@ -4942,25 +5007,30 @@
             document.getElementById('openingStatus').textContent = 'Memuat data tahun ajaran...';
             await fetchDaftarTahunAjaran();
             
-            document.getElementById('openingStatus').textContent = 'Memuat data siswa...';
-            await loadStudents();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data absensi...';
-            await loadAttendance();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data pelanggaran...';
-            await loadPelanggaran();
+            // Jika ada tahun ajaran, load data untuk tahun pertama
+            if (daftarTahunAjaran.length > 0) {
+                tahunAjaran = daftarTahunAjaran[0];
+                document.getElementById('tahunAjaranDisplay').textContent = tahunAjaran;
+                document.getElementById('tahunAjaranDisplayData').textContent = tahunAjaran;
+                document.getElementById('tahunAjaranSelect').value = tahunAjaran;
+                
+                document.getElementById('openingStatus').textContent = 'Memuat data siswa...';
+                await loadStudents();
+                
+                document.getElementById('openingStatus').textContent = 'Memuat data absensi...';
+                await loadAttendance();
+                
+                document.getElementById('openingStatus').textContent = 'Memuat data pelanggaran...';
+                await loadPelanggaran();
+            } else {
+                document.getElementById('openingStatus').textContent = 'Belum ada data tahun ajaran...';
+            }
             
             document.getElementById('openingStatus').textContent = 'Memuat data lokasi...';
             await loadLocationRecords();
             
             document.getElementById('openingStatus').textContent = 'Memuat catatan siswa...';
             await loadStudentNotes();
-            
-            // Set tahun ajaran display
-            document.getElementById('tahunAjaranDisplay').textContent = tahunAjaran;
-            document.getElementById('tahunAjaranDisplayData').textContent = tahunAjaran;
-            document.getElementById('tahunAjaranInput').value = tahunAjaran;
             
             setToday();
             renderStudentTable();
@@ -4979,14 +5049,16 @@
             }, 2800);
             
             setInterval(async () => {
-                await loadAttendance();
-                await loadPelanggaran();
-                await loadLocationRecords();
-                await loadStudentNotes();
-                if (currentPage === 'absensi') renderStudentTable();
-                if (currentPage === 'rekap') renderRekapTable();
-                if (currentPage === 'lokasi') renderLokasiTable();
-                if (currentPage === 'dataSiswa') renderSiswaManagementTable();
+                if (tahunAjaran) {
+                    await loadAttendance();
+                    await loadPelanggaran();
+                    await loadLocationRecords();
+                    await loadStudentNotes();
+                    if (currentPage === 'absensi') renderStudentTable();
+                    if (currentPage === 'rekap') renderRekapTable();
+                    if (currentPage === 'lokasi') renderLokasiTable();
+                    if (currentPage === 'dataSiswa') renderSiswaManagementTable();
+                }
             }, 30000);
         }
 
