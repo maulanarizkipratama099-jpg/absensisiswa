@@ -12,7 +12,6 @@
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
-        /* [SAME STYLES AS BEFORE - COPY FROM ORIGINAL] */
         * {
             margin: 0;
             padding: 0;
@@ -534,6 +533,38 @@
             border-radius: 50%;
             border: 2px solid white;
         }
+
+        /* Tahun Ajaran Selector */
+        .tahun-ajaran-selector {
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            border: 2px solid #4f46e5;
+            border-radius: 16px;
+            padding: 12px 24px;
+            font-weight: 600;
+            color: #4f46e5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tahun-ajaran-selector:hover {
+            background: #4f46e5;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
+        }
+
+        .tahun-ajaran-badge {
+            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -594,22 +625,32 @@
                             <p class="text-sm text-white/70">Admin Absensi Siswa (Hadir & Pulang)</p>
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button onclick="showPage('absensi', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
-                            <i class="fas fa-clipboard-list mr-2"></i>Absensi
-                        </button>
-                        <button onclick="showPage('dataSiswa', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
-                            <i class="fas fa-user-graduate mr-2"></i>Data Siswa
-                        </button>
-                        <button onclick="showPage('pelanggaran', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>Pelanggaran
-                        </button>
-                        <button onclick="showPage('rekap', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
-                            <i class="fas fa-chart-bar mr-2"></i>Rekap
-                        </button>
-                        <button onclick="showPage('lokasi', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
-                            <i class="fas fa-map-marker-alt mr-2"></i>Lokasi
-                        </button>
+                    <div class="flex items-center gap-4">
+                        <!-- Tahun Ajaran Selector -->
+                        <div class="relative">
+                            <select id="tahunAjaranSelect" class="tahun-ajaran-selector appearance-none pr-10" onchange="ubahTahunAjaran()">
+                                <option value="2024/2025">2024/2025</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-indigo-600 pointer-events-none"></i>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <button onclick="showPage('absensi', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                                <i class="fas fa-clipboard-list mr-2"></i>Absensi
+                            </button>
+                            <button onclick="showPage('dataSiswa', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                                <i class="fas fa-user-graduate mr-2"></i>Data Siswa
+                            </button>
+                            <button onclick="showPage('pelanggaran', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>Pelanggaran
+                            </button>
+                            <button onclick="showPage('rekap', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                                <i class="fas fa-chart-bar mr-2"></i>Rekap
+                            </button>
+                            <button onclick="showPage('lokasi', event)" class="nav-btn px-6 py-3 rounded-xl font-semibold transition-all">
+                                <i class="fas fa-map-marker-alt mr-2"></i>Lokasi
+                            </button>
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -617,7 +658,13 @@
             <!-- ========== PAGE ABSENSI ========== -->
             <div id="pageAbsensi" class="max-w-7xl mx-auto px-4 py-8 hidden">
                 <div class="glass-card rounded-3xl p-8 mb-8">
-                    <h1 class="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent" id="schoolNameHeader">MAS IBNU HUSAIN</h1>
+                    <div class="flex justify-between items-center mb-4">
+                        <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent" id="schoolNameHeader">MAS IBNU HUSAIN</h1>
+                        <div class="tahun-ajaran-badge" id="tahunAjaranBadge">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="tahunAjaranDisplay">2024/2025</span>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-2 gap-6 max-w-3xl mx-auto">
                         <div class="space-y-2">
                             <p class="text-gray-700"><i class="fas fa-id-card text-indigo-600 mr-2"></i>NPSN: 60728117</p>
@@ -687,7 +734,13 @@
             <!-- ========== PAGE DATA SISWA ========== -->
             <div id="pageDataSiswa" class="max-w-7xl mx-auto px-4 py-8 hidden">
                 <div class="glass-card rounded-3xl p-8 mb-8">
-                    <h2 class="text-3xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Manajemen Data Siswa</h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Manajemen Data Siswa</h2>
+                        <div class="tahun-ajaran-badge" id="tahunAjaranBadgeData">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="tahunAjaranDisplayData">2024/2025</span>
+                        </div>
+                    </div>
                     
                     <div class="flex flex-wrap gap-4 mb-6">
                         <button onclick="openTambahSiswaModal()" class="btn-modern px-8 py-4 rounded-xl font-semibold">
@@ -741,6 +794,7 @@
                                     <th>Nama</th>
                                     <th>Kelas</th>
                                     <th>Jurusan</th>
+                                    <th>Tahun Ajaran</th>
                                     <th>QR / Kartu</th>
                                     <th>Aksi</th>
                                 </tr>
@@ -1139,7 +1193,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium mb-2 text-gray-700">Kelas *</label>
                         <input type="text" id="kelas" required placeholder="Contoh: X IPA 1" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
@@ -1148,6 +1202,12 @@
                         <label class="block text-sm font-medium mb-2 text-gray-700">Jurusan *</label>
                         <input type="text" id="jurusan" required placeholder="Contoh: IPA, IPS, Bahasa" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
                     </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2 text-gray-700">Tahun Ajaran *</label>
+                    <input type="text" id="tahunAjaranInput" value="2024/2025" required placeholder="Contoh: 2024/2025" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Format: YYYY/YYYY (contoh: 2024/2025). Ketik tahun ajaran baru, otomatis akan muncul di dropdown.</p>
                 </div>
 
                 <div class="flex gap-4">
@@ -1298,7 +1358,7 @@
                 <button onclick="printQR()" class="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-xl transition-all">Cetak</button>
                 <button onclick="downloadQR()" class="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-xl transition-all">Download</button>
             </div>
-            <button onclick="printSingleQRKTP(currentQRStudent)" class="mt-3 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:shadow-xl transition-all">
+            <button onclick="printSingleQRKTP()" class="mt-3 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:shadow-xl transition-all">
                 <i class="fas fa-id-card mr-2"></i>Cetak Kartu KTP
             </button>
         </div>
@@ -1325,7 +1385,7 @@
     <script>
         // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
         // GANTI URL INI DENGAN URL WEB APP ANDA!
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwh8_GuMY3P5RLvFmv_5neQtNTx8iJbbLPnig2lQoZXVeMqORXEmnw-EsF4hMvm4yp8cA/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyrQouNBOsJPSDP0Mo0G8r91DCOn7viODEt9mMfxUv0B6dqMPAj1w-Kx8Q7cte5qUqhYw/exec';
         
         // Sheet names
         const SHEETS = {
@@ -1367,13 +1427,20 @@
         let isLoading = false;
         let dateRangeFilter = { start: null, end: null };
         let studentCache = new Map();
+        
+        // Tahun Ajaran
+        let tahunAjaran = '2024/2025';
+        let daftarTahunAjaran = [];
 
         // ==================== FUNGSI API GOOGLE APPS SCRIPT ====================
 
-        // GET data dari Google Sheets via Apps Script
-        async function fetchSheetData(sheetName) {
+        async function fetchSheetData(sheetName, tahunAjaranFilter = null) {
             try {
-                const url = `${APPS_SCRIPT_URL}?action=getAll&sheet=${sheetName}&t=${Date.now()}`;
+                let url = `${APPS_SCRIPT_URL}?action=getAll&sheet=${sheetName}&t=${Date.now()}`;
+                if (tahunAjaranFilter) {
+                    url += `&tahunAjaran=${encodeURIComponent(tahunAjaranFilter)}`;
+                }
+                
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -1396,8 +1463,7 @@
             }
         }
 
-        // POST data ke Google Sheets via Apps Script
-        async function postToSheet(action, sheetName, data, id = null) {
+        async function postToSheet(action, sheetName, data, id = null, idColumn = 0) {
             try {
                 const payload = {
                     action: action,
@@ -1406,20 +1472,30 @@
                 };
                 
                 if (id) payload.id = id;
+                if (idColumn) payload.idColumn = idColumn;
                 
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Mode no-cors untuk Google Apps Script
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(payload)
                 });
                 
-                // Karena mode no-cors, kita tidak bisa membaca response
-                // Tapi kita asumsikan berhasil
-                console.log(`Data sent to ${sheetName} (${action})`);
-                return true;
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`✅ ${action} to ${sheetName} successful`);
+                    return true;
+                } else {
+                    console.error(`Error posting to ${sheetName}:`, result.error);
+                    showToast(`Gagal: ${result.error}`, 'error');
+                    return false;
+                }
                 
             } catch (error) {
                 console.error(`Error posting to ${sheetName}:`, error);
@@ -1428,7 +1504,6 @@
             }
         }
 
-        // GET config dari Google Sheets
         async function fetchConfig() {
             try {
                 const url = `${APPS_SCRIPT_URL}?action=getConfig&t=${Date.now()}`;
@@ -1452,14 +1527,142 @@
             }
         }
 
-        // UPDATE config
-        async function updateConfig(key, value) {
-            return await postToSheet('updateConfig', SHEETS.CONFIG, null, null, { key, value });
+        async function fetchDaftarTahunAjaran() {
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=getTahunAjaran&t=${Date.now()}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    daftarTahunAjaran = result.data || [];
+                    updateTahunAjaranDropdown();
+                    return daftarTahunAjaran;
+                } else {
+                    console.error('Error fetching tahun ajaran:', result.error);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error fetching tahun ajaran:', error);
+                return [];
+            }
         }
 
-        // CLEAR ALL data dari sheet
-        async function clearSheetData(sheetName) {
-            return await postToSheet('clearAll', sheetName, []);
+        async function updateConfig(key, value) {
+            try {
+                const payload = {
+                    action: 'updateConfig',
+                    key: key,
+                    value: value
+                };
+                
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                return result.success;
+                
+            } catch (error) {
+                console.error('Error updating config:', error);
+                return false;
+            }
+        }
+
+        async function deleteAllFromSheet(sheetName) {
+            return await postToSheet('deleteAll', sheetName, []);
+        }
+
+        async function appendBatchToSheet(sheetName, rowsData) {
+            return await postToSheet('appendBatch', sheetName, rowsData);
+        }
+
+        // ==================== FUNGSI TAHUN AJARAN ====================
+        function updateTahunAjaranDropdown() {
+            const select = document.getElementById('tahunAjaranSelect');
+            const currentValue = select.value;
+            
+            // Urutkan descending (terbaru di atas)
+            daftarTahunAjaran.sort((a, b) => {
+                const tahunA = parseInt(a.split('/')[0]);
+                const tahunB = parseInt(b.split('/')[0]);
+                return tahunB - tahunA;
+            });
+            
+            let options = '';
+            daftarTahunAjaran.forEach(ta => {
+                options += `<option value="${ta}" ${ta === currentValue ? 'selected' : ''}>${ta}</option>`;
+            });
+            
+            // Jika tidak ada, tambah default
+            if (daftarTahunAjaran.length === 0) {
+                options = '<option value="2024/2025">2024/2025</option>';
+            }
+            
+            select.innerHTML = options;
+        }
+
+        function tambahTahunAjaranKeDaftar(tahunBaru) {
+            if (!daftarTahunAjaran.includes(tahunBaru)) {
+                daftarTahunAjaran.push(tahunBaru);
+                daftarTahunAjaran.sort((a, b) => {
+                    const tahunA = parseInt(a.split('/')[0]);
+                    const tahunB = parseInt(b.split('/')[0]);
+                    return tahunB - tahunA;
+                });
+                updateTahunAjaranDropdown();
+            }
+        }
+
+        function ubahTahunAjaran() {
+            const select = document.getElementById('tahunAjaranSelect');
+            tahunAjaran = select.value;
+            document.getElementById('tahunAjaranDisplay').textContent = tahunAjaran;
+            document.getElementById('tahunAjaranDisplayData').textContent = tahunAjaran;
+            document.getElementById('tahunAjaranInput').value = tahunAjaran;
+            
+            // Reload data untuk tahun ajaran yang dipilih
+            loadDataForTahunAjaran();
+            showToast(`Tahun Ajaran diubah ke ${tahunAjaran}`, 'info');
+        }
+
+        async function loadDataForTahunAjaran() {
+            showLoading('Memuat data...');
+            
+            try {
+                await loadStudents();
+                await loadAttendance();
+                await loadPelanggaran();
+                await loadLocationRecords();
+                await loadStudentNotes();
+                
+                renderStudentTable();
+                renderSiswaManagementTable();
+                renderRekapTable();
+                renderLokasiTable();
+                renderPelanggaranTable();
+                updateClassFilter();
+                updatePelanggaranStats();
+                
+                showToast('Data berhasil dimuat', 'success');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showToast('Gagal memuat data', 'error');
+            } finally {
+                hideLoading();
+            }
         }
 
         // ==================== FUNGSI GOOGLE DRIVE ====================
@@ -1800,7 +2003,7 @@
         // ==================== FUNGSI DATABASE ====================
         async function loadStudents() {
             try {
-                const data = await fetchSheetData(SHEETS.SISWA);
+                const data = await fetchSheetData(SHEETS.SISWA, tahunAjaran);
                 students = data || [];
                 
                 studentCache.clear();
@@ -1810,7 +2013,7 @@
                     studentCache.set(nis.replace(/^0+/, ''), student);
                 });
                 
-                console.log('✅ Loaded students:', students.length);
+                console.log(`✅ Loaded students for ${tahunAjaran}:`, students.length);
                 return students;
             } catch (error) {
                 console.error('❌ Gagal load siswa:', error);
@@ -1821,10 +2024,10 @@
 
         async function loadAttendance() {
             try {
-                const data = await fetchSheetData(SHEETS.ABSENSI);
+                const data = await fetchSheetData(SHEETS.ABSENSI, tahunAjaran);
                 attendanceRecords = data || [];
                 
-                console.log('✅ Loaded attendance:', attendanceRecords.length);
+                console.log(`✅ Loaded attendance for ${tahunAjaran}:`, attendanceRecords.length);
                 
                 updateTodayStats();
                 return attendanceRecords;
@@ -1860,37 +2063,270 @@
         }
 
         async function saveStudentNotes() {
-            // Implementasi sederhana: clear dan append semua
-            await clearSheetData(SHEETS.NOTE);
+            await deleteAllFromSheet(SHEETS.NOTE);
             
-            for (const note of studentNotes) {
-                const rowData = [
-                    note.id || '',
-                    note.student_id || '',
-                    note.student_nis || '',
-                    note.student_nama || '',
-                    note.note || '',
-                    note.created_at || '',
-                    note.updated_at || ''
-                ];
-                await postToSheet('append', SHEETS.NOTE, rowData);
+            const rowsData = studentNotes.map(note => [
+                note.id || '',
+                note.student_id || '',
+                note.student_nis || '',
+                note.student_nama || '',
+                note.note || '',
+                note.created_at || '',
+                note.updated_at || ''
+            ]);
+            
+            if (rowsData.length > 0) {
+                await appendBatchToSheet(SHEETS.NOTE, rowsData);
             }
             
             console.log('✅ Notes saved');
         }
 
-        // ==================== FUNGSI QR CODE MODEL KTP ====================
-        function printSingleQRKTP(student) {
-            if (!student) return;
+        // ==================== FUNGSI IMPORT EXCEL ====================
+        async function handleExcelImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            document.getElementById('importProgress').classList.remove('hidden');
+            document.getElementById('importStatus').textContent = 'Membaca file...';
+            document.getElementById('importProgressBar').style.width = '10%';
+            
+            setTimeout(async () => {
+                try {
+                    const data = await readExcelFile(file);
+                    document.getElementById('importProgressBar').style.width = '40%';
+                    document.getElementById('importStatus').textContent = 'Memproses data...';
+                    
+                    let successCount = 0;
+                    let errorCount = 0;
+                    let newStudents = [];
+                    let tahunAjaranBaru = new Set();
+                    
+                    for (let i = 0; i < data.length; i++) {
+                        const row = data[i];
+                        if (row.length < 4) continue;
+                        
+                        const nis = row[0]?.toString().trim() || '';
+                        const nama = row[1]?.toString().trim() || '';
+                        const kelas = row[2]?.toString().trim() || '';
+                        const jurusan = row[3]?.toString().trim() || '';
+                        const photo = row[4]?.toString().trim() || '';
+                        const ta = row[5]?.toString().trim() || tahunAjaran; // Ambil tahun ajaran dari kolom ke-6 jika ada
+                        
+                        if (!nis || !nama || !kelas || !jurusan) {
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Validasi format tahun ajaran
+                        if (!ta.match(/^\d{4}\/\d{4}$/)) {
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Cek duplikat
+                        const existingStudent = students.find(s => s.nis === nis && s.tahun_ajaran === ta);
+                        if (existingStudent) {
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        const newStudent = {
+                            id: generateId(),
+                            nis: nis,
+                            nama: nama,
+                            kelas: kelas,
+                            jurusan: jurusan,
+                            photo: photo,
+                            tahun_ajaran: ta,
+                            created_at: Date.now()
+                        };
+                        
+                        newStudents.push(newStudent);
+                        tahunAjaranBaru.add(ta);
+                        successCount++;
+                        
+                        if (i % 100 === 0 || i === data.length - 1) {
+                            document.getElementById('importCounter').textContent = 
+                                `${i + 1} data diproses (${successCount} sukses, ${errorCount} gagal)`;
+                            document.getElementById('importProgressBar').style.width = 
+                                `${40 + Math.floor((i + 1) / data.length * 50)}%`;
+                            
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                    }
+                    
+                    students = [...students, ...newStudents];
+                    
+                    // Tambah tahun ajaran baru ke daftar
+                    tahunAjaranBaru.forEach(ta => {
+                        if (!daftarTahunAjaran.includes(ta)) {
+                            daftarTahunAjaran.push(ta);
+                        }
+                    });
+                    
+                    daftarTahunAjaran.sort((a, b) => {
+                        const tahunA = parseInt(a.split('/')[0]);
+                        const tahunB = parseInt(b.split('/')[0]);
+                        return tahunB - tahunA;
+                    });
+                    
+                    updateTahunAjaranDropdown();
+                    
+                    document.getElementById('importProgressBar').style.width = '90%';
+                    document.getElementById('importStatus').textContent = 'Menyimpan ke database...';
+                    
+                    await saveAllStudentsToSheet();
+                    
+                    document.getElementById('importProgressBar').style.width = '100%';
+                    
+                    showToast(`Berhasil mengimpor ${successCount} data siswa`, 'success');
+                    if (errorCount > 0) {
+                        showToast(`${errorCount} data gagal`, 'warning');
+                    }
+                    
+                    renderSiswaManagementTable();
+                    updateClassFilter();
+                    updatePelanggaranKelasFilter();
+                    
+                } catch (error) {
+                    console.error('Error importing Excel:', error);
+                    showToast('Gagal mengimpor file: ' + error.message, 'error');
+                } finally {
+                    setTimeout(() => {
+                        document.getElementById('importProgress').classList.add('hidden');
+                    }, 1500);
+                    input.value = '';
+                }
+            }, 10);
+        }
+
+        async function saveAllStudentsToSheet() {
+            await deleteAllFromSheet(SHEETS.SISWA);
+            
+            const rowsData = students.map(s => [
+                s.id || '',
+                s.nis || '',
+                s.nama || '',
+                s.kelas || '',
+                s.jurusan || '',
+                s.photo || '',
+                s.tahun_ajaran || tahunAjaran,
+                s.created_at || Date.now()
+            ]);
+            
+            if (rowsData.length > 0) {
+                await appendBatchToSheet(SHEETS.SISWA, rowsData);
+            }
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        const dataRows = jsonData.slice(1);
+                        
+                        resolve(dataRows);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = (error) => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // ==================== FUNGSI QR CODE KARTU ====================
+        function generateQRCardHTML(student) {
+            const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
+            
+            return `
+                <div class="ktp-card">
+                    <div class="ktp-left">
+                        <div class="school-badge">
+                            <h3>MAS IBNU HUSAIN</h3>
+                            <h2>KARTU SISWA</h2>
+                        </div>
+                        
+                        <div class="photo-container">
+                            ${photoUrl ? 
+                                `<img src="${photoUrl}" alt="Foto Siswa" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'><i class=\\'fas fa-user\\'></i></div>';">` : 
+                                `<div class="photo-placeholder"><i class="fas fa-user"></i></div>`
+                            }
+                        </div>
+                        
+                        <div class="qr-container">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(student.nis)}" alt="QR Code">
+                        </div>
+                    </div>
+                    
+                    <div class="ktp-right">
+                        <div class="stripe"></div>
+                        <div class="watermark">QR</div>
+                        
+                        <div class="identity-header">
+                            <div class="identity-title">
+                                <h1>IDENTITAS SISWA</h1>
+                                <p>QR CODE ABSENSI HADIR & PULANG</p>
+                            </div>
+                            <div class="chip"></div>
+                        </div>
+                        
+                        <div class="data-grid">
+                            <div class="data-label">NIS</div>
+                            <div class="data-value highlight">${student.nis}</div>
+                            
+                            <div class="data-label">NAMA LENGKAP</div>
+                            <div class="data-value">${student.nama}</div>
+                            
+                            <div class="data-label">KELAS</div>
+                            <div class="data-value">${student.kelas}</div>
+                            
+                            <div class="data-label">JURUSAN</div>
+                            <div class="data-value">${student.jurusan}</div>
+                            
+                            <div class="data-label">TAHUN AJARAN</div>
+                            <div class="data-value">${student.tahun_ajaran || tahunAjaran}</div>
+                        </div>
+                        
+                        <div class="qr-note">
+                            <p><i class="fas fa-info-circle"></i> QR Code ini dapat digunakan untuk 2x absensi:</p>
+                            <p>✅ <strong>Absen Hadir</strong> (scan pertama hari ini)</p>
+                            <p>🏠 <strong>Absen Pulang</strong> (scan kedua hari ini)</p>
+                            <p style="margin-top: 8px;"><i class="fas fa-map-pin"></i> Lokasi akan tercatat otomatis saat scan</p>
+                        </div>
+                        
+                        <div class="footer-note">
+                            * Kartu ini berlaku selama tahun ajaran ${student.tahun_ajaran || tahunAjaran}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function printSingleQRKTP() {
+            if (!currentQRStudent) {
+                showToast('Pilih siswa terlebih dahulu', 'warning');
+                return;
+            }
             
             const printWindow = window.open('', '_blank', 'width=900,height=600');
             
-            const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
-            
-            printWindow.document.write(`
+            const html = `
                 <html>
                 <head>
-                    <title>KARTU QR SISWA - ${student.nama}</title>
+                    <title>KARTU QR SISWA - ${currentQRStudent.nama}</title>
                     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
                     <style>
                         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
@@ -2155,70 +2591,12 @@
                     </style>
                 </head>
                 <body>
-                    <div class="ktp-card">
-                        <div class="ktp-left">
-                            <div class="school-badge">
-                                <h3>MAS IBNU HUSAIN</h3>
-                                <h2>KARTU SISWA</h2>
-                            </div>
-                            
-                            <div class="photo-container">
-                                ${photoUrl ? 
-                                    `<img src="${photoUrl}" alt="Foto Siswa" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'><i class=\\'fas fa-user\\'></i></div>';">` : 
-                                    `<div class="photo-placeholder"><i class="fas fa-user"></i></div>`
-                                }
-                            </div>
-                            
-                            <div class="qr-container">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(student.nis)}" alt="QR Code">
-                            </div>
-                        </div>
-                        
-                        <div class="ktp-right">
-                            <div class="stripe"></div>
-                            <div class="watermark">QR</div>
-                            
-                            <div class="identity-header">
-                                <div class="identity-title">
-                                    <h1>IDENTITAS SISWA</h1>
-                                    <p>QR CODE ABSENSI HADIR & PULANG</p>
-                                </div>
-                                <div class="chip"></div>
-                            </div>
-                            
-                            <div class="data-grid">
-                                <div class="data-label">NIS</div>
-                                <div class="data-value highlight">${student.nis}</div>
-                                
-                                <div class="data-label">NAMA LENGKAP</div>
-                                <div class="data-value">${student.nama}</div>
-                                
-                                <div class="data-label">KELAS</div>
-                                <div class="data-value">${student.kelas}</div>
-                                
-                                <div class="data-label">JURUSAN</div>
-                                <div class="data-value">${student.jurusan}</div>
-                                
-                                <div class="data-label">TAHUN AJARAN</div>
-                                <div class="data-value">2024/2025</div>
-                            </div>
-                            
-                            <div class="qr-note">
-                                <p><i class="fas fa-info-circle"></i> QR Code ini dapat digunakan untuk 2x absensi:</p>
-                                <p>✅ <strong>Absen Hadir</strong> (scan pertama hari ini)</p>
-                                <p>🏠 <strong>Absen Pulang</strong> (scan kedua hari ini)</p>
-                                <p style="margin-top: 8px;"><i class="fas fa-map-pin"></i> Lokasi akan tercatat otomatis saat scan</p>
-                            </div>
-                            
-                            <div class="footer-note">
-                                * Kartu ini berlaku selama tahun ajaran berjalan
-                            </div>
-                        </div>
-                    </div>
+                    ${generateQRCardHTML(currentQRStudent)}
                 </body>
                 </html>
-            `);
+            `;
             
+            printWindow.document.write(html);
             printWindow.document.close();
             printWindow.print();
         }
@@ -2229,7 +2607,6 @@
                 return;
             }
             
-            // Buat HTML untuk semua kartu dalam satu halaman (grid 2x2)
             const printWindow = window.open('', '_blank', 'width=1200,height=800');
             
             let html = `
@@ -2274,13 +2651,14 @@
                         }
                         
                         .ktp-card {
+                            width: 100%;
+                            height: 500px;
                             background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
                             border-radius: 30px;
                             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
                             display: flex;
                             overflow: hidden;
                             position: relative;
-                            height: 500px;
                         }
                         
                         .ktp-left {
@@ -2354,6 +2732,16 @@
                             position: relative;
                         }
                         
+                        .watermark {
+                            position: absolute;
+                            bottom: 20px;
+                            right: 20px;
+                            font-size: 60px;
+                            color: rgba(79,70,229,0.03);
+                            font-weight: 800;
+                            transform: rotate(-15deg);
+                        }
+                        
                         .identity-header {
                             display: flex;
                             justify-content: space-between;
@@ -2397,6 +2785,15 @@
                             -webkit-text-fill-color: transparent;
                         }
                         
+                        .qr-note {
+                            margin-top: 15px;
+                            padding: 10px;
+                            background: linear-gradient(145deg, #f0f9ff, #e0f2fe);
+                            border-radius: 12px;
+                            border-left: 4px solid #4f46e5;
+                            font-size: 10px;
+                        }
+                        
                         .footer-note {
                             position: absolute;
                             bottom: 20px;
@@ -2405,12 +2802,26 @@
                             color: #94a3b8;
                         }
                         
+                        .stripe {
+                            position: absolute;
+                            top: 0;
+                            right: 0;
+                            width: 80px;
+                            height: 100%;
+                            background: repeating-linear-gradient(45deg, rgba(79,70,229,0.02) 0px, rgba(79,70,229,0.02) 10px, transparent 10px, transparent 20px);
+                        }
+                        
                         @media print {
                             body {
                                 background: white;
                                 padding: 10px;
                             }
                             .header { display: none; }
+                            .ktp-card {
+                                box-shadow: none;
+                                border: 1px solid #e5e7eb;
+                                page-break-inside: avoid;
+                            }
                         }
                     </style>
                 </head>
@@ -2423,53 +2834,7 @@
             `;
             
             students.forEach(student => {
-                const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
-                
-                html += `
-                    <div class="ktp-card">
-                        <div class="ktp-left">
-                            <div class="school-badge">
-                                <h3>MAS IBNU HUSAIN</h3>
-                                <h2>KARTU SISWA</h2>
-                            </div>
-                            
-                            <div class="photo-container">
-                                ${photoUrl ? 
-                                    `<img src="${photoUrl}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'><i class=\\'fas fa-user\\'></i></div>';">` : 
-                                    `<div class="photo-placeholder"><i class="fas fa-user"></i></div>`
-                                }
-                            </div>
-                            
-                            <div class="qr-container">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(student.nis)}">
-                            </div>
-                        </div>
-                        
-                        <div class="ktp-right">
-                            <div class="identity-header">
-                                <div class="identity-title">
-                                    <h4>IDENTITAS SISWA</h4>
-                                    <h3>${student.nama.split(' ').slice(0,2).join(' ')}</h3>
-                                </div>
-                            </div>
-                            
-                            <div class="data-grid">
-                                <div class="data-label">NIS</div>
-                                <div class="data-value highlight">${student.nis}</div>
-                                <div class="data-label">Nama</div>
-                                <div class="data-value">${student.nama}</div>
-                                <div class="data-label">Kelas</div>
-                                <div class="data-value">${student.kelas}</div>
-                                <div class="data-label">Jurusan</div>
-                                <div class="data-value">${student.jurusan}</div>
-                            </div>
-                            
-                            <div class="footer-note">
-                                * Untuk absen hadir & pulang
-                            </div>
-                        </div>
-                    </div>
-                `;
+                html += generateQRCardHTML(student);
             });
             
             html += `
@@ -2483,13 +2848,134 @@
             printWindow.print();
         }
 
+        // ==================== FUNGSI QR CODE SEDERHANA ====================
+        function generateQR(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            currentQRStudent = student;
+            document.getElementById('qrContainer').innerHTML = '';
+            
+            new QRCode(document.getElementById('qrContainer'), {
+                text: student.nis,
+                width: 200,
+                height: 200
+            });
+            
+            document.getElementById('qrStudentInfo').innerHTML = `
+                <p class="font-semibold text-gray-800">${student.nama}</p>
+                <p class="text-sm text-gray-600">NIS: ${student.nis}</p>
+                <p class="text-sm text-gray-600">${student.kelas} - ${student.jurusan}</p>
+                <p class="text-xs text-indigo-600 mt-1">T.A. ${student.tahun_ajaran || tahunAjaran}</p>
+            `;
+            
+            document.getElementById('qrModal').classList.remove('hidden');
+        }
+
+        function closeQRModal() {
+            document.getElementById('qrModal').classList.add('hidden');
+        }
+
+        function printQR() {
+            if (!currentQRStudent) return;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>QR ${currentQRStudent.nama}</title>
+                    <style>
+                        body { font-family: 'Plus Jakarta Sans', sans-serif; text-align: center; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+                        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+                        .qr-img { width: 250px; height: 250px; margin: 20px auto; }
+                        .school-name { font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                        .tahun-ajaran { font-size: 12px; color: #4f46e5; margin-top: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="school-name">MAS IBNU HUSAIN</div>
+                        <img src="${document.querySelector('#qrContainer img').src}" class="qr-img">
+                        <h3 style="color: #1f2937;">${currentQRStudent.nama}</h3>
+                        <p style="color: #6b7280;">NIS: ${currentQRStudent.nis}</p>
+                        <p style="color: #6b7280;">${currentQRStudent.kelas} - ${currentQRStudent.jurusan}</p>
+                        <p class="tahun-ajaran">Tahun Ajaran: ${currentQRStudent.tahun_ajaran || tahunAjaran}</p>
+                        <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">QR Code untuk absen hadir & pulang</p>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function downloadQR() {
+            if (!currentQRStudent) return;
+            const canvas = document.querySelector('#qrContainer canvas');
+            const link = document.createElement('a');
+            link.download = `QR_${currentQRStudent.nis}_${currentQRStudent.nama}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function printAllQR() {
+            if (students.length === 0) {
+                showToast('Tidak ada data siswa', 'error');
+                return;
+            }
+            
+            const printWindow = window.open('', '_blank');
+            let html = `
+                <html>
+                <head>
+                    <title>Semua QR Code Siswa</title>
+                    <style>
+                        body { font-family: 'Plus Jakarta Sans', sans-serif; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .school-name { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+                        .card { text-align: center; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+                        .qr-img { width: 150px; height: 150px; margin: 10px auto; }
+                        .tahun-ajaran { font-size: 10px; color: #4f46e5; margin-top: 5px; }
+                        @media print {
+                            .grid { grid-template-columns: repeat(4, 1fr); }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="school-name">MAS IBNU HUSAIN</div>
+                        <p style="color: #6b7280;">Daftar QR Code Siswa (Hadir & Pulang)</p>
+                        <p style="color: #6b7280; font-size: 12px;">Total: ${students.length} siswa</p>
+                    </div>
+                    <div class="grid">
+            `;
+            
+            students.forEach(student => {
+                html += `
+                    <div class="card">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(student.nis)}" class="qr-img">
+                        <h4 style="color: #1f2937; font-weight: 600;">${student.nama}</h4>
+                        <p style="color: #6b7280; font-size: 12px;">NIS: ${student.nis}</p>
+                        <p style="color: #6b7280; font-size: 12px;">${student.kelas} - ${student.jurusan}</p>
+                        <p class="tahun-ajaran">T.A. ${student.tahun_ajaran || tahunAjaran}</p>
+                    </div>
+                `;
+            });
+            
+            html += `</div></body></html>`;
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
         // ==================== FUNGSI PELANGGARAN ====================
         async function loadPelanggaran() {
             try {
-                const data = await fetchSheetData(SHEETS.PELANGGARAN);
+                const data = await fetchSheetData(SHEETS.PELANGGARAN, tahunAjaran);
                 pelanggaranRecords = data || [];
                 
-                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
+                console.log(`✅ Loaded pelanggaran for ${tahunAjaran}:`, pelanggaranRecords.length);
                 renderPelanggaranTable();
                 updatePelanggaranStats();
                 return pelanggaranRecords;
@@ -2501,26 +2987,26 @@
         }
 
         async function savePelanggaran() {
-            // Clear dan append semua
-            await clearSheetData(SHEETS.PELANGGARAN);
+            await deleteAllFromSheet(SHEETS.PELANGGARAN);
             
-            for (const p of pelanggaranRecords) {
-                const rowData = [
-                    p.id || '',
-                    p.student_id || '',
-                    p.student_nis || '',
-                    p.student_nama || '',
-                    p.student_kelas || '',
-                    p.student_photo || '',
-                    p.tanggal || '',
-                    p.kategori_id || '',
-                    p.kategori_nama || '',
-                    p.poin || 0,
-                    p.jenis || '',
-                    p.keterangan || '',
-                    p.created_at || Date.now()
-                ];
-                await postToSheet('append', SHEETS.PELANGGARAN, rowData);
+            const rowsData = pelanggaranRecords.map(p => [
+                p.id || '',
+                p.student_id || '',
+                p.student_nis || '',
+                p.student_nama || '',
+                p.student_kelas || '',
+                p.student_photo || '',
+                p.tanggal || '',
+                p.kategori_id || '',
+                p.kategori_nama || '',
+                p.poin || 0,
+                p.jenis || '',
+                p.keterangan || '',
+                p.created_at || Date.now()
+            ]);
+            
+            if (rowsData.length > 0) {
+                await appendBatchToSheet(SHEETS.PELANGGARAN, rowsData);
             }
             
             console.log('✅ Pelanggaran saved');
@@ -2658,6 +3144,7 @@
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
             document.getElementById('studentId').value = '';
+            document.getElementById('tahunAjaranInput').value = tahunAjaran;
             
             document.getElementById('previewImg').classList.add('hidden');
             document.getElementById('previewImg').src = '';
@@ -2677,6 +3164,7 @@
             document.getElementById('kelas').value = student.kelas;
             document.getElementById('jurusan').value = student.jurusan;
             document.getElementById('studentPhoto').value = student.photo || '';
+            document.getElementById('tahunAjaranInput').value = student.tahun_ajaran || tahunAjaran;
             
             document.getElementById('driveGuide').classList.add('hidden');
             document.getElementById('previewLoading').classList.add('hidden');
@@ -2914,42 +3402,33 @@
                 attendanceRecords = attendanceRecords.filter(r => r.student_id !== studentToDelete);
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.student_id !== studentToDelete);
                 
-                // Simpan perubahan
-                await clearSheetData(SHEETS.SISWA);
-                for (const s of students) {
-                    const rowData = [
-                        s.id || '',
-                        s.nis || '',
-                        s.nama || '',
-                        s.kelas || '',
-                        s.jurusan || '',
-                        s.photo || '',
-                        s.created_at || Date.now()
-                    ];
-                    await postToSheet('append', SHEETS.SISWA, rowData);
-                }
+                await saveAllStudentsToSheet();
                 
-                await clearSheetData(SHEETS.ABSENSI);
-                for (const a of attendanceRecords) {
-                    const rowData = [
-                        a.id || '',
-                        a.student_id || '',
-                        a.student_nis || '',
-                        a.student_nama || '',
-                        a.student_kelas || '',
-                        a.student_jurusan || '',
-                        a.student_photo || '',
-                        a.status || '',
-                        a.metode || '',
-                        a.keterangan || '',
-                        a.tanggal || '',
-                        a.timestamp || '',
-                        JSON.stringify(a.location) || ''
-                    ];
-                    await postToSheet('append', SHEETS.ABSENSI, rowData);
+                await deleteAllFromSheet(SHEETS.ABSENSI);
+                const absensiRows = attendanceRecords.map(a => [
+                    a.id || '',
+                    a.student_id || '',
+                    a.student_nis || '',
+                    a.student_nama || '',
+                    a.student_kelas || '',
+                    a.student_jurusan || '',
+                    a.student_photo || '',
+                    a.status || '',
+                    a.metode || '',
+                    a.keterangan || '',
+                    a.tanggal || '',
+                    a.timestamp || '',
+                    JSON.stringify(a.location) || ''
+                ]);
+                
+                if (absensiRows.length > 0) {
+                    await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
                 }
                 
                 await savePelanggaran();
+                
+                // Update daftar tahun ajaran
+                await fetchDaftarTahunAjaran();
                 
                 hideLoading();
                 closeDeleteModal();
@@ -3007,9 +3486,11 @@
                 attendanceRecords = [];
                 pelanggaranRecords = [];
                 
-                await clearSheetData(SHEETS.SISWA);
-                await clearSheetData(SHEETS.ABSENSI);
-                await clearSheetData(SHEETS.PELANGGARAN);
+                await deleteAllFromSheet(SHEETS.SISWA);
+                await deleteAllFromSheet(SHEETS.ABSENSI);
+                await deleteAllFromSheet(SHEETS.PELANGGARAN);
+                
+                await fetchDaftarTahunAjaran();
                 
                 renderStudentTable();
                 renderSiswaManagementTable();
@@ -3100,7 +3581,7 @@
             if (!tbody) return;
             
             if (students.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Belum ada data siswa</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-500">Belum ada data siswa</td></tr>';
                 return;
             }
             
@@ -3126,12 +3607,15 @@
                         <td class="px-4 py-4">
                             <input type="text" value="${student.jurusan}" class="border border-gray-200 rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500" onchange="updateStudentField('${student.id}', 'jurusan', this.value)">
                         </td>
+                        <td class="px-4 py-4">
+                            <input type="text" value="${student.tahun_ajaran || tahunAjaran}" class="border border-gray-200 rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500" onchange="updateTahunAjaranField('${student.id}', this.value)">
+                        </td>
                         <td class="px-4 py-4 text-center">
                             <div class="flex flex-col gap-2 items-center">
                                 <button onclick="generateQR('${student.id}')" class="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition flex items-center justify-center">
                                     <i class="fas fa-qrcode"></i>
                                 </button>
-                                <button onclick="printSingleQRKTP(${JSON.stringify(student).replace(/'/g, "\\'")})" class="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition flex items-center justify-center">
+                                <button onclick='setCurrentStudentAndPrint(${JSON.stringify(student).replace(/'/g, "\\'")})' class="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition flex items-center justify-center">
                                     <i class="fas fa-id-card"></i>
                                 </button>
                             </div>
@@ -3153,6 +3637,84 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        // Fungsi khusus untuk update tahun ajaran dan sinkron ke dropdown
+        async function updateTahunAjaranField(studentId, value) {
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                // Validasi format
+                if (!value.match(/^\d{4}\/\d{4}$/)) {
+                    showToast('Format tahun ajaran harus YYYY/YYYY', 'error');
+                    // Kembalikan ke nilai sebelumnya
+                    renderSiswaManagementTable();
+                    return;
+                }
+                
+                const tahunLama = student.tahun_ajaran;
+                student.tahun_ajaran = value;
+                
+                // Tambah ke daftar tahun ajaran jika belum ada
+                if (!daftarTahunAjaran.includes(value)) {
+                    daftarTahunAjaran.push(value);
+                    daftarTahunAjaran.sort((a, b) => {
+                        const tahunA = parseInt(a.split('/')[0]);
+                        const tahunB = parseInt(b.split('/')[0]);
+                        return tahunB - tahunA;
+                    });
+                    updateTahunAjaranDropdown();
+                }
+                
+                await saveAllStudentsToSheet();
+                
+                // Update attendance dan pelanggaran yang terkait
+                attendanceRecords.forEach(r => {
+                    if (r.student_id === studentId) {
+                        r.tahun_ajaran = value;
+                    }
+                });
+                
+                pelanggaranRecords.forEach(p => {
+                    if (p.student_id === studentId) {
+                        p.tahun_ajaran = value;
+                    }
+                });
+                
+                await deleteAllFromSheet(SHEETS.ABSENSI);
+                const absensiRows = attendanceRecords.map(a => [
+                    a.id || '',
+                    a.student_id || '',
+                    a.student_nis || '',
+                    a.student_nama || '',
+                    a.student_kelas || '',
+                    a.student_jurusan || '',
+                    a.student_photo || '',
+                    a.status || '',
+                    a.metode || '',
+                    a.keterangan || '',
+                    a.tanggal || '',
+                    a.timestamp || '',
+                    JSON.stringify(a.location) || ''
+                ]);
+                
+                if (absensiRows.length > 0) {
+                    await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
+                }
+                
+                await savePelanggaran();
+                
+                // Jika tahun yang diedit adalah tahun yang sedang aktif, reload data
+                if (value === tahunAjaran) {
+                    await loadDataForTahunAjaran();
+                }
+                
+                showToast('Tahun ajaran diperbarui', 'success');
+            }
+        }
+
+        function setCurrentStudentAndPrint(student) {
+            currentQRStudent = student;
+            printSingleQRKTP();
         }
 
         function renderPelanggaranTable() {
@@ -3440,13 +4002,30 @@
             const kelas = document.getElementById('kelas').value.trim();
             const jurusan = document.getElementById('jurusan').value.trim();
             const photoLink = document.getElementById('studentPhoto').value.trim();
+            const tahunAjaranInput = document.getElementById('tahunAjaranInput').value.trim();
             
-            if (!nis || !nama || !kelas || !jurusan) {
+            if (!nis || !nama || !kelas || !jurusan || !tahunAjaranInput) {
                 showToast('Semua field wajib diisi', 'error');
                 return;
             }
             
+            if (!tahunAjaranInput.match(/^\d{4}\/\d{4}$/)) {
+                showToast('Format tahun ajaran harus YYYY/YYYY', 'error');
+                return;
+            }
+            
             showLoading('Menyimpan data siswa...');
+            
+            // Tambah ke daftar tahun ajaran jika belum ada
+            if (!daftarTahunAjaran.includes(tahunAjaranInput)) {
+                daftarTahunAjaran.push(tahunAjaranInput);
+                daftarTahunAjaran.sort((a, b) => {
+                    const tahunA = parseInt(a.split('/')[0]);
+                    const tahunB = parseInt(b.split('/')[0]);
+                    return tahunB - tahunA;
+                });
+                updateTahunAjaranDropdown();
+            }
             
             if (studentId) {
                 const index = students.findIndex(s => s.id === studentId);
@@ -3457,7 +4036,8 @@
                         nama,
                         kelas,
                         jurusan,
-                        photo: photoLink || students[index].photo
+                        photo: photoLink || students[index].photo,
+                        tahun_ajaran: tahunAjaranInput
                     };
                 }
             } else {
@@ -3468,25 +4048,13 @@
                     kelas,
                     jurusan,
                     photo: photoLink,
+                    tahun_ajaran: tahunAjaranInput,
                     created_at: Date.now()
                 };
                 students.push(newStudent);
             }
             
-            // Simpan ke Google Sheets
-            await clearSheetData(SHEETS.SISWA);
-            for (const s of students) {
-                const rowData = [
-                    s.id || '',
-                    s.nis || '',
-                    s.nama || '',
-                    s.kelas || '',
-                    s.jurusan || '',
-                    s.photo || '',
-                    s.created_at || Date.now()
-                ];
-                await postToSheet('append', SHEETS.SISWA, rowData);
-            }
+            await saveAllStudentsToSheet();
             
             if (studentId) {
                 attendanceRecords.forEach(r => {
@@ -3508,25 +4076,25 @@
                     }
                 });
                 
-                // Simpan absensi
-                await clearSheetData(SHEETS.ABSENSI);
-                for (const a of attendanceRecords) {
-                    const rowData = [
-                        a.id || '',
-                        a.student_id || '',
-                        a.student_nis || '',
-                        a.student_nama || '',
-                        a.student_kelas || '',
-                        a.student_jurusan || '',
-                        a.student_photo || '',
-                        a.status || '',
-                        a.metode || '',
-                        a.keterangan || '',
-                        a.tanggal || '',
-                        a.timestamp || '',
-                        JSON.stringify(a.location) || ''
-                    ];
-                    await postToSheet('append', SHEETS.ABSENSI, rowData);
+                await deleteAllFromSheet(SHEETS.ABSENSI);
+                const absensiRows = attendanceRecords.map(a => [
+                    a.id || '',
+                    a.student_id || '',
+                    a.student_nis || '',
+                    a.student_nama || '',
+                    a.student_kelas || '',
+                    a.student_jurusan || '',
+                    a.student_photo || '',
+                    a.status || '',
+                    a.metode || '',
+                    a.keterangan || '',
+                    a.tanggal || '',
+                    a.timestamp || '',
+                    JSON.stringify(a.location) || ''
+                ]);
+                
+                if (absensiRows.length > 0) {
+                    await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
                 }
                 
                 await savePelanggaran();
@@ -3554,20 +4122,7 @@
             if (student) {
                 student[field] = value;
                 
-                // Simpan ke Google Sheets
-                await clearSheetData(SHEETS.SISWA);
-                for (const s of students) {
-                    const rowData = [
-                        s.id || '',
-                        s.nis || '',
-                        s.nama || '',
-                        s.kelas || '',
-                        s.jurusan || '',
-                        s.photo || '',
-                        s.created_at || Date.now()
-                    ];
-                    await postToSheet('append', SHEETS.SISWA, rowData);
-                }
+                await saveAllStudentsToSheet();
                 
                 attendanceRecords.forEach(r => {
                     if (r.student_id === studentId) {
@@ -3586,25 +4141,25 @@
                     }
                 });
                 
-                // Simpan absensi
-                await clearSheetData(SHEETS.ABSENSI);
-                for (const a of attendanceRecords) {
-                    const rowData = [
-                        a.id || '',
-                        a.student_id || '',
-                        a.student_nis || '',
-                        a.student_nama || '',
-                        a.student_kelas || '',
-                        a.student_jurusan || '',
-                        a.student_photo || '',
-                        a.status || '',
-                        a.metode || '',
-                        a.keterangan || '',
-                        a.tanggal || '',
-                        a.timestamp || '',
-                        JSON.stringify(a.location) || ''
-                    ];
-                    await postToSheet('append', SHEETS.ABSENSI, rowData);
+                await deleteAllFromSheet(SHEETS.ABSENSI);
+                const absensiRows = attendanceRecords.map(a => [
+                    a.id || '',
+                    a.student_id || '',
+                    a.student_nis || '',
+                    a.student_nama || '',
+                    a.student_kelas || '',
+                    a.student_jurusan || '',
+                    a.student_photo || '',
+                    a.status || '',
+                    a.metode || '',
+                    a.keterangan || '',
+                    a.tanggal || '',
+                    a.timestamp || '',
+                    JSON.stringify(a.location) || ''
+                ]);
+                
+                if (absensiRows.length > 0) {
+                    await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
                 }
                 
                 await savePelanggaran();
@@ -3617,122 +4172,6 @@
                 updateClassFilter();
                 showToast('Data diperbarui');
             }
-        }
-
-        // ==================== QR CODE FUNCTIONS ====================
-        function generateQR(studentId) {
-            const student = students.find(s => s.id === studentId);
-            if (!student) return;
-            
-            currentQRStudent = student;
-            document.getElementById('qrContainer').innerHTML = '';
-            
-            new QRCode(document.getElementById('qrContainer'), {
-                text: student.nis,
-                width: 200,
-                height: 200
-            });
-            
-            document.getElementById('qrStudentInfo').innerHTML = `
-                <p class="font-semibold text-gray-800">${student.nama}</p>
-                <p class="text-sm text-gray-600">NIS: ${student.nis}</p>
-                <p class="text-sm text-gray-600">${student.kelas} - ${student.jurusan}</p>
-            `;
-            
-            document.getElementById('qrModal').classList.remove('hidden');
-        }
-
-        function closeQRModal() {
-            document.getElementById('qrModal').classList.add('hidden');
-        }
-
-        function printQR() {
-            if (!currentQRStudent) return;
-            
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>QR ${currentQRStudent.nama}</title>
-                    <style>
-                        body { font-family: 'Plus Jakarta Sans', sans-serif; text-align: center; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-                        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-                        .qr-img { width: 250px; height: 250px; margin: 20px auto; }
-                        .school-name { font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="school-name">MAS IBNU HUSAIN</div>
-                        <img src="${document.querySelector('#qrContainer img').src}" class="qr-img">
-                        <h3 style="color: #1f2937;">${currentQRStudent.nama}</h3>
-                        <p style="color: #6b7280;">NIS: ${currentQRStudent.nis}</p>
-                        <p style="color: #6b7280;">${currentQRStudent.kelas} - ${currentQRStudent.jurusan}</p>
-                        <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">QR Code untuk absen hadir & pulang</p>
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        function downloadQR() {
-            if (!currentQRStudent) return;
-            const canvas = document.querySelector('#qrContainer canvas');
-            const link = document.createElement('a');
-            link.download = `QR_${currentQRStudent.nis}_${currentQRStudent.nama}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-        }
-
-        function printAllQR() {
-            if (students.length === 0) {
-                showToast('Tidak ada data siswa', 'error');
-                return;
-            }
-            
-            const printWindow = window.open('', '_blank');
-            let html = `
-                <html>
-                <head>
-                    <title>Semua QR Code Siswa</title>
-                    <style>
-                        body { font-family: 'Plus Jakarta Sans', sans-serif; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-                        .header { text-align: center; margin-bottom: 30px; }
-                        .school-name { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-                        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-                        .card { text-align: center; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-                        .qr-img { width: 150px; height: 150px; margin: 10px auto; }
-                        @media print {
-                            .grid { grid-template-columns: repeat(4, 1fr); }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <div class="school-name">MAS IBNU HUSAIN</div>
-                        <p style="color: #6b7280;">Daftar QR Code Siswa (Hadir & Pulang)</p>
-                        <p style="color: #6b7280; font-size: 12px;">Total: ${students.length} siswa</p>
-                    </div>
-                    <div class="grid">
-            `;
-            
-            students.forEach(student => {
-                html += `
-                    <div class="card">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(student.nis)}" class="qr-img">
-                        <h4 style="color: #1f2937; font-weight: 600;">${student.nama}</h4>
-                        <p style="color: #6b7280; font-size: 12px;">NIS: ${student.nis}</p>
-                        <p style="color: #6b7280; font-size: 12px;">${student.kelas} - ${student.jurusan}</p>
-                    </div>
-                `;
-            });
-            
-            html += `</div></body></html>`;
-            printWindow.document.write(html);
-            printWindow.document.close();
-            printWindow.print();
         }
 
         // ==================== ABSENSI FUNCTIONS ====================
@@ -3768,25 +4207,25 @@
                 attendanceRecords.push(newAttendance);
             }
             
-            // Simpan ke Google Sheets
-            await clearSheetData(SHEETS.ABSENSI);
-            for (const a of attendanceRecords) {
-                const rowData = [
-                    a.id || '',
-                    a.student_id || '',
-                    a.student_nis || '',
-                    a.student_nama || '',
-                    a.student_kelas || '',
-                    a.student_jurusan || '',
-                    a.student_photo || '',
-                    a.status || '',
-                    a.metode || '',
-                    a.keterangan || '',
-                    a.tanggal || '',
-                    a.timestamp || '',
-                    JSON.stringify(a.location) || ''
-                ];
-                await postToSheet('append', SHEETS.ABSENSI, rowData);
+            await deleteAllFromSheet(SHEETS.ABSENSI);
+            const absensiRows = attendanceRecords.map(a => [
+                a.id || '',
+                a.student_id || '',
+                a.student_nis || '',
+                a.student_nama || '',
+                a.student_kelas || '',
+                a.student_jurusan || '',
+                a.student_photo || '',
+                a.status || '',
+                a.metode || '',
+                a.keterangan || '',
+                a.tanggal || '',
+                a.timestamp || '',
+                JSON.stringify(a.location) || ''
+            ]);
+            
+            if (absensiRows.length > 0) {
+                await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
             }
             
             renderStudentTable();
@@ -3827,25 +4266,25 @@
                 }
             }
             
-            // Simpan ke Google Sheets
-            await clearSheetData(SHEETS.ABSENSI);
-            for (const a of attendanceRecords) {
-                const rowData = [
-                    a.id || '',
-                    a.student_id || '',
-                    a.student_nis || '',
-                    a.student_nama || '',
-                    a.student_kelas || '',
-                    a.student_jurusan || '',
-                    a.student_photo || '',
-                    a.status || '',
-                    a.metode || '',
-                    a.keterangan || '',
-                    a.tanggal || '',
-                    a.timestamp || '',
-                    JSON.stringify(a.location) || ''
-                ];
-                await postToSheet('append', SHEETS.ABSENSI, rowData);
+            await deleteAllFromSheet(SHEETS.ABSENSI);
+            const absensiRows = attendanceRecords.map(a => [
+                a.id || '',
+                a.student_id || '',
+                a.student_nis || '',
+                a.student_nama || '',
+                a.student_kelas || '',
+                a.student_jurusan || '',
+                a.student_photo || '',
+                a.status || '',
+                a.metode || '',
+                a.keterangan || '',
+                a.tanggal || '',
+                a.timestamp || '',
+                JSON.stringify(a.location) || ''
+            ]);
+            
+            if (absensiRows.length > 0) {
+                await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
             }
             
             renderStudentTable();
@@ -3882,25 +4321,25 @@
                 }
             }
             
-            // Simpan ke Google Sheets
-            await clearSheetData(SHEETS.ABSENSI);
-            for (const a of attendanceRecords) {
-                const rowData = [
-                    a.id || '',
-                    a.student_id || '',
-                    a.student_nis || '',
-                    a.student_nama || '',
-                    a.student_kelas || '',
-                    a.student_jurusan || '',
-                    a.student_photo || '',
-                    a.status || '',
-                    a.metode || '',
-                    a.keterangan || '',
-                    a.tanggal || '',
-                    a.timestamp || '',
-                    JSON.stringify(a.location) || ''
-                ];
-                await postToSheet('append', SHEETS.ABSENSI, rowData);
+            await deleteAllFromSheet(SHEETS.ABSENSI);
+            const absensiRows = attendanceRecords.map(a => [
+                a.id || '',
+                a.student_id || '',
+                a.student_nis || '',
+                a.student_nama || '',
+                a.student_kelas || '',
+                a.student_jurusan || '',
+                a.student_photo || '',
+                a.status || '',
+                a.metode || '',
+                a.keterangan || '',
+                a.tanggal || '',
+                a.timestamp || '',
+                JSON.stringify(a.location) || ''
+            ]);
+            
+            if (absensiRows.length > 0) {
+                await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
             }
             
             renderStudentTable();
@@ -3940,25 +4379,25 @@
                 }
             }
             
-            // Simpan ke Google Sheets
-            await clearSheetData(SHEETS.ABSENSI);
-            for (const a of attendanceRecords) {
-                const rowData = [
-                    a.id || '',
-                    a.student_id || '',
-                    a.student_nis || '',
-                    a.student_nama || '',
-                    a.student_kelas || '',
-                    a.student_jurusan || '',
-                    a.student_photo || '',
-                    a.status || '',
-                    a.metode || '',
-                    a.keterangan || '',
-                    a.tanggal || '',
-                    a.timestamp || '',
-                    JSON.stringify(a.location) || ''
-                ];
-                await postToSheet('append', SHEETS.ABSENSI, rowData);
+            await deleteAllFromSheet(SHEETS.ABSENSI);
+            const absensiRows = attendanceRecords.map(a => [
+                a.id || '',
+                a.student_id || '',
+                a.student_nis || '',
+                a.student_nama || '',
+                a.student_kelas || '',
+                a.student_jurusan || '',
+                a.student_photo || '',
+                a.status || '',
+                a.metode || '',
+                a.keterangan || '',
+                a.tanggal || '',
+                a.timestamp || '',
+                JSON.stringify(a.location) || ''
+            ]);
+            
+            if (absensiRows.length > 0) {
+                await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
             }
             
             renderStudentTable();
@@ -3980,25 +4419,25 @@
         async function confirmDeleteStatus() {
             attendanceRecords = attendanceRecords.filter(r => r.tanggal !== currentDate);
             
-            // Simpan ke Google Sheets
-            await clearSheetData(SHEETS.ABSENSI);
-            for (const a of attendanceRecords) {
-                const rowData = [
-                    a.id || '',
-                    a.student_id || '',
-                    a.student_nis || '',
-                    a.student_nama || '',
-                    a.student_kelas || '',
-                    a.student_jurusan || '',
-                    a.student_photo || '',
-                    a.status || '',
-                    a.metode || '',
-                    a.keterangan || '',
-                    a.tanggal || '',
-                    a.timestamp || '',
-                    JSON.stringify(a.location) || ''
-                ];
-                await postToSheet('append', SHEETS.ABSENSI, rowData);
+            await deleteAllFromSheet(SHEETS.ABSENSI);
+            const absensiRows = attendanceRecords.map(a => [
+                a.id || '',
+                a.student_id || '',
+                a.student_nis || '',
+                a.student_nama || '',
+                a.student_kelas || '',
+                a.student_jurusan || '',
+                a.student_photo || '',
+                a.status || '',
+                a.metode || '',
+                a.keterangan || '',
+                a.tanggal || '',
+                a.timestamp || '',
+                JSON.stringify(a.location) || ''
+            ]);
+            
+            if (absensiRows.length > 0) {
+                await appendBatchToSheet(SHEETS.ABSENSI, absensiRows);
             }
             
             renderStudentTable();
@@ -4130,6 +4569,7 @@
                 periodText = `${monthNames[parseInt(filterBulan) - 1]} ${new Date().getFullYear()}`;
             }
             if (filterKelas) periodText += ` - Kelas ${filterKelas}`;
+            periodText += ` | Tahun Ajaran: ${tahunAjaran}`;
             
             printWindow.document.write(`
                 <html>
@@ -4140,6 +4580,7 @@
                         .header { text-align: center; margin-bottom: 30px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
                         .school-name { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
                         .period { font-size: 14px; color: #6b7280; margin: 10px 0; }
+                        .tahun-ajaran { font-size: 14px; color: #4f46e5; font-weight: bold; margin: 5px 0; }
                         table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin: 20px 0; }
                         th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; font-size: 14px; border-radius: 10px 10px 0 0; }
                         td { padding: 12px; background: white; border-bottom: 1px solid #e5e7eb; }
@@ -4154,6 +4595,7 @@
                         ${logoSrc ? `<img src="${logoSrc}" style="width:80px; height:80px; border-radius:50%; margin-bottom:10px;">` : ''}
                         <div class="school-name">MAS IBNU HUSAIN</div>
                         <div style="color: #4b5563;">JL. Irawati 1 No. 15-17, Surabaya</div>
+                        <div class="tahun-ajaran">Tahun Ajaran: ${tahunAjaran}</div>
                         <div class="period">Periode: ${periodText}</div>
                         <div class="location-info">Lokasi Sekolah: -7.230636, 112.749601 (Radius 100m)</div>
                     </div>
@@ -4207,7 +4649,7 @@
                     </div>
                     
                     <div class="footer">
-                        Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN
+                        Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN - Tahun Ajaran ${tahunAjaran}
                     </div>
                 </body>
                 </html>
@@ -4284,6 +4726,7 @@
                         body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 30px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
                         .header { text-align: center; margin-bottom: 30px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
                         .school-name { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                        .tahun-ajaran { font-size: 14px; color: #4f46e5; font-weight: bold; margin: 5px 0; }
                         .period { font-size: 14px; color: #6b7280; margin: 10px 0; }
                         .date-section { margin-top: 30px; }
                         .date-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; font-weight: bold; border-radius: 10px 10px 0 0; }
@@ -4307,6 +4750,7 @@
                         ${logoSrc ? `<img src="${logoSrc}" style="width:80px; height:80px; border-radius:50%; margin-bottom:10px;">` : ''}
                         <div class="school-name">MAS IBNU HUSAIN</div>
                         <div style="color: #4b5563;">JL. Irawati 1 No. 15-17, Surabaya</div>
+                        <div class="tahun-ajaran">Tahun Ajaran: ${tahunAjaran}</div>
                         <div class="period">Periode: ${periodText}</div>
                         <div>Lokasi Sekolah: -7.230636, 112.749601 (Radius 100m)</div>
                     </div>
@@ -4425,7 +4869,7 @@
                 </div>
                 
                 <div class="footer">
-                    Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN
+                    Dicetak dari Sistem Absensi Digital MAS IBNU HUSAIN - Tahun Ajaran ${tahunAjaran}
                 </div>
                 </body>
                 </html>
@@ -4446,7 +4890,7 @@
             
             showLoading('Menghapus semua data...');
             attendanceRecords = [];
-            await clearSheetData(SHEETS.ABSENSI);
+            await deleteAllFromSheet(SHEETS.ABSENSI);
             renderRekapTable();
             renderLokasiTable();
             renderStudentTable();
@@ -4495,6 +4939,9 @@
             document.getElementById('openingStatus').textContent = 'Memuat konfigurasi...';
             await loadConfig();
             
+            document.getElementById('openingStatus').textContent = 'Memuat data tahun ajaran...';
+            await fetchDaftarTahunAjaran();
+            
             document.getElementById('openingStatus').textContent = 'Memuat data siswa...';
             await loadStudents();
             
@@ -4509,6 +4956,11 @@
             
             document.getElementById('openingStatus').textContent = 'Memuat catatan siswa...';
             await loadStudentNotes();
+            
+            // Set tahun ajaran display
+            document.getElementById('tahunAjaranDisplay').textContent = tahunAjaran;
+            document.getElementById('tahunAjaranDisplayData').textContent = tahunAjaran;
+            document.getElementById('tahunAjaranInput').value = tahunAjaran;
             
             setToday();
             renderStudentTable();
@@ -4561,6 +5013,7 @@
         window.downloadQR = downloadQR;
         window.printAllQR = printAllQR;
         window.printSingleQRKTP = printSingleQRKTP;
+        window.setCurrentStudentAndPrint = setCurrentStudentAndPrint;
         window.printAllQRKTP = printAllQRKTP;
         window.updateAttendanceStatus = updateAttendanceStatus;
         window.updateAttendanceKeterangan = updateAttendanceKeterangan;
@@ -4570,6 +5023,7 @@
         window.closeDeleteStatusModal = closeDeleteStatusModal;
         window.confirmDeleteStatus = confirmDeleteStatus;
         window.updateStudentField = updateStudentField;
+        window.updateTahunAjaranField = updateTahunAjaranField;
         window.applyDateRangeFilter = applyDateRangeFilter;
         window.resetDateRangeFilter = resetDateRangeFilter;
         window.applyBulanFilter = applyBulanFilter;
@@ -4592,6 +5046,8 @@
         window.openCatatanModal = openCatatanModal;
         window.closeCatatanModal = closeCatatanModal;
         window.saveCatatan = saveCatatan;
+        window.handleExcelImport = handleExcelImport;
+        window.ubahTahunAjaran = ubahTahunAjaran;
     </script>
 </body>
 </html>
