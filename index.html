@@ -477,61 +477,106 @@
         }
 
         /* Google Drive Preview */
-        .drive-preview {
+        .drive-preview-container {
+            position: relative;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .drive-preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
 
         .drive-preview-error {
             background: #f3f4f6;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             color: #9ca3af;
-            font-size: 24px;
+            padding: 20px;
+            text-align: center;
         }
 
-        /* Image Container */
-        .student-image-container {
+        .student-image {
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            overflow: hidden;
+            object-fit: cover;
             border: 2px solid #4f46e5;
+            background: #f3f4f6;
+        }
+
+        .student-image-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
             background: #f3f4f6;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .student-image-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .student-image-container i {
-            font-size: 24px;
             color: #9ca3af;
+            font-size: 20px;
+            border: 2px dashed #cbd5e1;
         }
 
-        /* Link Preview */
-        .link-preview {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f9fafb;
+        .modal-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 16px;
+            object-fit: cover;
+            border: 3px solid #4f46e5;
+            background: #f8fafc;
+        }
+
+        .modal-preview-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 16px;
+            background: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .drive-guide {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .drive-guide ol {
+            margin-left: 20px;
+            color: #334155;
+        }
+
+        .drive-guide li {
+            margin-bottom: 6px;
+        }
+
+        .link-example {
+            background: #ffffff;
+            padding: 6px 10px;
             border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            font-size: 12px;
-        }
-
-        .link-preview.valid {
-            border-left: 4px solid #10b981;
-        }
-
-        .link-preview.invalid {
-            border-left: 4px solid #ef4444;
+            font-family: monospace;
+            font-size: 11px;
+            border: 1px solid #e2e8f0;
+            word-break: break-all;
         }
     </style>
 </head>
@@ -1158,45 +1203,66 @@
             <form id="studentForm" onsubmit="handleStudentSubmit(event)">
                 <input type="hidden" id="studentId">
                 
-                <!-- Google Drive Link untuk Foto dengan Preview Real-time -->
+                <!-- Google Drive Link untuk Foto -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium mb-2 text-gray-700">Foto Siswa (Google Drive Link)</label>
-                    <div class="flex items-center gap-6">
-                        <div id="photoPreview" class="w-32 h-32 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-indigo-200 relative">
-                            <img id="previewImg" src="" alt="Preview" class="w-full h-full object-cover hidden">
-                            <div id="previewIcon" class="flex flex-col items-center justify-center text-gray-400">
-                                <i class="fas fa-user text-4xl"></i>
-                                <span class="text-xs mt-1">No Image</span>
-                            </div>
-                            <div id="previewLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
-                                <i class="fas fa-spinner fa-spin text-indigo-600 text-2xl"></i>
+                    <div class="flex gap-6">
+                        <!-- Preview Container -->
+                        <div class="flex-shrink-0">
+                            <div id="photoPreview" class="modal-preview-placeholder w-32 h-32 rounded-2xl bg-gray-100 flex flex-col items-center justify-center overflow-hidden border-2 border-indigo-200 relative">
+                                <img id="previewImg" src="" alt="Preview" class="modal-preview hidden">
+                                <div id="previewIcon" class="flex flex-col items-center justify-center text-gray-400">
+                                    <i class="fas fa-user text-4xl"></i>
+                                    <span class="text-xs mt-1">No Image</span>
+                                </div>
+                                <div id="previewLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                    <i class="fas fa-spinner fa-spin text-indigo-600 text-2xl"></i>
+                                </div>
                             </div>
                         </div>
+                        
+                        <!-- Input Container -->
                         <div class="flex-1">
-                            <input type="url" id="studentPhoto" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="https://drive.google.com/your-image-link" oninput="previewGoogleDriveLink(this)" onblur="validateGoogleDriveLinkOnBlur(this)">
-                            <p class="text-xs text-gray-500 mt-2 flex items-start gap-1">
-                                <i class="fas fa-info-circle text-indigo-500 mt-0.5"></i>
-                                <span>Masukkan link Google Drive yang bisa diakses publik. 
-                                <button type="button" onclick="showDriveGuide()" class="text-indigo-600 hover:underline font-medium">Cara mendapatkan link</button></span>
-                            </p>
-                            <div id="driveGuide" class="hidden mt-3 p-4 bg-indigo-50 rounded-xl text-xs border border-indigo-200">
-                                <p class="font-semibold text-indigo-800 mb-2">📸 Cara mendapatkan link Google Drive:</p>
-                                <ol class="list-decimal list-inside space-y-2 text-gray-700">
-                                    <li>Upload foto ke <span class="font-medium">Google Drive</span></li>
-                                    <li>Klik kanan file → <span class="font-medium">Bagikan</span></li>
-                                    <li>Ubah akses menjadi <span class="font-medium bg-green-100 px-1 py-0.5 rounded">"Siapa saja dengan link"</span></li>
-                                    <li>Klik <span class="font-medium">"Salin link"</span></li>
-                                    <li>Paste link di atas (contoh: <span class="text-indigo-600 text-[10px]">https://drive.google.com/file/d/ABC123/view</span>)</li>
-                                    <li>Foto akan tampil otomatis jika link valid</li>
-                                </ol>
-                                <button type="button" onclick="closeDriveGuide()" class="mt-3 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm hover:bg-indigo-700 transition">
-                                    Tutup Panduan
+                            <input type="url" id="studentPhoto" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="https://drive.google.com/file/d/..." oninput="previewGoogleDriveLink(this)">
+                            
+                            <div class="mt-3 flex items-center gap-2">
+                                <button type="button" onclick="testGoogleDriveLink()" class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition">
+                                    <i class="fas fa-sync-alt mr-1"></i>Test Link
+                                </button>
+                                <button type="button" onclick="showDriveGuide()" class="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition">
+                                    <i class="fas fa-question-circle mr-1"></i>Cara Mendapatkan Link
                                 </button>
                             </div>
-                            <div id="drivePreviewStatus" class="hidden mt-3 p-3 rounded-lg text-sm border">
+                            
+                            <!-- Status Preview -->
+                            <div id="drivePreviewStatus" class="hidden mt-3 p-3 rounded-xl text-sm border">
                                 <!-- Status akan diisi JavaScript -->
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Panduan Google Drive -->
+                    <div id="driveGuide" class="drive-guide hidden mt-4">
+                        <div class="flex items-center gap-2 mb-3 text-indigo-700 font-semibold">
+                            <i class="fas fa-google-drive"></i>
+                            <span>Panduan Mendapatkan Link Google Drive</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                            <li>Upload foto ke <span class="font-medium">Google Drive</span> (drive.google.com)</li>
+                            <li>Klik kanan pada file → pilih <span class="font-medium bg-green-100 px-1 py-0.5 rounded">Bagikan</span></li>
+                            <li>Klik <span class="font-medium">"Ubah ke siapa saja dengan link"</span></li>
+                            <li>Pastikan akses menjadi <span class="font-medium text-green-600">"Siapa saja dengan link"</span></li>
+                            <li>Klik <span class="font-medium">"Salin link"</span></li>
+                            <li>Tempel link di atas</li>
+                        </ol>
+                        <div class="mt-3 p-2 bg-white rounded-lg border border-indigo-200">
+                            <p class="text-xs font-medium text-gray-600 mb-1">Contoh link yang valid:</p>
+                            <div class="link-example text-indigo-600">https://drive.google.com/file/d/1ABC123xyz/view</div>
+                            <div class="link-example text-indigo-600 mt-1">https://drive.google.com/open?id=1ABC123xyz</div>
+                        </div>
+                        <button type="button" onclick="closeDriveGuide()" class="mt-3 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm hover:bg-indigo-700 transition">
+                            Tutup Panduan
+                        </button>
                     </div>
                 </div>
 
@@ -1436,7 +1502,7 @@
         // ==================== FUNGSI GOOGLE DRIVE YANG DIPERBAIKI ====================
         
         /**
-         * Mengekstrak File ID dari berbagai format link Google Drive
+         * Mengekstrak File ID dari link Google Drive
          */
         function extractGoogleDriveFileId(url) {
             if (!url) return null;
@@ -1462,66 +1528,67 @@
         }
 
         /**
-         * Konversi link Google Drive ke format yang bisa ditampilkan (dengan multiple fallback)
+         * Mendapatkan URL thumbnail Google Drive (lebih stabil)
+         */
+        function getGoogleDriveThumbnail(fileId) {
+            return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h400`;
+        }
+
+        /**
+         * Mendapatkan URL untuk embed (alternatif)
+         */
+        function getGoogleDriveEmbed(fileId) {
+            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        }
+
+        /**
+         * Konversi link Google Drive ke format yang bisa ditampilkan
+         * Menggunakan thumbnail untuk menghindari CORS
          */
         function convertGoogleDriveLink(link) {
             if (!link) return '';
             
             const fileId = extractGoogleDriveFileId(link);
-            if (!fileId) return link; // Kembalikan link asli jika tidak ditemukan ID
+            if (!fileId) return link;
             
-            // Gunakan beberapa metode untuk kompatibilitas maksimal
-            // Metode 1: Thumbnail (paling cepat, resolusi kecil)
-            // Metode 2: UC Direct (resolusi sedang, bisa kena limit)
-            // Metode 3: Gambar dengan proxy (untuk mengatasi CORS)
-            
-            // Pilih metode berdasarkan preferensi
-            // return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h400`; // Thumbnail
-            return `https://drive.google.com/uc?export=view&id=${fileId}`; // Direct view
+            // Gunakan thumbnail untuk menghindari CORS
+            return getGoogleDriveThumbnail(fileId);
         }
 
         /**
-         * Validasi apakah link adalah Google Drive link
+         * Test apakah link Google Drive valid
          */
-        function isGoogleDriveLink(link) {
-            if (!link) return false;
-            return link.includes('drive.google.com') || link.includes('docs.google.com');
-        }
-
-        /**
-         * Test apakah gambar bisa dimuat (dengan timeout)
-         */
-        function testImageLoad(src, timeout = 5000) {
+        function testGoogleDriveLink(link) {
             return new Promise((resolve) => {
-                const img = new Image();
-                let timedOut = false;
-                
-                const timer = setTimeout(() => {
-                    timedOut = true;
-                    img.src = ''; // Batalkan loading
+                const fileId = extractGoogleDriveFileId(link);
+                if (!fileId) {
                     resolve(false);
-                }, timeout);
+                    return;
+                }
+                
+                // Coba dengan thumbnail
+                const img = new Image();
+                let timeout = setTimeout(() => {
+                    img.src = '';
+                    resolve(false);
+                }, 5000);
                 
                 img.onload = () => {
-                    if (!timedOut) {
-                        clearTimeout(timer);
-                        resolve(true);
-                    }
+                    clearTimeout(timeout);
+                    resolve(true);
                 };
                 
                 img.onerror = () => {
-                    if (!timedOut) {
-                        clearTimeout(timer);
-                        resolve(false);
-                    }
+                    clearTimeout(timeout);
+                    resolve(false);
                 };
                 
-                img.src = src;
+                img.src = getGoogleDriveThumbnail(fileId);
             });
         }
 
         /**
-         * Preview link Google Drive dengan multiple fallback
+         * Preview link Google Drive
          */
         async function previewGoogleDriveLink(input) {
             const link = input.value.trim();
@@ -1530,105 +1597,111 @@
             const previewLoading = document.getElementById('previewLoading');
             const statusEl = document.getElementById('drivePreviewStatus');
             
-            // Sembunyikan preview sebelumnya
+            // Reset preview
             previewImg.classList.add('hidden');
             previewIcon.classList.remove('hidden');
+            statusEl.classList.add('hidden');
             
-            if (!link) {
-                statusEl.classList.add('hidden');
-                return;
-            }
+            if (!link) return;
             
             // Tampilkan loading
             previewLoading.classList.remove('hidden');
             
             try {
-                if (!isGoogleDriveLink(link)) {
-                    statusEl.className = 'mt-3 p-3 rounded-lg text-sm border border-yellow-200 bg-yellow-50';
-                    statusEl.innerHTML = '<i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i> Ini bukan link Google Drive. Pastikan link dari drive.google.com';
-                    statusEl.classList.remove('hidden');
-                    previewLoading.classList.add('hidden');
-                    return;
-                }
-                
                 const fileId = extractGoogleDriveFileId(link);
+                
                 if (!fileId) {
-                    statusEl.className = 'mt-3 p-3 rounded-lg text-sm border border-red-200 bg-red-50';
-                    statusEl.innerHTML = '<i class="fas fa-times-circle text-red-600 mr-2"></i> Format link tidak valid. Tidak dapat menemukan ID file.';
+                    statusEl.className = 'mt-3 p-3 rounded-xl text-sm border border-red-200 bg-red-50';
+                    statusEl.innerHTML = '<div class="flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-600"></i><span class="text-red-800">Format link tidak valid. Pastikan link dari Google Drive.</span></div>';
                     statusEl.classList.remove('hidden');
                     previewLoading.classList.add('hidden');
                     return;
                 }
                 
-                // Coba dengan metode thumbnail dulu (lebih cepat)
-                const thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h400`;
-                const directUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                // Coba dengan thumbnail
+                const thumbnailUrl = getGoogleDriveThumbnail(fileId);
+                const isValid = await testGoogleDriveLink(link);
                 
-                // Test thumbnail
-                const thumbnailWorks = await testImageLoad(thumbnailUrl);
-                
-                if (thumbnailWorks) {
+                if (isValid) {
                     previewImg.src = thumbnailUrl;
                     previewImg.classList.remove('hidden');
                     previewIcon.classList.add('hidden');
                     
-                    statusEl.className = 'mt-3 p-3 rounded-lg text-sm border border-green-200 bg-green-50';
+                    statusEl.className = 'mt-3 p-3 rounded-xl text-sm border border-green-200 bg-green-50';
                     statusEl.innerHTML = `
-                        <div class="flex items-start gap-2">
-                            <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-green-600"></i>
                             <div>
-                                <p class="font-medium text-green-800">✅ Link valid! Gambar dapat ditampilkan.</p>
-                                <p class="text-xs text-gray-600 mt-1">File ID: ${fileId}</p>
-                                <p class="text-xs text-gray-500 mt-1">Pastikan akses file: <span class="font-medium">"Siapa saja dengan link"</span></p>
+                                <span class="text-green-800 font-medium">Link valid!</span>
+                                <span class="text-xs text-gray-600 block mt-1">File ID: ${fileId}</span>
                             </div>
                         </div>
                     `;
                 } else {
-                    // Fallback ke direct URL
-                    previewImg.src = directUrl;
-                    previewImg.classList.remove('hidden');
-                    previewIcon.classList.add('hidden');
-                    
-                    statusEl.className = 'mt-3 p-3 rounded-lg text-sm border border-yellow-200 bg-yellow-50';
+                    statusEl.className = 'mt-3 p-3 rounded-xl text-sm border border-yellow-200 bg-yellow-50';
                     statusEl.innerHTML = `
-                        <div class="flex items-start gap-2">
-                            <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
                             <div>
-                                <p class="font-medium text-yellow-800">⚠️ Gambar mungkin tidak tampil di semua browser.</p>
-                                <p class="text-xs text-gray-600 mt-1">Pastikan:</p>
-                                <ul class="text-xs list-disc list-inside text-gray-600 mt-1">
-                                    <li>File sudah di-<span class="font-medium">share public</span> (Siapa saja dengan link)</li>
-                                    <li>Link benar dan file masih ada</li>
-                                    <li>Coba buka link di tab baru untuk verifikasi</li>
-                                </ul>
-                                <p class="text-xs font-mono bg-gray-100 p-1 rounded mt-2 break-all">${directUrl}</p>
+                                <span class="text-yellow-800 font-medium">Gambar tidak dapat diakses</span>
+                                <span class="text-xs text-gray-600 block mt-1">Pastikan file sudah di-share public</span>
                             </div>
                         </div>
                     `;
                 }
                 
-                statusEl.classList.remove('hidden');
-                
             } catch (error) {
                 console.error('Preview error:', error);
-                statusEl.className = 'mt-3 p-3 rounded-lg text-sm border border-red-200 bg-red-50';
-                statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-red-600 mr-2"></i> Error saat memproses link.';
-                statusEl.classList.remove('hidden');
+                statusEl.className = 'mt-3 p-3 rounded-xl text-sm border border-red-200 bg-red-50';
+                statusEl.innerHTML = '<div class="flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-600"></i><span class="text-red-800">Error memproses link</span></div>';
             } finally {
                 previewLoading.classList.add('hidden');
+                statusEl.classList.remove('hidden');
             }
         }
 
         /**
-         * Validasi saat input kehilangan fokus
+         * Test link Google Drive (dipanggil dari tombol)
          */
-        function validateGoogleDriveLinkOnBlur(input) {
+        async function testGoogleDriveLink() {
+            const input = document.getElementById('studentPhoto');
             const link = input.value.trim();
-            if (!link) return;
             
-            if (!isGoogleDriveLink(link)) {
-                showToast('Pastikan menggunakan link Google Drive yang valid', 'warning');
+            if (!link) {
+                showToast('Masukkan link Google Drive terlebih dahulu', 'warning');
+                return;
             }
+            
+            showLoading('Mengecek link...');
+            const isValid = await testGoogleDriveLink(link);
+            hideLoading();
+            
+            if (isValid) {
+                showToast('✅ Link valid! Gambar dapat diakses', 'success');
+                await previewGoogleDriveLink(input);
+            } else {
+                showToast('❌ Link tidak valid atau file tidak dapat diakses', 'error');
+            }
+        }
+
+        // ==================== FUNGSI RENDER FOTO ====================
+        
+        /**
+         * Render foto siswa dengan fallback
+         */
+        function renderStudentPhoto(photoUrl, size = 'w-12 h-12') {
+            if (!photoUrl) {
+                return `<div class="${size} rounded-full bg-gray-200 flex items-center justify-center border-2 border-indigo-200">
+                    <i class="fas fa-user text-gray-400"></i>
+                </div>`;
+            }
+            
+            const imageUrl = convertGoogleDriveLink(photoUrl);
+            
+            return `<img src="${imageUrl}" 
+                class="${size} rounded-full object-cover border-2 border-indigo-200" 
+                onerror="this.onerror=null; this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML='<div class=\'${size} rounded-full bg-gray-200 flex items-center justify-center border-2 border-indigo-200\'><i class=\'fas fa-user text-gray-400\'></i></div>';"
+                alt="Foto siswa">`;
         }
 
         // ==================== FUNGSI OPENING ====================
@@ -1891,7 +1964,7 @@
                             nama: nama.toString(),
                             kelas: kelas.toString(),
                             jurusan: jurusan.toString(),
-                            photo: photo ? convertGoogleDriveLink(photo.toString()) : '',
+                            photo: photo || '',
                             created_at: Date.now()
                         };
 
@@ -2272,13 +2345,13 @@
                 
                 // Tampilkan status
                 const statusEl = document.getElementById('drivePreviewStatus');
-                statusEl.className = 'mt-3 p-3 rounded-lg text-sm border border-blue-200 bg-blue-50';
+                statusEl.className = 'mt-3 p-3 rounded-xl text-sm border border-blue-200 bg-blue-50';
                 statusEl.innerHTML = `
-                    <div class="flex items-start gap-2">
-                        <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-info-circle text-blue-600"></i>
                         <div>
-                            <p class="font-medium text-blue-800">Link Google Drive tersimpan</p>
-                            <p class="text-xs text-gray-600 mt-1">File ID: ${extractGoogleDriveFileId(student.photo) || '-'}</p>
+                            <span class="text-blue-800 font-medium">Link Google Drive tersimpan</span>
+                            <span class="text-xs text-gray-600 block mt-1">File ID: ${extractGoogleDriveFileId(student.photo) || '-'}</span>
                         </div>
                     </div>
                 `;
@@ -2654,10 +2727,7 @@
                 if (p.poin >= 20) badgeClass = 'pelanggaran-berat';
                 else if (p.poin >= 10) badgeClass = 'pelanggaran-sedang';
                 
-                // Handle foto dengan fallback
-                const photoHtml = p.student_photo ? 
-                    `<img src="${convertGoogleDriveLink(p.student_photo)}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200" onerror="this.onerror=null; this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML='<div class=\'w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center\'><i class=\'fas fa-user text-gray-400 text-xs\'></i></div>';">` : 
-                    `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400 text-xs"></i></div>`;
+                const photoHtml = renderStudentPhoto(p.student_photo, 'w-8 h-8');
                 
                 return `
                     <tr>
@@ -2926,10 +2996,7 @@
                     getLocationStatus(attendance.location.lat, attendance.location.lng) : 
                     { text: 'Belum absen', class: '' };
                 
-                // Handle foto dengan fallback
-                const photoHtml = student.photo ? 
-                    `<img src="${convertGoogleDriveLink(student.photo)}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-200" onerror="this.onerror=null; this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML='<div class=\'w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center\'><i class=\'fas fa-user text-gray-400\'></i></div>';">` : 
-                    `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400"></i></div>`;
+                const photoHtml = renderStudentPhoto(student.photo);
                 
                 return `
                     <tr>
@@ -2978,10 +3045,7 @@
             }
             
             tbody.innerHTML = students.map((student, index) => {
-                // Handle foto dengan fallback
-                const photoHtml = student.photo ? 
-                    `<img src="${convertGoogleDriveLink(student.photo)}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-200" onerror="this.onerror=null; this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML='<div class=\'w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center\'><i class=\'fas fa-user text-gray-400\'></i></div>';">` : 
-                    `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-user text-gray-400"></i></div>`;
+                const photoHtml = renderStudentPhoto(student.photo);
                 
                 return `
                     <tr>
@@ -3066,9 +3130,7 @@
                     getLocationStatus(record.location.lat, record.location.lng) : 
                     { text: '-', class: '' };
                 
-                // Handle foto dengan fallback
-                const photoHtml = record.student_photo ? 
-                    `<img src="${convertGoogleDriveLink(record.student_photo)}" class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200" onerror="this.onerror=null; this.src=''; this.classList.add('hidden');">` : '';
+                const photoHtml = renderStudentPhoto(record.student_photo, 'w-8 h-8');
                 
                 return `
                     <tr>
@@ -3189,9 +3251,6 @@
             
             showLoading('Menyimpan data siswa...');
             
-            // Konversi link Google Drive jika ada
-            const convertedPhoto = photoLink ? convertGoogleDriveLink(photoLink) : '';
-            
             if (studentId) {
                 const index = students.findIndex(s => s.id === studentId);
                 if (index !== -1) {
@@ -3201,7 +3260,7 @@
                         nama,
                         kelas,
                         jurusan,
-                        photo: convertedPhoto || students[index].photo
+                        photo: photoLink || students[index].photo
                     };
                 }
             } else {
@@ -3211,7 +3270,7 @@
                     nama,
                     kelas,
                     jurusan,
-                    photo: convertedPhoto,
+                    photo: photoLink,
                     created_at: Date.now()
                 };
                 students.push(newStudent);
@@ -3226,7 +3285,7 @@
                         r.student_nama = nama;
                         r.student_kelas = kelas;
                         r.student_jurusan = jurusan;
-                        if (convertedPhoto) r.student_photo = convertedPhoto;
+                        if (photoLink) r.student_photo = photoLink;
                     }
                 });
                 
@@ -3235,7 +3294,7 @@
                         p.student_nis = nis;
                         p.student_nama = nama;
                         p.student_kelas = kelas;
-                        if (convertedPhoto) p.student_photo = convertedPhoto;
+                        if (photoLink) p.student_photo = photoLink;
                     }
                 });
                 
@@ -4119,7 +4178,7 @@
         window.openEditSiswaModal = openEditSiswaModal;
         window.closeStudentModal = closeStudentModal;
         window.previewGoogleDriveLink = previewGoogleDriveLink;
-        window.validateGoogleDriveLinkOnBlur = validateGoogleDriveLinkOnBlur;
+        window.testGoogleDriveLink = testGoogleDriveLink;
         window.showDriveGuide = showDriveGuide;
         window.closeDriveGuide = closeDriveGuide;
         window.handleStudentSubmit = handleStudentSubmit;
@@ -4163,7 +4222,7 @@
         window.handleExcelImport = handleExcelImport;
         window.convertGoogleDriveLink = convertGoogleDriveLink;
         window.extractGoogleDriveFileId = extractGoogleDriveFileId;
-        window.isGoogleDriveLink = isGoogleDriveLink;
+        window.renderStudentPhoto = renderStudentPhoto;
     </script>
 </body>
 </html>
