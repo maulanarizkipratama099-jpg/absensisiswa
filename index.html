@@ -12,7 +12,6 @@
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
-        /* [CSS sama seperti sebelumnya, tidak diubah] */
         * {
             margin: 0;
             padding: 0;
@@ -1183,7 +1182,7 @@
                 <textarea id="studentNoteInput" rows="6" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="Tulis catatan untuk siswa ini..."></textarea>
                 
                 <div class="mt-4 text-sm text-gray-500">
-                    <i class="fas fa-info-circle mr-1"></i> Catatan akan tersimpan di server dan terlihat di portal wali murid
+                    <i class="fas fa-info-circle mr-1"></i> Catatan akan tersimpan di spreadsheet dan terlihat di portal wali murid
                 </div>
             </div>
             
@@ -1192,7 +1191,7 @@
                     Simpan Catatan
                 </button>
                 <button onclick="closeCatatanModal()" class="flex-1 py-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl font-semibold hover:shadow-xl transition-all">
-                    Batal
+                    Tutup
                 </button>
             </div>
         </div>
@@ -1323,19 +1322,51 @@
     <div id="toastContainer"></div>
 
     <script>
-        // ==================== KONFIGURASI JSONBIN ====================
-        const JSONBIN_CONFIG = {
-            API_KEY: "$2a$10$uIB7UH1hUV6kFv7v4l21puJBjd.1.r9SYqT8XT94RkJyHCyzGQQFm",
-            BINS: {
-                STUDENTS: "699ffd15ae596e708f4b42a4",
-                ATTENDANCE: "69a57b3243b1c97be9abe8ac",
-                CONFIG: "69a748b1d0ea881f40ebb17c",
-                PELANGGARAN: "69a3f6e5d0ea881f40e42434",
-                LOCATIONS: "69a51fe7ae596e708f56d415",
-                NOTES: "69a93af943b1c97be9b57b48"
+        // ==================== KONFIGURASI GOOGLE SHEETS ====================
+        const SHEETS_CONFIG = {
+            API_KEY: "AIzaSyBX70opf2IbxQ-5XD1qAj0FkXxKmJlH4Rk", // Google Sheets API Key
+            MAPS_API_KEY: "AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18",
+            SPREADSHEETS: {
+                STUDENTS: {
+                    ID: "18GxzjmanmXTGbGWA0p1sjcIo2OV_r4ugtpWQPAoFDco",
+                    SHEET_NAME: "Siswa",
+                    RANGE: "A:H" // ID, NIS, Nama, Kelas, Jurusan, Photo, CreatedAt, UpdatedAt
+                },
+                ATTENDANCE: {
+                    ID: "1P-ICTpdkug9a3NxTWy5MMzrXwZH6R4MHz-HePDBL9a8",
+                    SHEET_NAME: "Absensi",
+                    RANGE: "A:L" // ID, StudentID, StudentNIS, StudentNama, StudentKelas, StudentJurusan, StudentPhoto, Status, Metode, Tanggal, Timestamp, Keterangan, LocationLat, LocationLng, LocationAccuracy
+                },
+                PELANGGARAN: {
+                    ID: "1ikOUPo3qd6sFfa6uo5HIEgYarvIlDhVEDujZTEI_EGw",
+                    SHEET_NAME: "Pelanggaran",
+                    RANGE: "A:M" // ID, StudentID, StudentNIS, StudentNama, StudentKelas, StudentPhoto, Tanggal, KategoriID, KategoriNama, Poin, Jenis, Keterangan, CreatedAt
+                },
+                NOTES: {
+                    ID: "1JyONW8FgZ31Qv9YWTpguVbkG7zCfgNAcfXuoBcKqCmM",
+                    SHEET_NAME: "Catatan",
+                    RANGE: "A:H" // ID, StudentID, StudentNIS, StudentNama, Note, CreatedAt, UpdatedAt
+                },
+                LOCATIONS: {
+                    ID: "1iC9oQccoAsgW7JZeqXp5OdYC7erXHmTRSNj7Y4SpUv4",
+                    SHEET_NAME: "Lokasi",
+                    RANGE: "A:K" // ID, AttendanceID, StudentID, StudentNIS, StudentNama, Lat, Lng, Accuracy, WithinRadius, Distance, Timestamp
+                },
+                CONFIG: {
+                    ID: "1H6UgjDQTFO2x79X2so5i7raaad7ElNcX28OfDrw0EIE",
+                    SHEET_NAME: "Config",
+                    RANGE: "A:B" // Key, Value
+                }
             },
-            BASE_URL: "https://api.jsonbin.io/v3/b"
+            BASE_URL: "https://sheets.googleapis.com/v4/spreadsheets"
         };
+
+        // Kategori Pelanggaran Default
+        const KATEGORI_PELANGGARAN = [
+            { id: "ringan", nama: "Ringan", poin: 5, deskripsi: "Pelanggaran ringan seperti terlambat" },
+            { id: "sedang", nama: "Sedang", poin: 10, deskripsi: "Pelanggaran sedang seperti membolos" },
+            { id: "berat", nama: "Berat", poin: 25, deskripsi: "Pelanggaran berat seperti tawuran" }
+        ];
 
         // ==================== KONSTANTA LOKASI ====================
         const SCHOOL_LOCATION = {
@@ -1351,11 +1382,7 @@
         let pelanggaranRecords = [];
         let locationRecords = [];
         let studentNotes = [];
-        let kategoriPelanggaran = [
-            { id: "k1", nama: "Ringan", poin: 5, deskripsi: "Pelanggaran ringan seperti terlambat" },
-            { id: "k2", nama: "Sedang", poin: 10, deskripsi: "Pelanggaran sedang seperti membolos" },
-            { id: "k3", nama: "Berat", poin: 25, deskripsi: "Pelanggaran berat seperti tawuran" }
-        ];
+        let kategoriPelanggaran = KATEGORI_PELANGGARAN;
         let configData = { school_logo: '' };
         let currentPage = 'absensi';
         let currentDate = new Date().toISOString().split('T')[0];
@@ -1367,6 +1394,474 @@
         let isLoading = false;
         let dateRangeFilter = { start: null, end: null };
         let studentCache = new Map();
+
+        // ==================== FUNGSI UTILITY GOOGLE SHEETS ====================
+        async function fetchSheetData(spreadsheetId, sheetName, range) {
+            try {
+                const url = `${SHEETS_CONFIG.BASE_URL}/${spreadsheetId}/values/${sheetName}!${range}?key=${SHEETS_CONFIG.API_KEY}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                return data.values || [];
+            } catch (error) {
+                console.error(`Error fetching sheet ${spreadsheetId}:`, error);
+                throw error;
+            }
+        }
+
+        async function updateSheetData(spreadsheetId, sheetName, range, values) {
+            try {
+                const url = `${SHEETS_CONFIG.BASE_URL}/${spreadsheetId}/values/${sheetName}!${range}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: [values]
+                    })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Error updating sheet ${spreadsheetId}:`, error);
+                throw error;
+            }
+        }
+
+        async function appendSheetData(spreadsheetId, sheetName, values) {
+            try {
+                const url = `${SHEETS_CONFIG.BASE_URL}/${spreadsheetId}/values/${sheetName}!A:Z:append?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: [values]
+                    })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Error appending to sheet ${spreadsheetId}:`, error);
+                throw error;
+            }
+        }
+
+        async function deleteSheetRow(spreadsheetId, sheetName, rowIndex) {
+            try {
+                // Google Sheets API tidak memiliki delete row langsung, kita perlu membaca semua data lalu menulis ulang
+                const data = await fetchSheetData(spreadsheetId, sheetName, "A:Z");
+                if (rowIndex < data.length) {
+                    data.splice(rowIndex, 1);
+                    // Update seluruh sheet dengan data baru
+                    const url = `${SHEETS_CONFIG.BASE_URL}/${spreadsheetId}/values/${sheetName}!A:Z?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                    await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            values: data
+                        })
+                    });
+                }
+            } catch (error) {
+                console.error(`Error deleting row from sheet ${spreadsheetId}:`, error);
+                throw error;
+            }
+        }
+
+        // ==================== FUNGSI LOAD DATA DARI SHEETS ====================
+        async function loadStudents() {
+            try {
+                const rows = await fetchSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.STUDENTS.ID,
+                    SHEETS_CONFIG.SPREADSHEETS.STUDENTS.SHEET_NAME,
+                    SHEETS_CONFIG.SPREADSHEETS.STUDENTS.RANGE
+                );
+                
+                // Skip header row
+                students = rows.slice(1).map(row => ({
+                    id: row[0] || generateId(),
+                    nis: row[1] || '',
+                    nama: row[2] || '',
+                    kelas: row[3] || '',
+                    jurusan: row[4] || '',
+                    photo: row[5] || '',
+                    created_at: row[6] ? parseInt(row[6]) : Date.now(),
+                    updated_at: row[7] ? parseInt(row[7]) : Date.now()
+                })).filter(s => s.nis && s.nama);
+                
+                studentCache.clear();
+                students.forEach(student => {
+                    const nis = String(student.nis).trim();
+                    studentCache.set(nis, student);
+                    studentCache.set(nis.replace(/^0+/, ''), student);
+                });
+                
+                console.log('✅ Loaded students:', students.length);
+                return students;
+            } catch (error) {
+                console.error('❌ Gagal load siswa:', error);
+                showToast('Gagal load siswa', 'error');
+                return [];
+            }
+        }
+
+        async function loadAttendance() {
+            try {
+                const rows = await fetchSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE.ID,
+                    SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE.SHEET_NAME,
+                    SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE.RANGE
+                );
+                
+                // Skip header row
+                attendanceRecords = rows.slice(1).map(row => {
+                    const record = {
+                        id: row[0] || generateId(),
+                        student_id: row[1] || '',
+                        student_nis: row[2] || '',
+                        student_nama: row[3] || '',
+                        student_kelas: row[4] || '',
+                        student_jurusan: row[5] || '',
+                        student_photo: row[6] || '',
+                        status: row[7] || '',
+                        metode: row[8] || '',
+                        tanggal: row[9] || '',
+                        timestamp: row[10] ? parseInt(row[10]) : Date.now(),
+                        keterangan: row[11] || ''
+                    };
+                    
+                    // Parse location if exists
+                    if (row[12] && row[13] && row[14]) {
+                        record.location = {
+                            lat: parseFloat(row[12]),
+                            lng: parseFloat(row[13]),
+                            accuracy: parseFloat(row[14])
+                        };
+                    }
+                    
+                    return record;
+                }).filter(r => r.student_id && r.tanggal);
+                
+                console.log('✅ Loaded attendance:', attendanceRecords.length);
+                updateTodayStats();
+                return attendanceRecords;
+            } catch (error) {
+                console.error('❌ Gagal load absensi:', error);
+                return [];
+            }
+        }
+
+        async function loadPelanggaran() {
+            try {
+                const rows = await fetchSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.PELANGGARAN.ID,
+                    SHEETS_CONFIG.SPREADSHEETS.PELANGGARAN.SHEET_NAME,
+                    SHEETS_CONFIG.SPREADSHEETS.PELANGGARAN.RANGE
+                );
+                
+                // Skip header row
+                pelanggaranRecords = rows.slice(1).map(row => ({
+                    id: row[0] || generateId(),
+                    student_id: row[1] || '',
+                    student_nis: row[2] || '',
+                    student_nama: row[3] || '',
+                    student_kelas: row[4] || '',
+                    student_photo: row[5] || '',
+                    tanggal: row[6] || '',
+                    kategori_id: row[7] || '',
+                    kategori_nama: row[8] || '',
+                    poin: parseInt(row[9]) || 0,
+                    jenis: row[10] || '',
+                    keterangan: row[11] || '',
+                    created_at: row[12] ? parseInt(row[12]) : Date.now()
+                })).filter(p => p.student_id && p.tanggal);
+                
+                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
+                return pelanggaranRecords;
+            } catch (error) {
+                console.error('❌ Gagal load pelanggaran:', error);
+                return [];
+            }
+        }
+
+        async function loadStudentNotes() {
+            try {
+                const rows = await fetchSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.NOTES.ID,
+                    SHEETS_CONFIG.SPREADSHEETS.NOTES.SHEET_NAME,
+                    SHEETS_CONFIG.SPREADSHEETS.NOTES.RANGE
+                );
+                
+                // Skip header row
+                studentNotes = rows.slice(1).map(row => ({
+                    id: row[0] || generateId(),
+                    student_id: row[1] || '',
+                    student_nis: row[2] || '',
+                    student_nama: row[3] || '',
+                    note: row[4] || '',
+                    created_at: row[5] ? parseInt(row[5]) : Date.now(),
+                    updated_at: row[6] ? parseInt(row[6]) : Date.now()
+                })).filter(n => n.student_id && n.note);
+                
+                console.log('✅ Loaded notes:', studentNotes.length);
+            } catch (error) {
+                console.error('Gagal load catatan:', error);
+                studentNotes = [];
+            }
+        }
+
+        async function loadLocationRecords() {
+            try {
+                const rows = await fetchSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.LOCATIONS.ID,
+                    SHEETS_CONFIG.SPREADSHEETS.LOCATIONS.SHEET_NAME,
+                    SHEETS_CONFIG.SPREADSHEETS.LOCATIONS.RANGE
+                );
+                
+                // Skip header row
+                locationRecords = rows.slice(1).map(row => ({
+                    id: row[0] || generateId(),
+                    attendance_id: row[1] || '',
+                    student_id: row[2] || '',
+                    student_nis: row[3] || '',
+                    student_nama: row[4] || '',
+                    lat: parseFloat(row[5]) || 0,
+                    lng: parseFloat(row[6]) || 0,
+                    accuracy: parseFloat(row[7]) || 0,
+                    within_radius: row[8] === 'true',
+                    distance: parseFloat(row[9]) || 0,
+                    timestamp: row[10] ? parseInt(row[10]) : Date.now()
+                })).filter(l => l.student_id);
+                
+                console.log('✅ Loaded location records:', locationRecords.length);
+                return locationRecords;
+            } catch (error) {
+                console.error('❌ Gagal load lokasi:', error);
+                return [];
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const rows = await fetchSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.CONFIG.ID,
+                    SHEETS_CONFIG.SPREADSHEETS.CONFIG.SHEET_NAME,
+                    SHEETS_CONFIG.SPREADSHEETS.CONFIG.RANGE
+                );
+                
+                // Skip header row
+                configData = {};
+                rows.slice(1).forEach(row => {
+                    if (row[0] && row[1]) {
+                        configData[row[0]] = row[1];
+                    }
+                });
+                
+                if (configData.school_logo) {
+                    document.getElementById('logoImage').src = configData.school_logo;
+                    document.getElementById('logoImage').classList.remove('hidden');
+                    document.getElementById('logoDefault').classList.add('hidden');
+                    
+                    document.getElementById('openingLogoImage').src = configData.school_logo;
+                    document.getElementById('openingLogoImage').classList.remove('hidden');
+                    document.getElementById('openingLogoIcon').classList.add('hidden');
+                }
+                
+                console.log('✅ Loaded config');
+            } catch (error) {
+                console.error('Gagal load konfigurasi:', error);
+            }
+        }
+
+        // ==================== FUNGSI SAVE DATA KE SHEETS ====================
+        async function saveStudents() {
+            try {
+                const rows = [['ID', 'NIS', 'Nama', 'Kelas', 'Jurusan', 'Photo', 'CreatedAt', 'UpdatedAt']];
+                
+                students.forEach(student => {
+                    rows.push([
+                        student.id,
+                        student.nis,
+                        student.nama,
+                        student.kelas,
+                        student.jurusan,
+                        student.photo || '',
+                        student.created_at ? student.created_at.toString() : Date.now().toString(),
+                        Date.now().toString()
+                    ]);
+                });
+                
+                const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.STUDENTS.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.STUDENTS.SHEET_NAME}!A:H?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: rows
+                    })
+                });
+                
+                console.log('✅ Students saved to sheets');
+            } catch (error) {
+                console.error('❌ Gagal simpan siswa:', error);
+                showToast('Gagal simpan siswa', 'error');
+            }
+        }
+
+        async function saveAttendance() {
+            try {
+                const rows = [['ID', 'StudentID', 'StudentNIS', 'StudentNama', 'StudentKelas', 'StudentJurusan', 'StudentPhoto', 'Status', 'Metode', 'Tanggal', 'Timestamp', 'Keterangan', 'LocationLat', 'LocationLng', 'LocationAccuracy']];
+                
+                attendanceRecords.forEach(record => {
+                    const row = [
+                        record.id,
+                        record.student_id,
+                        record.student_nis,
+                        record.student_nama,
+                        record.student_kelas,
+                        record.student_jurusan,
+                        record.student_photo || '',
+                        record.status || '',
+                        record.metode || '',
+                        record.tanggal,
+                        record.timestamp ? record.timestamp.toString() : Date.now().toString(),
+                        record.keterangan || ''
+                    ];
+                    
+                    // Add location data if exists
+                    if (record.location) {
+                        row.push(record.location.lat.toString());
+                        row.push(record.location.lng.toString());
+                        row.push(record.location.accuracy.toString());
+                    } else {
+                        row.push('', '', '');
+                    }
+                    
+                    rows.push(row);
+                });
+                
+                const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE.SHEET_NAME}!A:O?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: rows
+                    })
+                });
+                
+                console.log('✅ Attendance saved to sheets');
+            } catch (error) {
+                console.error('❌ Gagal simpan absensi:', error);
+                showToast('Gagal simpan absensi', 'error');
+            }
+        }
+
+        async function savePelanggaran() {
+            try {
+                const rows = [['ID', 'StudentID', 'StudentNIS', 'StudentNama', 'StudentKelas', 'StudentPhoto', 'Tanggal', 'KategoriID', 'KategoriNama', 'Poin', 'Jenis', 'Keterangan', 'CreatedAt']];
+                
+                pelanggaranRecords.forEach(p => {
+                    rows.push([
+                        p.id,
+                        p.student_id,
+                        p.student_nis,
+                        p.student_nama,
+                        p.student_kelas,
+                        p.student_photo || '',
+                        p.tanggal,
+                        p.kategori_id || '',
+                        p.kategori_nama || '',
+                        p.poin.toString(),
+                        p.jenis,
+                        p.keterangan || '',
+                        p.created_at ? p.created_at.toString() : Date.now().toString()
+                    ]);
+                });
+                
+                const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.PELANGGARAN.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.PELANGGARAN.SHEET_NAME}!A:M?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: rows
+                    })
+                });
+                
+                console.log('✅ Pelanggaran saved to sheets');
+            } catch (error) {
+                console.error('❌ Gagal simpan pelanggaran:', error);
+                showToast('Gagal simpan pelanggaran', 'error');
+            }
+        }
+
+        async function saveStudentNotes() {
+            try {
+                const rows = [['ID', 'StudentID', 'StudentNIS', 'StudentNama', 'Note', 'CreatedAt', 'UpdatedAt']];
+                
+                studentNotes.forEach(note => {
+                    rows.push([
+                        note.id,
+                        note.student_id,
+                        note.student_nis,
+                        note.student_nama,
+                        note.note,
+                        note.created_at ? note.created_at.toString() : Date.now().toString(),
+                        note.updated_at ? note.updated_at.toString() : Date.now().toString()
+                    ]);
+                });
+                
+                const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.NOTES.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.NOTES.SHEET_NAME}!A:G?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: rows
+                    })
+                });
+                
+                console.log('✅ Notes saved to sheets');
+            } catch (error) {
+                console.error('Gagal simpan catatan:', error);
+                showToast('Gagal simpan catatan', 'error');
+            }
+        }
+
+        async function saveConfig() {
+            try {
+                const rows = [['Key', 'Value']];
+                
+                Object.entries(configData).forEach(([key, value]) => {
+                    rows.push([key, value]);
+                });
+                
+                const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.CONFIG.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.CONFIG.SHEET_NAME}!A:B?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: rows
+                    })
+                });
+                
+                console.log('✅ Config saved to sheets');
+            } catch (error) {
+                console.error('Gagal simpan konfigurasi:', error);
+            }
+        }
 
         // ==================== FUNGSI GOOGLE DRIVE ====================
         function extractGoogleDriveFileId(url) {
@@ -1559,27 +2054,7 @@
 
         // ==================== FUNGSI OPENING ====================
         async function loadOpeningLogo() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.CONFIG}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    configData = data;
-                    
-                    if (configData.school_logo) {
-                        document.getElementById('openingLogoImage').src = configData.school_logo;
-                        document.getElementById('openingLogoImage').classList.remove('hidden');
-                        document.getElementById('openingLogoIcon').classList.add('hidden');
-                        
-                        document.getElementById('logoImage').src = configData.school_logo;
-                        document.getElementById('logoImage').classList.remove('hidden');
-                        document.getElementById('logoDefault').classList.add('hidden');
-                    }
-                }
-            } catch (error) {
-                console.error('Gagal load konfigurasi:', error);
-            }
+            await loadConfig();
         }
 
         function closeOpening() {
@@ -1602,41 +2077,6 @@
         }
 
         // ==================== FUNGSI LOGO ====================
-        async function loadConfig() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.CONFIG}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    configData = data;
-                    
-                    if (configData.school_logo) {
-                        document.getElementById('logoImage').src = configData.school_logo;
-                        document.getElementById('logoImage').classList.remove('hidden');
-                        document.getElementById('logoDefault').classList.add('hidden');
-                    }
-                }
-            } catch (error) {
-                console.error('Gagal load konfigurasi:', error);
-            }
-        }
-
-        async function saveConfig() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.CONFIG}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(configData)
-                });
-            } catch (error) {
-                console.error('Gagal simpan konfigurasi:', error);
-            }
-        }
-
         async function handleLogoUpload(input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
@@ -1720,816 +2160,6 @@
                 };
                 reader.onerror = reject;
             });
-        }
-
-        // ==================== FUNGSI DATABASE ====================
-        async function loadStudents() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                students = Array.isArray(data) ? data : [];
-                
-                studentCache.clear();
-                students.forEach(student => {
-                    const nis = String(student.nis).trim();
-                    studentCache.set(nis, student);
-                    studentCache.set(nis.replace(/^0+/, ''), student);
-                });
-                
-                console.log('✅ Loaded students:', students.length);
-                return students;
-            } catch (error) {
-                console.error('❌ Gagal load siswa:', error);
-                showToast('Gagal load siswa', 'error');
-                return [];
-            }
-        }
-
-        async function loadAttendance() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                attendanceRecords = Array.isArray(data) ? data : [];
-                console.log('✅ Loaded attendance:', attendanceRecords.length);
-                
-                updateTodayStats();
-                return attendanceRecords;
-            } catch (error) {
-                console.error('❌ Gagal load absensi:', error);
-                return [];
-            }
-        }
-
-        async function loadLocationRecords() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.LOCATIONS}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    locationRecords = Array.isArray(data) ? data : [];
-                } else {
-                    locationRecords = [];
-                }
-                
-                console.log('✅ Loaded location records:', locationRecords.length);
-                return locationRecords;
-            } catch (error) {
-                console.error('❌ Gagal load lokasi:', error);
-                return [];
-            }
-        }
-
-        // ==================== FUNGSI CATATAN SISWA (JSONBIN) ====================
-        async function loadStudentNotes() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.NOTES}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    studentNotes = Array.isArray(data) ? data : [];
-                } else {
-                    studentNotes = [];
-                }
-                console.log('✅ Loaded notes:', studentNotes.length);
-            } catch (error) {
-                console.error('Gagal load catatan:', error);
-                studentNotes = [];
-            }
-        }
-
-        async function saveStudentNotes() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.NOTES}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(studentNotes)
-                });
-                console.log('✅ Notes saved');
-            } catch (error) {
-                console.error('Gagal simpan catatan:', error);
-                showToast('Gagal simpan catatan', 'error');
-            }
-        }
-
-        // ==================== FUNGSI QR CODE MODEL KTP (DIPERBAIKI) ====================
-        function printSingleQRKTP(student) {
-            if (!student) {
-                showToast('Data siswa tidak ditemukan', 'error');
-                return;
-            }
-            
-            const printWindow = window.open('', '_blank', 'width=900,height=600');
-            
-            const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
-            
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>KARTU QR SISWA - ${student.nama}</title>
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-                    <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-                        
-                        * {
-                            margin: 0;
-                            padding: 0;
-                            box-sizing: border-box;
-                        }
-                        
-                        body {
-                            font-family: 'Plus Jakarta Sans', sans-serif;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            min-height: 100vh;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            padding: 20px;
-                        }
-                        
-                        .ktp-card {
-                            width: 860px;
-                            height: 540px;
-                            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-                            border-radius: 30px;
-                            box-shadow: 0 30px 60px rgba(0,0,0,0.3), 0 0 0 2px rgba(255,255,255,0.1);
-                            display: flex;
-                            overflow: hidden;
-                            position: relative;
-                        }
-                        
-                        .ktp-card::before {
-                            content: '';
-                            position: absolute;
-                            top: -50%;
-                            right: -50%;
-                            width: 200%;
-                            height: 200%;
-                            background: radial-gradient(circle, rgba(79,70,229,0.03) 0%, transparent 50%);
-                            transform: rotate(30deg);
-                            pointer-events: none;
-                        }
-                        
-                        .ktp-left {
-                            width: 320px;
-                            background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%);
-                            padding: 30px 20px;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            position: relative;
-                            overflow: hidden;
-                        }
-                        
-                        .ktp-left::after {
-                            content: '';
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: linear-gradient(145deg, transparent 0%, rgba(255,255,255,0.1) 100%);
-                            pointer-events: none;
-                        }
-                        
-                        .school-badge {
-                            text-align: center;
-                            margin-bottom: 20px;
-                            color: white;
-                            z-index: 1;
-                        }
-                        
-                        .school-badge h3 {
-                            font-size: 14px;
-                            font-weight: 300;
-                            letter-spacing: 2px;
-                            opacity: 0.9;
-                        }
-                        
-                        .school-badge h2 {
-                            font-size: 18px;
-                            font-weight: 800;
-                            margin-top: 5px;
-                            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                        }
-                        
-                        .photo-container {
-                            width: 160px;
-                            height: 160px;
-                            border-radius: 20px;
-                            overflow: hidden;
-                            border: 4px solid rgba(255,255,255,0.3);
-                            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.3);
-                            margin-bottom: 20px;
-                            background: white;
-                            z-index: 1;
-                        }
-                        
-                        .photo-container img {
-                            width: 100%;
-                            height: 100%;
-                            object-fit: cover;
-                        }
-                        
-                        .photo-placeholder {
-                            width: 100%;
-                            height: 100%;
-                            background: linear-gradient(145deg, #e2e8f0, #cbd5e1);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            color: #64748b;
-                            font-size: 50px;
-                        }
-                        
-                        .qr-container {
-                            background: white;
-                            padding: 15px;
-                            border-radius: 20px;
-                            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.2);
-                            z-index: 1;
-                        }
-                        
-                        .qr-container img {
-                            width: 160px;
-                            height: 160px;
-                            display: block;
-                        }
-                        
-                        .ktp-right {
-                            flex: 1;
-                            padding: 40px;
-                            position: relative;
-                        }
-                        
-                        .watermark {
-                            position: absolute;
-                            bottom: 30px;
-                            right: 30px;
-                            font-size: 80px;
-                            color: rgba(79,70,229,0.03);
-                            font-weight: 800;
-                            transform: rotate(-15deg);
-                        }
-                        
-                        .identity-header {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            margin-bottom: 30px;
-                        }
-                        
-                        .identity-title h1 {
-                            font-size: 28px;
-                            font-weight: 800;
-                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                            letter-spacing: -0.5px;
-                        }
-                        
-                        .identity-title p {
-                            color: #6b7280;
-                            font-size: 12px;
-                            letter-spacing: 1px;
-                        }
-                        
-                        .chip {
-                            width: 50px;
-                            height: 40px;
-                            background: linear-gradient(145deg, #d4af37, #f5e7b2);
-                            border-radius: 8px;
-                            position: relative;
-                            overflow: hidden;
-                        }
-                        
-                        .chip::before {
-                            content: '';
-                            position: absolute;
-                            top: 50%;
-                            left: 0;
-                            right: 0;
-                            height: 2px;
-                            background: rgba(0,0,0,0.1);
-                            transform: translateY(-50%);
-                        }
-                        
-                        .data-grid {
-                            display: grid;
-                            grid-template-columns: 120px 1fr;
-                            gap: 15px 10px;
-                            margin: 30px 0;
-                        }
-                        
-                        .data-label {
-                            font-size: 12px;
-                            font-weight: 600;
-                            color: #6b7280;
-                            text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                        }
-                        
-                        .data-value {
-                            font-size: 16px;
-                            font-weight: 600;
-                            color: #1f2937;
-                        }
-                        
-                        .data-value.highlight {
-                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                            font-size: 18px;
-                        }
-                        
-                        .qr-note {
-                            margin-top: 30px;
-                            padding: 15px;
-                            background: linear-gradient(145deg, #f0f9ff, #e0f2fe);
-                            border-radius: 16px;
-                            border-left: 4px solid #4f46e5;
-                        }
-                        
-                        .qr-note p {
-                            font-size: 11px;
-                            color: #1e293b;
-                            line-height: 1.5;
-                        }
-                        
-                        .qr-note i {
-                            color: #4f46e5;
-                            margin-right: 5px;
-                        }
-                        
-                        .footer-note {
-                            position: absolute;
-                            bottom: 30px;
-                            left: 40px;
-                            font-size: 9px;
-                            color: #94a3b8;
-                        }
-                        
-                        .stripe {
-                            position: absolute;
-                            top: 0;
-                            right: 0;
-                            width: 100px;
-                            height: 100%;
-                            background: repeating-linear-gradient(45deg, rgba(79,70,229,0.02) 0px, rgba(79,70,229,0.02) 10px, transparent 10px, transparent 20px);
-                        }
-                        
-                        @media print {
-                            body {
-                                background: white;
-                                padding: 0;
-                            }
-                            .ktp-card {
-                                box-shadow: none;
-                                border: 1px solid #e5e7eb;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="ktp-card">
-                        <div class="ktp-left">
-                            <div class="school-badge">
-                                <h3>MAS IBNU HUSAIN</h3>
-                                <h2>KARTU SISWA</h2>
-                            </div>
-                            
-                            <div class="photo-container">
-                                ${photoUrl ? 
-                                    `<img src="${photoUrl}" alt="Foto Siswa" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'><i class=\\'fas fa-user\\'></i></div>';">` : 
-                                    `<div class="photo-placeholder"><i class="fas fa-user"></i></div>`
-                                }
-                            </div>
-                            
-                            <div class="qr-container">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(student.nis)}" alt="QR Code">
-                            </div>
-                        </div>
-                        
-                        <div class="ktp-right">
-                            <div class="stripe"></div>
-                            <div class="watermark">QR</div>
-                            
-                            <div class="identity-header">
-                                <div class="identity-title">
-                                    <h1>IDENTITAS SISWA</h1>
-                                    <p>QR CODE ABSENSI HADIR & PULANG</p>
-                                </div>
-                                <div class="chip"></div>
-                            </div>
-                            
-                            <div class="data-grid">
-                                <div class="data-label">NIS</div>
-                                <div class="data-value highlight">${student.nis}</div>
-                                
-                                <div class="data-label">NAMA LENGKAP</div>
-                                <div class="data-value">${student.nama}</div>
-                                
-                                <div class="data-label">KELAS</div>
-                                <div class="data-value">${student.kelas}</div>
-                                
-                                <div class="data-label">JURUSAN</div>
-                                <div class="data-value">${student.jurusan}</div>
-                                
-                                <div class="data-label">STATUS</div>
-                                <div class="data-value">Siswa Aktif</div>
-                            </div>
-                            
-                            <div class="qr-note">
-                                <p><i class="fas fa-info-circle"></i> QR Code ini dapat digunakan untuk 2x absensi:</p>
-                                <p>✅ <strong>Absen Hadir</strong> (scan pertama hari ini)</p>
-                                <p>🏠 <strong>Absen Pulang</strong> (scan kedua hari ini)</p>
-                                <p style="margin-top: 8px;"><i class="fas fa-map-pin"></i> Lokasi akan tercatat otomatis saat scan</p>
-                            </div>
-                            
-                            <div class="footer-note">
-                                * Berlaku selama menjadi siswa MAS IBNU HUSAIN • NIS: ${student.nis}
-                            </div>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `);
-            
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        function printAllQRKTP() {
-            if (students.length === 0) {
-                showToast('Tidak ada data siswa', 'error');
-                return;
-            }
-            
-            const printWindow = window.open('', '_blank', 'width=1400,height=900');
-            
-            let html = `
-                <html>
-                <head>
-                    <title>Semua Kartu QR Siswa - MAS IBNU HUSAIN</title>
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-                    <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-                        
-                        * {
-                            margin: 0;
-                            padding: 0;
-                            box-sizing: border-box;
-                        }
-                        
-                        body {
-                            font-family: 'Plus Jakarta Sans', sans-serif;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            min-height: 100vh;
-                            padding: 20px;
-                        }
-                        
-                        .header {
-                            text-align: center;
-                            margin-bottom: 30px;
-                            color: white;
-                        }
-                        
-                        .header h1 {
-                            font-size: 28px;
-                            font-weight: 800;
-                            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                        }
-                        
-                        .header p {
-                            font-size: 14px;
-                            opacity: 0.9;
-                        }
-                        
-                        .grid {
-                            display: grid;
-                            grid-template-columns: repeat(2, 1fr);
-                            gap: 20px;
-                            max-width: 1400px;
-                            margin: 0 auto;
-                        }
-                        
-                        .ktp-card {
-                            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-                            border-radius: 20px;
-                            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
-                            display: flex;
-                            overflow: hidden;
-                            position: relative;
-                            height: 280px;
-                            border: 1px solid rgba(255,255,255,0.3);
-                        }
-                        
-                        .ktp-left {
-                            width: 120px;
-                            background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%);
-                            padding: 15px 10px;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            position: relative;
-                        }
-                        
-                        .school-badge {
-                            text-align: center;
-                            margin-bottom: 10px;
-                            color: white;
-                        }
-                        
-                        .school-badge h4 {
-                            font-size: 10px;
-                            font-weight: 300;
-                            letter-spacing: 1px;
-                        }
-                        
-                        .school-badge h5 {
-                            font-size: 12px;
-                            font-weight: 700;
-                            margin-top: 2px;
-                        }
-                        
-                        .photo-container {
-                            width: 70px;
-                            height: 70px;
-                            border-radius: 12px;
-                            overflow: hidden;
-                            border: 2px solid rgba(255,255,255,0.3);
-                            margin-bottom: 10px;
-                            background: white;
-                        }
-                        
-                        .photo-container img {
-                            width: 100%;
-                            height: 100%;
-                            object-fit: cover;
-                        }
-                        
-                        .photo-placeholder {
-                            width: 100%;
-                            height: 100%;
-                            background: linear-gradient(145deg, #e2e8f0, #cbd5e1);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            color: #64748b;
-                            font-size: 24px;
-                        }
-                        
-                        .qr-container {
-                            background: white;
-                            padding: 5px;
-                            border-radius: 8px;
-                        }
-                        
-                        .qr-container img {
-                            width: 60px;
-                            height: 60px;
-                            display: block;
-                        }
-                        
-                        .ktp-right {
-                            flex: 1;
-                            padding: 15px;
-                            position: relative;
-                        }
-                        
-                        .identity-header {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            margin-bottom: 10px;
-                        }
-                        
-                        .identity-title h5 {
-                            font-size: 9px;
-                            color: #6b7280;
-                            letter-spacing: 0.5px;
-                        }
-                        
-                        .identity-title h4 {
-                            font-size: 12px;
-                            font-weight: 800;
-                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                        }
-                        
-                        .chip-mini {
-                            width: 30px;
-                            height: 24px;
-                            background: linear-gradient(145deg, #d4af37, #f5e7b2);
-                            border-radius: 4px;
-                        }
-                        
-                        .data-grid {
-                            display: grid;
-                            grid-template-columns: 50px 1fr;
-                            gap: 5px;
-                            font-size: 9px;
-                            margin: 8px 0;
-                        }
-                        
-                        .data-label {
-                            font-weight: 600;
-                            color: #6b7280;
-                        }
-                        
-                        .data-value {
-                            font-weight: 600;
-                            color: #1f2937;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                        }
-                        
-                        .data-value.highlight {
-                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                            font-weight: 800;
-                        }
-                        
-                        .qr-note-mini {
-                            font-size: 7px;
-                            color: #4f46e5;
-                            background: #e0e7ff;
-                            padding: 4px 6px;
-                            border-radius: 8px;
-                            margin-top: 5px;
-                        }
-                        
-                        .footer-note {
-                            position: absolute;
-                            bottom: 10px;
-                            left: 15px;
-                            font-size: 6px;
-                            color: #94a3b8;
-                        }
-                        
-                        @media print {
-                            body {
-                                background: white;
-                                padding: 10px;
-                            }
-                            .header {
-                                display: none;
-                            }
-                            .ktp-card {
-                                border: 1px solid #e5e7eb;
-                                box-shadow: none;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h1>KARTU QR SISWA - MAS IBNU HUSAIN</h1>
-                        <p>Total ${students.length} Siswa • Format KTP • Untuk Absen Hadir & Pulang</p>
-                    </div>
-                    <div class="grid">
-            `;
-            
-            students.forEach(student => {
-                const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
-                const shortName = student.nama.length > 20 ? student.nama.substring(0, 18) + '...' : student.nama;
-                
-                html += `
-                    <div class="ktp-card">
-                        <div class="ktp-left">
-                            <div class="school-badge">
-                                <h4>MAS IBNU</h4>
-                                <h5>HUSAIN</h5>
-                            </div>
-                            
-                            <div class="photo-container">
-                                ${photoUrl ? 
-                                    `<img src="${photoUrl}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'><i class=\\'fas fa-user\\'></i></div>';">` : 
-                                    `<div class="photo-placeholder"><i class="fas fa-user"></i></div>`
-                                }
-                            </div>
-                            
-                            <div class="qr-container">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(student.nis)}">
-                            </div>
-                        </div>
-                        
-                        <div class="ktp-right">
-                            <div class="identity-header">
-                                <div class="identity-title">
-                                    <h5>KARTU SISWA</h5>
-                                    <h4>${shortName}</h4>
-                                </div>
-                                <div class="chip-mini"></div>
-                            </div>
-                            
-                            <div class="data-grid">
-                                <div class="data-label">NIS</div>
-                                <div class="data-value highlight">${student.nis}</div>
-                                
-                                <div class="data-label">Kelas</div>
-                                <div class="data-value">${student.kelas || '-'}</div>
-                                
-                                <div class="data-label">Jurusan</div>
-                                <div class="data-value">${student.jurusan || '-'}</div>
-                            </div>
-                            
-                            <div class="qr-note-mini">
-                                <i class="fas fa-info-circle"></i> Scan 1: Hadir • Scan 2: Pulang
-                            </div>
-                            
-                            <div class="footer-note">
-                                * Berlaku selama menjadi siswa • NIS: ${student.nis}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                </body>
-                </html>
-            `;
-            
-            printWindow.document.write(html);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        // ==================== FUNGSI PELANGGARAN ====================
-        async function loadPelanggaran() {
-            try {
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_CONFIG.API_KEY, 'X-Bin-Meta': 'false' }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.pelanggaran) {
-                        pelanggaranRecords = Array.isArray(data.pelanggaran) ? data.pelanggaran : [];
-                    } else {
-                        pelanggaranRecords = Array.isArray(data) ? data : [];
-                    }
-                    
-                    if (data.kategori) {
-                        kategoriPelanggaran = Array.isArray(data.kategori) ? data.kategori : kategoriPelanggaran;
-                    }
-                } else {
-                    pelanggaranRecords = [];
-                }
-                
-                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
-                renderPelanggaranTable();
-                updatePelanggaranStats();
-                return pelanggaranRecords;
-            } catch (error) {
-                console.error('❌ Gagal load pelanggaran:', error);
-                pelanggaranRecords = [];
-                return [];
-            }
-        }
-
-        async function savePelanggaran() {
-            try {
-                const dataToSave = {
-                    pelanggaran: pelanggaranRecords,
-                    kategori: kategoriPelanggaran,
-                    lastUpdated: new Date().toISOString()
-                };
-                
-                const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.PELANGGARAN}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(dataToSave)
-                });
-                
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                console.log('✅ Pelanggaran saved');
-                return true;
-            } catch (error) {
-                console.error('❌ Gagal simpan pelanggaran:', error);
-                showToast('Gagal simpan pelanggaran', 'error');
-                return false;
-            }
         }
 
         // ==================== FUNGSI UTILITY ====================
@@ -3429,7 +3059,8 @@
                         nama,
                         kelas,
                         jurusan,
-                        photo: photoLink || students[index].photo
+                        photo: photoLink || students[index].photo,
+                        updated_at: Date.now()
                     };
                 }
             } else {
@@ -3440,7 +3071,8 @@
                     kelas,
                     jurusan,
                     photo: photoLink,
-                    created_at: Date.now()
+                    created_at: Date.now(),
+                    updated_at: Date.now()
                 };
                 students.push(newStudent);
             }
@@ -3492,6 +3124,7 @@
             const student = students.find(s => s.id === studentId);
             if (student) {
                 student[field] = value;
+                student.updated_at = Date.now();
                 await saveStudents();
                 
                 attendanceRecords.forEach(r => {
@@ -3635,6 +3268,608 @@
             });
             
             html += `</div></body></html>`;
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function printSingleQRKTP(student) {
+            if (!student) return;
+            
+            const printWindow = window.open('', '_blank', 'width=900,height=600');
+            
+            const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>KARTU QR SISWA - ${student.nama}</title>
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+                        
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
+                        
+                        body {
+                            font-family: 'Plus Jakarta Sans', sans-serif;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            min-height: 100vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            padding: 20px;
+                        }
+                        
+                        .ktp-card {
+                            width: 860px;
+                            height: 540px;
+                            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+                            border-radius: 30px;
+                            box-shadow: 0 30px 60px rgba(0,0,0,0.3), 0 0 0 2px rgba(255,255,255,0.1);
+                            display: flex;
+                            overflow: hidden;
+                            position: relative;
+                        }
+                        
+                        .ktp-card::before {
+                            content: '';
+                            position: absolute;
+                            top: -50%;
+                            right: -50%;
+                            width: 200%;
+                            height: 200%;
+                            background: radial-gradient(circle, rgba(79,70,229,0.03) 0%, transparent 50%);
+                            transform: rotate(30deg);
+                            pointer-events: none;
+                        }
+                        
+                        .ktp-left {
+                            width: 320px;
+                            background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%);
+                            padding: 30px 20px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        
+                        .ktp-left::after {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background: linear-gradient(145deg, transparent 0%, rgba(255,255,255,0.1) 100%);
+                            pointer-events: none;
+                        }
+                        
+                        .school-badge {
+                            text-align: center;
+                            margin-bottom: 20px;
+                            color: white;
+                            z-index: 1;
+                        }
+                        
+                        .school-badge h3 {
+                            font-size: 14px;
+                            font-weight: 300;
+                            letter-spacing: 2px;
+                            opacity: 0.9;
+                        }
+                        
+                        .school-badge h2 {
+                            font-size: 18px;
+                            font-weight: 800;
+                            margin-top: 5px;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                        }
+                        
+                        .photo-container {
+                            width: 160px;
+                            height: 160px;
+                            border-radius: 20px;
+                            overflow: hidden;
+                            border: 4px solid rgba(255,255,255,0.3);
+                            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.3);
+                            margin-bottom: 20px;
+                            background: white;
+                            z-index: 1;
+                        }
+                        
+                        .photo-container img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                        }
+                        
+                        .photo-placeholder {
+                            width: 100%;
+                            height: 100%;
+                            background: linear-gradient(145deg, #e2e8f0, #cbd5e1);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: #64748b;
+                            font-size: 50px;
+                        }
+                        
+                        .qr-container {
+                            background: white;
+                            padding: 15px;
+                            border-radius: 20px;
+                            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.2);
+                            z-index: 1;
+                        }
+                        
+                        .qr-container img {
+                            width: 160px;
+                            height: 160px;
+                            display: block;
+                        }
+                        
+                        .ktp-right {
+                            flex: 1;
+                            padding: 40px;
+                            position: relative;
+                        }
+                        
+                        .watermark {
+                            position: absolute;
+                            bottom: 30px;
+                            right: 30px;
+                            font-size: 80px;
+                            color: rgba(79,70,229,0.03);
+                            font-weight: 800;
+                            transform: rotate(-15deg);
+                        }
+                        
+                        .identity-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 30px;
+                        }
+                        
+                        .identity-title h1 {
+                            font-size: 28px;
+                            font-weight: 800;
+                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                            letter-spacing: -0.5px;
+                        }
+                        
+                        .identity-title p {
+                            color: #6b7280;
+                            font-size: 12px;
+                            letter-spacing: 1px;
+                        }
+                        
+                        .chip {
+                            width: 50px;
+                            height: 40px;
+                            background: linear-gradient(145deg, #d4af37, #f5e7b2);
+                            border-radius: 8px;
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        
+                        .chip::before {
+                            content: '';
+                            position: absolute;
+                            top: 50%;
+                            left: 0;
+                            right: 0;
+                            height: 2px;
+                            background: rgba(0,0,0,0.1);
+                            transform: translateY(-50%);
+                        }
+                        
+                        .data-grid {
+                            display: grid;
+                            grid-template-columns: 120px 1fr;
+                            gap: 15px 10px;
+                            margin: 30px 0;
+                        }
+                        
+                        .data-label {
+                            font-size: 12px;
+                            font-weight: 600;
+                            color: #6b7280;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        
+                        .data-value {
+                            font-size: 16px;
+                            font-weight: 600;
+                            color: #1f2937;
+                        }
+                        
+                        .data-value.highlight {
+                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                            font-size: 18px;
+                        }
+                        
+                        .qr-note {
+                            margin-top: 30px;
+                            padding: 15px;
+                            background: linear-gradient(145deg, #f0f9ff, #e0f2fe);
+                            border-radius: 16px;
+                            border-left: 4px solid #4f46e5;
+                        }
+                        
+                        .qr-note p {
+                            font-size: 11px;
+                            color: #1e293b;
+                            line-height: 1.5;
+                        }
+                        
+                        .qr-note i {
+                            color: #4f46e5;
+                            margin-right: 5px;
+                        }
+                        
+                        .footer-note {
+                            position: absolute;
+                            bottom: 30px;
+                            left: 40px;
+                            font-size: 9px;
+                            color: #94a3b8;
+                        }
+                        
+                        .stripe {
+                            position: absolute;
+                            top: 0;
+                            right: 0;
+                            width: 100px;
+                            height: 100%;
+                            background: repeating-linear-gradient(45deg, rgba(79,70,229,0.02) 0px, rgba(79,70,229,0.02) 10px, transparent 10px, transparent 20px);
+                        }
+                        
+                        @media print {
+                            body {
+                                background: white;
+                                padding: 0;
+                            }
+                            .ktp-card {
+                                box-shadow: none;
+                                border: 1px solid #e5e7eb;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="ktp-card">
+                        <div class="ktp-left">
+                            <div class="school-badge">
+                                <h3>MAS IBNU HUSAIN</h3>
+                                <h2>KARTU SISWA</h2>
+                            </div>
+                            
+                            <div class="photo-container">
+                                ${photoUrl ? 
+                                    `<img src="${photoUrl}" alt="Foto Siswa" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'><i class=\\'fas fa-user\\'></i></div>';">` : 
+                                    `<div class="photo-placeholder"><i class="fas fa-user"></i></div>`
+                                }
+                            </div>
+                            
+                            <div class="qr-container">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(student.nis)}" alt="QR Code">
+                            </div>
+                        </div>
+                        
+                        <div class="ktp-right">
+                            <div class="stripe"></div>
+                            <div class="watermark">QR</div>
+                            
+                            <div class="identity-header">
+                                <div class="identity-title">
+                                    <h1>IDENTITAS SISWA</h1>
+                                    <p>QR CODE ABSENSI HADIR & PULANG</p>
+                                </div>
+                                <div class="chip"></div>
+                            </div>
+                            
+                            <div class="data-grid">
+                                <div class="data-label">NIS</div>
+                                <div class="data-value highlight">${student.nis}</div>
+                                
+                                <div class="data-label">NAMA LENGKAP</div>
+                                <div class="data-value">${student.nama}</div>
+                                
+                                <div class="data-label">KELAS</div>
+                                <div class="data-value">${student.kelas}</div>
+                                
+                                <div class="data-label">JURUSAN</div>
+                                <div class="data-value">${student.jurusan}</div>
+                                
+                                <div class="data-label">TAHUN AJARAN</div>
+                                <div class="data-value">2024/2025</div>
+                            </div>
+                            
+                            <div class="qr-note">
+                                <p><i class="fas fa-info-circle"></i> QR Code ini dapat digunakan untuk 2x absensi:</p>
+                                <p>✅ <strong>Absen Hadir</strong> (scan pertama hari ini)</p>
+                                <p>🏠 <strong>Absen Pulang</strong> (scan kedua hari ini)</p>
+                                <p style="margin-top: 8px;"><i class="fas fa-map-pin"></i> Lokasi akan tercatat otomatis saat scan</p>
+                            </div>
+                            
+                            <div class="footer-note">
+                                * Kartu ini berlaku selama tahun ajaran berjalan
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function printAllQRKTP() {
+            if (students.length === 0) {
+                showToast('Tidak ada data siswa', 'error');
+                return;
+            }
+            
+            const printWindow = window.open('', '_blank', 'width=1200,height=800');
+            
+            let html = `
+                <html>
+                <head>
+                    <title>Semua Kartu QR Siswa - MAS IBNU HUSAIN</title>
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+                        
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
+                        
+                        body {
+                            font-family: 'Plus Jakarta Sans', sans-serif;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            min-height: 100vh;
+                            padding: 20px;
+                        }
+                        
+                        .header {
+                            text-align: center;
+                            margin-bottom: 30px;
+                            color: white;
+                        }
+                        
+                        .header h1 {
+                            font-size: 28px;
+                            font-weight: 800;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                        }
+                        
+                        .grid {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 20px;
+                            max-width: 1400px;
+                            margin: 0 auto;
+                        }
+                        
+                        .ktp-card {
+                            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+                            border-radius: 30px;
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                            display: flex;
+                            overflow: hidden;
+                            position: relative;
+                            height: 500px;
+                        }
+                        
+                        .ktp-left {
+                            width: 280px;
+                            background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%);
+                            padding: 20px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                        }
+                        
+                        .school-badge {
+                            text-align: center;
+                            margin-bottom: 15px;
+                            color: white;
+                        }
+                        
+                        .school-badge h3 {
+                            font-size: 12px;
+                            font-weight: 300;
+                            letter-spacing: 1px;
+                        }
+                        
+                        .school-badge h2 {
+                            font-size: 16px;
+                            font-weight: 800;
+                        }
+                        
+                        .photo-container {
+                            width: 140px;
+                            height: 140px;
+                            border-radius: 20px;
+                            overflow: hidden;
+                            border: 3px solid rgba(255,255,255,0.3);
+                            margin-bottom: 15px;
+                            background: white;
+                        }
+                        
+                        .photo-container img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                        }
+                        
+                        .photo-placeholder {
+                            width: 100%;
+                            height: 100%;
+                            background: linear-gradient(145deg, #e2e8f0, #cbd5e1);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: #64748b;
+                            font-size: 40px;
+                        }
+                        
+                        .qr-container {
+                            background: white;
+                            padding: 10px;
+                            border-radius: 15px;
+                        }
+                        
+                        .qr-container img {
+                            width: 120px;
+                            height: 120px;
+                            display: block;
+                        }
+                        
+                        .ktp-right {
+                            flex: 1;
+                            padding: 25px;
+                            position: relative;
+                        }
+                        
+                        .identity-header {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 20px;
+                        }
+                        
+                        .identity-title h4 {
+                            font-size: 14px;
+                            color: #6b7280;
+                        }
+                        
+                        .identity-title h3 {
+                            font-size: 18px;
+                            font-weight: 800;
+                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                        }
+                        
+                        .data-grid {
+                            display: grid;
+                            grid-template-columns: 80px 1fr;
+                            gap: 10px;
+                            margin: 15px 0;
+                            font-size: 12px;
+                        }
+                        
+                        .data-label {
+                            font-weight: 600;
+                            color: #6b7280;
+                        }
+                        
+                        .data-value {
+                            font-weight: 600;
+                            color: #1f2937;
+                        }
+                        
+                        .data-value.highlight {
+                            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                        }
+                        
+                        .footer-note {
+                            position: absolute;
+                            bottom: 20px;
+                            left: 25px;
+                            font-size: 8px;
+                            color: #94a3b8;
+                        }
+                        
+                        @media print {
+                            body {
+                                background: white;
+                                padding: 10px;
+                            }
+                            .header { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>KARTU QR SISWA - MAS IBNU HUSAIN</h1>
+                        <p>Total ${students.length} Siswa</p>
+                    </div>
+                    <div class="grid">
+            `;
+            
+            students.forEach(student => {
+                const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
+                
+                html += `
+                    <div class="ktp-card">
+                        <div class="ktp-left">
+                            <div class="school-badge">
+                                <h3>MAS IBNU HUSAIN</h3>
+                                <h2>KARTU SISWA</h2>
+                            </div>
+                            
+                            <div class="photo-container">
+                                ${photoUrl ? 
+                                    `<img src="${photoUrl}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'><i class=\\'fas fa-user\\'></i></div>';">` : 
+                                    `<div class="photo-placeholder"><i class="fas fa-user"></i></div>`
+                                }
+                            </div>
+                            
+                            <div class="qr-container">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(student.nis)}">
+                            </div>
+                        </div>
+                        
+                        <div class="ktp-right">
+                            <div class="identity-header">
+                                <div class="identity-title">
+                                    <h4>IDENTITAS SISWA</h4>
+                                    <h3>${student.nama.split(' ').slice(0,2).join(' ')}</h3>
+                                </div>
+                            </div>
+                            
+                            <div class="data-grid">
+                                <div class="data-label">NIS</div>
+                                <div class="data-value highlight">${student.nis}</div>
+                                <div class="data-label">Nama</div>
+                                <div class="data-value">${student.nama}</div>
+                                <div class="data-label">Kelas</div>
+                                <div class="data-value">${student.kelas}</div>
+                                <div class="data-label">Jurusan</div>
+                                <div class="data-value">${student.jurusan}</div>
+                            </div>
+                            
+                            <div class="footer-note">
+                                * Untuk absen hadir & pulang
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </body>
+                </html>
+            `;
+            
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.print();
@@ -4263,41 +4498,6 @@
             updateTodayStats();
             hideLoading();
             showToast('Semua data kehadiran dihapus');
-        }
-
-        // ==================== SAVE FUNCTIONS ====================
-        async function saveStudents() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.STUDENTS}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(students)
-                });
-                console.log('✅ Students saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan siswa:', error);
-                showToast('Gagal simpan siswa', 'error');
-            }
-        }
-
-        async function saveAttendance() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(attendanceRecords)
-                });
-                console.log('✅ Attendance saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
-            }
         }
 
         // ==================== PAGE NAVIGATION ====================
