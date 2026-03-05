@@ -1331,7 +1331,7 @@
                 CONFIG: "69a748b1d0ea881f40ebb17c",
                 PELANGGARAN: "69a3f6e5d0ea881f40e42434",
                 LOCATIONS: "69a51fe7ae596e708f56d415",
-                NOTES: "69a93af943b1c97be9b57b48" // Bin untuk catatan siswa
+                NOTES: "69a93af943b1c97be9b57b48"
             },
             BASE_URL: "https://api.jsonbin.io/v3/b"
         };
@@ -1825,7 +1825,10 @@
 
         // ==================== FUNGSI QR CODE MODEL KTP ====================
         function printSingleQRKTP(student) {
-            if (!student) return;
+            if (!student) {
+                showToast('Pilih siswa terlebih dahulu', 'warning');
+                return;
+            }
             
             const printWindow = window.open('', '_blank', 'width=900,height=600');
             
@@ -1856,11 +1859,11 @@
                         }
                         
                         .ktp-card {
-                            width: 860px;
-                            height: 540px;
+                            width: 85mm;
+                            height: 54mm;
                             background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-                            border-radius: 30px;
-                            box-shadow: 0 30px 60px rgba(0,0,0,0.3), 0 0 0 2px rgba(255,255,255,0.1);
+                            border-radius: 5mm;
+                            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
                             display: flex;
                             overflow: hidden;
                             position: relative;
@@ -1879,58 +1882,41 @@
                         }
                         
                         .ktp-left {
-                            width: 320px;
+                            width: 32mm;
                             background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%);
-                            padding: 30px 20px;
+                            padding: 3mm 2mm;
                             display: flex;
                             flex-direction: column;
                             align-items: center;
                             position: relative;
-                            overflow: hidden;
-                        }
-                        
-                        .ktp-left::after {
-                            content: '';
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: linear-gradient(145deg, transparent 0%, rgba(255,255,255,0.1) 100%);
-                            pointer-events: none;
                         }
                         
                         .school-badge {
                             text-align: center;
-                            margin-bottom: 20px;
+                            margin-bottom: 2mm;
                             color: white;
-                            z-index: 1;
                         }
                         
                         .school-badge h3 {
-                            font-size: 14px;
+                            font-size: 3.5pt;
                             font-weight: 300;
-                            letter-spacing: 2px;
-                            opacity: 0.9;
+                            letter-spacing: 0.5px;
                         }
                         
                         .school-badge h2 {
-                            font-size: 18px;
+                            font-size: 5pt;
                             font-weight: 800;
-                            margin-top: 5px;
-                            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            margin-top: 1px;
                         }
                         
                         .photo-container {
-                            width: 160px;
-                            height: 160px;
-                            border-radius: 20px;
+                            width: 15mm;
+                            height: 15mm;
+                            border-radius: 2mm;
                             overflow: hidden;
-                            border: 4px solid rgba(255,255,255,0.3);
-                            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.3);
-                            margin-bottom: 20px;
+                            border: 1px solid rgba(255,255,255,0.3);
+                            margin-bottom: 2mm;
                             background: white;
-                            z-index: 1;
                         }
                         
                         .photo-container img {
@@ -1947,35 +1933,33 @@
                             align-items: center;
                             justify-content: center;
                             color: #64748b;
-                            font-size: 50px;
+                            font-size: 8pt;
                         }
                         
                         .qr-container {
                             background: white;
-                            padding: 15px;
-                            border-radius: 20px;
-                            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.2);
-                            z-index: 1;
+                            padding: 1mm;
+                            border-radius: 1.5mm;
                         }
                         
                         .qr-container img {
-                            width: 160px;
-                            height: 160px;
+                            width: 15mm;
+                            height: 15mm;
                             display: block;
                         }
                         
                         .ktp-right {
                             flex: 1;
-                            padding: 40px;
+                            padding: 3mm;
                             position: relative;
                         }
                         
                         .watermark {
                             position: absolute;
-                            bottom: 30px;
-                            right: 30px;
-                            font-size: 80px;
-                            color: rgba(79,70,229,0.03);
+                            bottom: 2mm;
+                            right: 2mm;
+                            font-size: 12pt;
+                            color: rgba(79,70,229,0.05);
                             font-weight: 800;
                             transform: rotate(-15deg);
                         }
@@ -1984,61 +1968,49 @@
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
-                            margin-bottom: 30px;
+                            margin-bottom: 2mm;
                         }
                         
                         .identity-title h1 {
-                            font-size: 28px;
+                            font-size: 6pt;
                             font-weight: 800;
                             background: linear-gradient(145deg, #4f46e5, #7c3aed);
                             -webkit-background-clip: text;
                             -webkit-text-fill-color: transparent;
-                            letter-spacing: -0.5px;
+                            letter-spacing: -0.2px;
                         }
                         
                         .identity-title p {
                             color: #6b7280;
-                            font-size: 12px;
-                            letter-spacing: 1px;
+                            font-size: 3.5pt;
+                            letter-spacing: 0.5px;
                         }
                         
                         .chip {
-                            width: 50px;
-                            height: 40px;
+                            width: 4mm;
+                            height: 3mm;
                             background: linear-gradient(145deg, #d4af37, #f5e7b2);
-                            border-radius: 8px;
+                            border-radius: 0.5mm;
                             position: relative;
                             overflow: hidden;
                         }
                         
-                        .chip::before {
-                            content: '';
-                            position: absolute;
-                            top: 50%;
-                            left: 0;
-                            right: 0;
-                            height: 2px;
-                            background: rgba(0,0,0,0.1);
-                            transform: translateY(-50%);
-                        }
-                        
                         .data-grid {
                             display: grid;
-                            grid-template-columns: 120px 1fr;
-                            gap: 15px 10px;
-                            margin: 30px 0;
+                            grid-template-columns: 12mm 1fr;
+                            gap: 1mm 0.5mm;
+                            margin: 2mm 0;
+                            font-size: 3.5pt;
                         }
                         
                         .data-label {
-                            font-size: 12px;
                             font-weight: 600;
                             color: #6b7280;
                             text-transform: uppercase;
-                            letter-spacing: 0.5px;
+                            letter-spacing: 0.2px;
                         }
                         
                         .data-value {
-                            font-size: 16px;
                             font-weight: 600;
                             color: #1f2937;
                         }
@@ -2047,43 +2019,34 @@
                             background: linear-gradient(145deg, #4f46e5, #7c3aed);
                             -webkit-background-clip: text;
                             -webkit-text-fill-color: transparent;
-                            font-size: 18px;
+                            font-weight: 800;
                         }
                         
                         .qr-note {
-                            margin-top: 30px;
-                            padding: 15px;
+                            margin-top: 1mm;
+                            padding: 1mm;
                             background: linear-gradient(145deg, #f0f9ff, #e0f2fe);
-                            border-radius: 16px;
-                            border-left: 4px solid #4f46e5;
+                            border-radius: 1.5mm;
+                            border-left: 1px solid #4f46e5;
+                            font-size: 3pt;
                         }
                         
                         .qr-note p {
-                            font-size: 11px;
                             color: #1e293b;
-                            line-height: 1.5;
+                            line-height: 1.2;
                         }
                         
                         .qr-note i {
                             color: #4f46e5;
-                            margin-right: 5px;
+                            margin-right: 0.5mm;
                         }
                         
                         .footer-note {
                             position: absolute;
-                            bottom: 30px;
-                            left: 40px;
-                            font-size: 9px;
+                            bottom: 2mm;
+                            left: 3mm;
+                            font-size: 2.5pt;
                             color: #94a3b8;
-                        }
-                        
-                        .stripe {
-                            position: absolute;
-                            top: 0;
-                            right: 0;
-                            width: 100px;
-                            height: 100%;
-                            background: repeating-linear-gradient(45deg, rgba(79,70,229,0.02) 0px, rgba(79,70,229,0.02) 10px, transparent 10px, transparent 20px);
                         }
                         
                         @media print {
@@ -2093,7 +2056,8 @@
                             }
                             .ktp-card {
                                 box-shadow: none;
-                                border: 1px solid #e5e7eb;
+                                border: 0.1mm solid #e5e7eb;
+                                margin: 0 auto;
                             }
                         }
                     </style>
@@ -2102,8 +2066,8 @@
                     <div class="ktp-card">
                         <div class="ktp-left">
                             <div class="school-badge">
-                                <h3>MAS IBNU HUSAIN</h3>
-                                <h2>KARTU SISWA</h2>
+                                <h3>MAS IBNU</h3>
+                                <h2>HUSAIN</h2>
                             </div>
                             
                             <div class="photo-container">
@@ -2114,12 +2078,11 @@
                             </div>
                             
                             <div class="qr-container">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(student.nis)}" alt="QR Code">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(student.nis)}" alt="QR Code">
                             </div>
                         </div>
                         
                         <div class="ktp-right">
-                            <div class="stripe"></div>
                             <div class="watermark">QR</div>
                             
                             <div class="identity-header">
@@ -2134,7 +2097,7 @@
                                 <div class="data-label">NIS</div>
                                 <div class="data-value highlight">${student.nis}</div>
                                 
-                                <div class="data-label">NAMA LENGKAP</div>
+                                <div class="data-label">NAMA</div>
                                 <div class="data-value">${student.nama}</div>
                                 
                                 <div class="data-label">KELAS</div>
@@ -2142,20 +2105,15 @@
                                 
                                 <div class="data-label">JURUSAN</div>
                                 <div class="data-value">${student.jurusan}</div>
-                                
-                                <div class="data-label">TAHUN AJARAN</div>
-                                <div class="data-value">2024/2025</div>
                             </div>
                             
                             <div class="qr-note">
-                                <p><i class="fas fa-info-circle"></i> QR Code ini dapat digunakan untuk 2x absensi:</p>
-                                <p>✅ <strong>Absen Hadir</strong> (scan pertama hari ini)</p>
-                                <p>🏠 <strong>Absen Pulang</strong> (scan kedua hari ini)</p>
-                                <p style="margin-top: 8px;"><i class="fas fa-map-pin"></i> Lokasi akan tercatat otomatis saat scan</p>
+                                <p><i class="fas fa-info-circle"></i> Scan 1: Hadir • Scan 2: Pulang</p>
+                                <p style="margin-top: 0.5mm;"><i class="fas fa-map-pin"></i> Lokasi otomatis tercatat</p>
                             </div>
                             
                             <div class="footer-note">
-                                * Kartu ini berlaku selama tahun ajaran berjalan
+                                * Berlaku selama menjadi siswa MAS Ibnu Husain
                             </div>
                         </div>
                     </div>
@@ -2173,8 +2131,7 @@
                 return;
             }
             
-            // Buat HTML untuk semua kartu dalam satu halaman (grid 2x2)
-            const printWindow = window.open('', '_blank', 'width=1200,height=800');
+            const printWindow = window.open('', '_blank', 'width=1400,height=900');
             
             let html = `
                 <html>
@@ -2194,43 +2151,50 @@
                             font-family: 'Plus Jakarta Sans', sans-serif;
                             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                             min-height: 100vh;
-                            padding: 20px;
+                            padding: 10mm;
                         }
                         
                         .header {
                             text-align: center;
-                            margin-bottom: 30px;
+                            margin-bottom: 5mm;
                             color: white;
                         }
                         
                         .header h1 {
-                            font-size: 28px;
+                            font-size: 14pt;
                             font-weight: 800;
-                            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                        }
+                        
+                        .header p {
+                            font-size: 9pt;
+                            opacity: 0.9;
                         }
                         
                         .grid {
                             display: grid;
-                            grid-template-columns: repeat(2, 1fr);
-                            gap: 20px;
-                            max-width: 1400px;
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 3mm;
+                            max-width: 210mm;
                             margin: 0 auto;
                         }
                         
                         .ktp-card {
+                            width: 85mm;
+                            height: 54mm;
                             background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-                            border-radius: 30px;
-                            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                            border-radius: 3mm;
+                            box-shadow: 0 3mm 5mm rgba(0,0,0,0.1);
                             display: flex;
                             overflow: hidden;
                             position: relative;
-                            height: 500px;
+                            border: 0.2mm solid #e5e7eb;
                         }
                         
                         .ktp-left {
-                            width: 280px;
+                            width: 32mm;
                             background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%);
-                            padding: 20px;
+                            padding: 2mm;
                             display: flex;
                             flex-direction: column;
                             align-items: center;
@@ -2238,28 +2202,28 @@
                         
                         .school-badge {
                             text-align: center;
-                            margin-bottom: 15px;
+                            margin-bottom: 1mm;
                             color: white;
                         }
                         
-                        .school-badge h3 {
-                            font-size: 12px;
+                        .school-badge h4 {
+                            font-size: 4pt;
                             font-weight: 300;
-                            letter-spacing: 1px;
+                            letter-spacing: 0.3px;
                         }
                         
-                        .school-badge h2 {
-                            font-size: 16px;
-                            font-weight: 800;
+                        .school-badge h5 {
+                            font-size: 5pt;
+                            font-weight: 700;
                         }
                         
                         .photo-container {
-                            width: 140px;
-                            height: 140px;
-                            border-radius: 20px;
+                            width: 12mm;
+                            height: 12mm;
+                            border-radius: 1.5mm;
                             overflow: hidden;
-                            border: 3px solid rgba(255,255,255,0.3);
-                            margin-bottom: 15px;
+                            border: 0.5px solid rgba(255,255,255,0.3);
+                            margin-bottom: 1mm;
                             background: white;
                         }
                         
@@ -2277,52 +2241,60 @@
                             align-items: center;
                             justify-content: center;
                             color: #64748b;
-                            font-size: 40px;
+                            font-size: 6pt;
                         }
                         
                         .qr-container {
                             background: white;
-                            padding: 10px;
-                            border-radius: 15px;
+                            padding: 0.5mm;
+                            border-radius: 1mm;
                         }
                         
                         .qr-container img {
-                            width: 120px;
-                            height: 120px;
+                            width: 12mm;
+                            height: 12mm;
                             display: block;
                         }
                         
                         .ktp-right {
                             flex: 1;
-                            padding: 25px;
+                            padding: 2mm;
                             position: relative;
                         }
                         
                         .identity-header {
                             display: flex;
                             justify-content: space-between;
-                            margin-bottom: 20px;
+                            align-items: center;
+                            margin-bottom: 1mm;
                         }
                         
-                        .identity-title h4 {
-                            font-size: 14px;
+                        .identity-title h5 {
+                            font-size: 3.5pt;
                             color: #6b7280;
                         }
                         
-                        .identity-title h3 {
-                            font-size: 18px;
+                        .identity-title h4 {
+                            font-size: 5pt;
                             font-weight: 800;
                             background: linear-gradient(145deg, #4f46e5, #7c3aed);
                             -webkit-background-clip: text;
                             -webkit-text-fill-color: transparent;
                         }
                         
+                        .chip-mini {
+                            width: 3mm;
+                            height: 2.5mm;
+                            background: linear-gradient(145deg, #d4af37, #f5e7b2);
+                            border-radius: 0.5mm;
+                        }
+                        
                         .data-grid {
                             display: grid;
-                            grid-template-columns: 80px 1fr;
-                            gap: 10px;
-                            margin: 15px 0;
-                            font-size: 12px;
+                            grid-template-columns: 10mm 1fr;
+                            gap: 0.5mm;
+                            font-size: 3.5pt;
+                            margin: 1mm 0;
                         }
                         
                         .data-label {
@@ -2333,6 +2305,9 @@
                         .data-value {
                             font-weight: 600;
                             color: #1f2937;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
                         }
                         
                         .data-value.highlight {
@@ -2341,40 +2316,56 @@
                             -webkit-text-fill-color: transparent;
                         }
                         
+                        .qr-note-mini {
+                            font-size: 3pt;
+                            color: #4f46e5;
+                            background: #e0e7ff;
+                            padding: 0.5mm;
+                            border-radius: 1mm;
+                            margin-top: 0.5mm;
+                        }
+                        
                         .footer-note {
                             position: absolute;
-                            bottom: 20px;
-                            left: 25px;
-                            font-size: 8px;
+                            bottom: 1mm;
+                            left: 2mm;
+                            font-size: 2.5pt;
                             color: #94a3b8;
                         }
                         
                         @media print {
                             body {
                                 background: white;
-                                padding: 10px;
+                                padding: 2mm;
                             }
-                            .header { display: none; }
+                            .header {
+                                display: none;
+                            }
+                            .ktp-card {
+                                box-shadow: none;
+                                border: 0.1mm solid #e5e7eb;
+                            }
                         }
                     </style>
                 </head>
                 <body>
                     <div class="header">
                         <h1>KARTU QR SISWA - MAS IBNU HUSAIN</h1>
-                        <p>Total ${students.length} Siswa</p>
+                        <p>Total ${students.length} Siswa • Ukuran 85x54mm • Scan 1: Hadir • Scan 2: Pulang</p>
                     </div>
                     <div class="grid">
             `;
             
             students.forEach(student => {
                 const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
+                const shortName = student.nama.length > 25 ? student.nama.substring(0, 23) + '...' : student.nama;
                 
                 html += `
                     <div class="ktp-card">
                         <div class="ktp-left">
                             <div class="school-badge">
-                                <h3>MAS IBNU HUSAIN</h3>
-                                <h2>KARTU SISWA</h2>
+                                <h4>MAS IBNU</h4>
+                                <h5>HUSAIN</h5>
                             </div>
                             
                             <div class="photo-container">
@@ -2392,24 +2383,29 @@
                         <div class="ktp-right">
                             <div class="identity-header">
                                 <div class="identity-title">
-                                    <h4>IDENTITAS SISWA</h4>
-                                    <h3>${student.nama.split(' ').slice(0,2).join(' ')}</h3>
+                                    <h5>KARTU SISWA</h5>
+                                    <h4>${shortName}</h4>
                                 </div>
+                                <div class="chip-mini"></div>
                             </div>
                             
                             <div class="data-grid">
                                 <div class="data-label">NIS</div>
                                 <div class="data-value highlight">${student.nis}</div>
-                                <div class="data-label">Nama</div>
-                                <div class="data-value">${student.nama}</div>
-                                <div class="data-label">Kelas</div>
-                                <div class="data-value">${student.kelas}</div>
-                                <div class="data-label">Jurusan</div>
-                                <div class="data-value">${student.jurusan}</div>
+                                
+                                <div class="data-label">KELAS</div>
+                                <div class="data-value">${student.kelas || '-'}</div>
+                                
+                                <div class="data-label">JURUSAN</div>
+                                <div class="data-value">${student.jurusan || '-'}</div>
+                            </div>
+                            
+                            <div class="qr-note-mini">
+                                <i class="fas fa-info-circle"></i> Scan 1: Hadir • Scan 2: Pulang
                             </div>
                             
                             <div class="footer-note">
-                                * Untuk absen hadir & pulang
+                                * Berlaku selama menjadi siswa
                             </div>
                         </div>
                     </div>
@@ -4238,23 +4234,6 @@
             }
         }
 
-        async function saveAttendance() {
-            try {
-                await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BINS.ATTENDANCE}`, {
-                    method: 'PUT',
-                    headers: {
-                        'X-Master-Key': JSONBIN_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(attendanceRecords)
-                });
-                console.log('✅ Attendance saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
-            }
-        }
-
         // ==================== PAGE NAVIGATION ====================
         function showPage(page, event) {
             currentPage = page;
@@ -4395,4 +4374,3 @@
     </script>
 </body>
 </html>
-
