@@ -12,20 +12,18 @@
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
+        /* [CSS SAMA SEPERTI SEBELUMNYA - TIDAK BERUBAH] */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background: linear-gradient(145deg, #0B1120 0%, #1A1F35 50%, #2D1B4A 100%);
             min-height: 100vh;
             position: relative;
         }
-
-        /* Opening Animation */
         .opening-overlay {
             position: fixed;
             top: 0;
@@ -39,17 +37,14 @@
             align-items: center;
             transition: opacity 0.8s ease, visibility 0.8s ease;
         }
-
         .opening-content {
             text-align: center;
             animation: floatAnimation 2s ease-in-out infinite;
         }
-
         @keyframes floatAnimation {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-20px); }
         }
-
         .logo-circle {
             width: 180px;
             height: 180px;
@@ -65,23 +60,19 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1);
             animation: pulseGlow 2s ease-in-out infinite;
         }
-
         @keyframes pulseGlow {
             0%, 100% { box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1); }
             50% { box-shadow: 0 30px 60px rgba(79, 70, 229, 0.5), 0 0 0 4px rgba(255, 255, 255, 0.3); }
         }
-
         .logo-circle img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-
         .logo-circle i {
             font-size: 80px;
             color: rgba(255, 255, 255, 0.5);
         }
-
         .opening-title {
             font-size: 32px;
             font-weight: 800;
@@ -91,14 +82,12 @@
             margin-bottom: 15px;
             letter-spacing: -0.5px;
         }
-
         .opening-subtitle {
             color: rgba(255, 255, 255, 0.6);
             font-size: 16px;
             font-weight: 400;
             margin-bottom: 30px;
         }
-
         .progress-bar {
             width: 300px;
             height: 4px;
@@ -107,7 +96,6 @@
             overflow: hidden;
             margin: 20px auto;
         }
-
         .progress-fill {
             width: 0%;
             height: 100%;
@@ -115,7 +103,6 @@
             border-radius: 10px;
             animation: loading 2s ease-in-out forwards;
         }
-
         @keyframes loading {
             0% { width: 0%; }
             20% { width: 30%; }
@@ -123,8 +110,6 @@
             80% { width: 90%; }
             100% { width: 100%; }
         }
-
-        /* Modern Glass Effect */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -133,13 +118,10 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
         }
-
         .glass-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 30px 60px -12px rgba(79, 70, 229, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2);
         }
-
-        /* Modern Badges */
         .status-badge {
             padding: 8px 16px;
             border-radius: 30px;
@@ -152,39 +134,31 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
         .status-badge.hadir {
             background: linear-gradient(145deg, #10b981, #059669);
             color: white;
         }
-
         .status-badge.pulang {
             background: linear-gradient(145deg, #3b82f6, #2563eb);
             color: white;
         }
-
         .status-badge.izin {
             background: linear-gradient(145deg, #f59e0b, #d97706);
             color: white;
         }
-
         .status-badge.sakit {
             background: linear-gradient(145deg, #ef4444, #dc2626);
             color: white;
         }
-
         .status-badge.absen {
             background: linear-gradient(145deg, #6b7280, #4b5563);
             color: white;
         }
-
-        /* Modern Table */
         .modern-table {
             border-collapse: separate;
             border-spacing: 0 8px;
             width: 100%;
         }
-
         .modern-table th {
             background: linear-gradient(145deg, #1e1b4b, #312e81);
             color: white;
@@ -194,31 +168,24 @@
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
-
         .modern-table th:first-child {
             border-radius: 16px 0 0 16px;
         }
-
         .modern-table th:last-child {
             border-radius: 0 16px 16px 0;
         }
-
         .modern-table td {
             padding: 20px 16px;
             background: white;
             border-bottom: none;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-
         .modern-table tr td:first-child {
             border-radius: 16px 0 0 16px;
         }
-
         .modern-table tr td:last-child {
             border-radius: 0 16px 16px 0;
         }
-
-        /* Modern Buttons */
         .btn-modern {
             position: relative;
             overflow: hidden;
@@ -228,7 +195,6 @@
             border: none;
             box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
         }
-
         .btn-modern::before {
             content: '';
             position: absolute;
@@ -239,17 +205,13 @@
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             transition: left 0.5s ease;
         }
-
         .btn-modern:hover::before {
             left: 100%;
         }
-
         .btn-modern:hover {
             transform: translateY(-3px);
             box-shadow: 0 20px 30px -8px rgba(79, 70, 229, 0.5);
         }
-
-        /* Navigation */
         .nav-btn {
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
@@ -259,19 +221,15 @@
             position: relative;
             overflow: hidden;
         }
-
         .nav-btn:hover {
             background: rgba(255, 255, 255, 0.25);
             transform: translateY(-2px);
             box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
         }
-
         .nav-btn.active {
             background: white;
             color: #4f46e5;
         }
-
-        /* Modal */
         .modal-content {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
@@ -280,7 +238,6 @@
             animation: modalSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 50px 70px -20px rgba(0, 0, 0, 0.4);
         }
-
         @keyframes modalSlideIn {
             from {
                 transform: translateY(-30px) scale(0.9);
@@ -291,8 +248,6 @@
                 opacity: 1;
             }
         }
-
-        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -310,12 +265,10 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
         }
-
         .toast-success { background: linear-gradient(145deg, #10b981, #059669); }
         .toast-error { background: linear-gradient(145deg, #ef4444, #dc2626); }
         .toast-info { background: linear-gradient(145deg, #3b82f6, #2563eb); }
         .toast-warning { background: linear-gradient(145deg, #f59e0b, #d97706); }
-
         @keyframes slideUp {
             from {
                 transform: translateY(100%) scale(0.8);
@@ -326,8 +279,6 @@
                 opacity: 1;
             }
         }
-
-        /* Loading Spinner */
         .loading-spinner {
             width: 50px;
             height: 50px;
@@ -337,13 +288,10 @@
             border-radius: 50%;
             animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        /* Location Badge */
         .location-badge {
             padding: 6px 12px;
             border-radius: 30px;
@@ -353,34 +301,26 @@
             color: #059669;
             border: 1px solid rgba(5, 150, 105, 0.2);
         }
-
         .location-badge.outside {
             background: linear-gradient(145deg, #fef2f2, #fee2e2);
             color: #dc2626;
             border: 1px solid rgba(220, 38, 38, 0.2);
         }
-
-        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-
         ::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
         }
-
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(145deg, #4f46e5, #7c3aed);
             border-radius: 10px;
         }
-
         ::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(145deg, #7c3aed, #4f46e5);
         }
-
-        /* Import Progress */
         .import-progress {
             position: fixed;
             top: 50%;
@@ -394,11 +334,9 @@
             text-align: center;
             min-width: 300px;
         }
-
         .import-progress.hidden {
             display: none;
         }
-
         .progress-bar-import {
             width: 100%;
             height: 8px;
@@ -407,14 +345,11 @@
             overflow: hidden;
             margin: 15px 0;
         }
-
         .progress-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, #4f46e5, #7c3aed);
             transition: width 0.3s ease;
         }
-
-        /* Google Drive Preview */
         .drive-preview-container {
             position: relative;
             width: 100%;
@@ -427,13 +362,11 @@
             border-radius: 12px;
             overflow: hidden;
         }
-
         .drive-preview-image {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
         }
-
         .drive-preview-error {
             background: #f3f4f6;
             display: flex;
@@ -444,7 +377,6 @@
             padding: 20px;
             text-align: center;
         }
-
         .student-image {
             width: 50px;
             height: 50px;
@@ -453,7 +385,6 @@
             border: 2px solid #4f46e5;
             background: #f3f4f6;
         }
-
         .student-image-placeholder {
             width: 50px;
             height: 50px;
@@ -466,7 +397,6 @@
             font-size: 20px;
             border: 2px dashed #cbd5e1;
         }
-
         .modal-preview {
             width: 120px;
             height: 120px;
@@ -475,7 +405,6 @@
             border: 3px solid #4f46e5;
             background: #f8fafc;
         }
-
         .modal-preview-placeholder {
             width: 120px;
             height: 120px;
@@ -488,7 +417,6 @@
             color: #94a3b8;
             border: 2px dashed #cbd5e1;
         }
-
         .drive-guide {
             background: #f0f9ff;
             border: 1px solid #bae6fd;
@@ -497,16 +425,13 @@
             margin-top: 12px;
             font-size: 13px;
         }
-
         .drive-guide ol {
             margin-left: 20px;
             color: #334155;
         }
-
         .drive-guide li {
             margin-bottom: 6px;
         }
-
         .link-example {
             background: #ffffff;
             padding: 6px 10px;
@@ -516,12 +441,9 @@
             border: 1px solid #e2e8f0;
             word-break: break-all;
         }
-
-        /* Note Icon */
         .note-indicator {
             position: relative;
         }
-        
         .note-indicator.has-note::after {
             content: '';
             position: absolute;
@@ -1324,38 +1246,38 @@
     <script>
         // ==================== KONFIGURASI GOOGLE SHEETS ====================
         const SHEETS_CONFIG = {
-            API_KEY: "AIzaSyBX70opf2IbxQ-5XD1qAj0FkXxKmJlH4Rk", // Google Sheets API Key
+            API_KEY: "AIzaSyBX70opf2IbxQ-5XD1qAj0FkXxKmJlH4Rk",
             MAPS_API_KEY: "AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18",
             SPREADSHEETS: {
                 STUDENTS: {
                     ID: "18GxzjmanmXTGbGWA0p1sjcIo2OV_r4ugtpWQPAoFDco",
                     SHEET_NAME: "Siswa",
-                    RANGE: "A:H" // ID, NIS, Nama, Kelas, Jurusan, Photo, CreatedAt, UpdatedAt
+                    RANGE: "A:H"
                 },
                 ATTENDANCE: {
                     ID: "1P-ICTpdkug9a3NxTWy5MMzrXwZH6R4MHz-HePDBL9a8",
                     SHEET_NAME: "Absensi",
-                    RANGE: "A:L" // ID, StudentID, StudentNIS, StudentNama, StudentKelas, StudentJurusan, StudentPhoto, Status, Metode, Tanggal, Timestamp, Keterangan, LocationLat, LocationLng, LocationAccuracy
+                    RANGE: "A:O"
                 },
                 PELANGGARAN: {
                     ID: "1ikOUPo3qd6sFfa6uo5HIEgYarvIlDhVEDujZTEI_EGw",
                     SHEET_NAME: "Pelanggaran",
-                    RANGE: "A:M" // ID, StudentID, StudentNIS, StudentNama, StudentKelas, StudentPhoto, Tanggal, KategoriID, KategoriNama, Poin, Jenis, Keterangan, CreatedAt
+                    RANGE: "A:M"
                 },
                 NOTES: {
                     ID: "1JyONW8FgZ31Qv9YWTpguVbkG7zCfgNAcfXuoBcKqCmM",
                     SHEET_NAME: "Catatan",
-                    RANGE: "A:H" // ID, StudentID, StudentNIS, StudentNama, Note, CreatedAt, UpdatedAt
+                    RANGE: "A:G"
                 },
                 LOCATIONS: {
                     ID: "1iC9oQccoAsgW7JZeqXp5OdYC7erXHmTRSNj7Y4SpUv4",
                     SHEET_NAME: "Lokasi",
-                    RANGE: "A:K" // ID, AttendanceID, StudentID, StudentNIS, StudentNama, Lat, Lng, Accuracy, WithinRadius, Distance, Timestamp
+                    RANGE: "A:K"
                 },
                 CONFIG: {
                     ID: "1H6UgjDQTFO2x79X2so5i7raaad7ElNcX28OfDrw0EIE",
                     SHEET_NAME: "Config",
-                    RANGE: "A:B" // Key, Value
+                    RANGE: "A:B"
                 }
             },
             BASE_URL: "https://sheets.googleapis.com/v4/spreadsheets"
@@ -1409,6 +1331,26 @@
             }
         }
 
+        async function clearSheetData(spreadsheetId, sheetName, headers) {
+            try {
+                // Tulis ulang hanya headers
+                const url = `${SHEETS_CONFIG.BASE_URL}/${spreadsheetId}/values/${sheetName}!A:Z?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        values: [headers]
+                    })
+                });
+                return true;
+            } catch (error) {
+                console.error(`Error clearing sheet ${spreadsheetId}:`, error);
+                throw error;
+            }
+        }
+
         async function updateSheetData(spreadsheetId, sheetName, range, values) {
             try {
                 const url = `${SHEETS_CONFIG.BASE_URL}/${spreadsheetId}/values/${sheetName}!${range}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
@@ -1449,30 +1391,6 @@
             }
         }
 
-        async function deleteSheetRow(spreadsheetId, sheetName, rowIndex) {
-            try {
-                // Google Sheets API tidak memiliki delete row langsung, kita perlu membaca semua data lalu menulis ulang
-                const data = await fetchSheetData(spreadsheetId, sheetName, "A:Z");
-                if (rowIndex < data.length) {
-                    data.splice(rowIndex, 1);
-                    // Update seluruh sheet dengan data baru
-                    const url = `${SHEETS_CONFIG.BASE_URL}/${spreadsheetId}/values/${sheetName}!A:Z?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
-                    await fetch(url, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            values: data
-                        })
-                    });
-                }
-            } catch (error) {
-                console.error(`Error deleting row from sheet ${spreadsheetId}:`, error);
-                throw error;
-            }
-        }
-
         // ==================== FUNGSI LOAD DATA DARI SHEETS ====================
         async function loadStudents() {
             try {
@@ -1482,9 +1400,9 @@
                     SHEETS_CONFIG.SPREADSHEETS.STUDENTS.RANGE
                 );
                 
-                // Skip header row
+                // Skip header row (baris pertama)
                 students = rows.slice(1).map(row => ({
-                    id: row[0] || generateId(),
+                    id: row[0] || '',
                     nis: row[1] || '',
                     nama: row[2] || '',
                     kelas: row[3] || '',
@@ -1492,13 +1410,15 @@
                     photo: row[5] || '',
                     created_at: row[6] ? parseInt(row[6]) : Date.now(),
                     updated_at: row[7] ? parseInt(row[7]) : Date.now()
-                })).filter(s => s.nis && s.nama);
+                })).filter(s => s.id && s.nis && s.nama);
                 
+                // Update cache
                 studentCache.clear();
                 students.forEach(student => {
                     const nis = String(student.nis).trim();
                     studentCache.set(nis, student);
                     studentCache.set(nis.replace(/^0+/, ''), student);
+                    studentCache.set(student.id, student);
                 });
                 
                 console.log('✅ Loaded students:', students.length);
@@ -1521,7 +1441,7 @@
                 // Skip header row
                 attendanceRecords = rows.slice(1).map(row => {
                     const record = {
-                        id: row[0] || generateId(),
+                        id: row[0] || '',
                         student_id: row[1] || '',
                         student_nis: row[2] || '',
                         student_nama: row[3] || '',
@@ -1545,7 +1465,7 @@
                     }
                     
                     return record;
-                }).filter(r => r.student_id && r.tanggal);
+                }).filter(r => r.id && r.student_id && r.tanggal);
                 
                 console.log('✅ Loaded attendance:', attendanceRecords.length);
                 updateTodayStats();
@@ -1566,7 +1486,7 @@
                 
                 // Skip header row
                 pelanggaranRecords = rows.slice(1).map(row => ({
-                    id: row[0] || generateId(),
+                    id: row[0] || '',
                     student_id: row[1] || '',
                     student_nis: row[2] || '',
                     student_nama: row[3] || '',
@@ -1579,7 +1499,7 @@
                     jenis: row[10] || '',
                     keterangan: row[11] || '',
                     created_at: row[12] ? parseInt(row[12]) : Date.now()
-                })).filter(p => p.student_id && p.tanggal);
+                })).filter(p => p.id && p.student_id && p.tanggal);
                 
                 console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
                 return pelanggaranRecords;
@@ -1599,14 +1519,14 @@
                 
                 // Skip header row
                 studentNotes = rows.slice(1).map(row => ({
-                    id: row[0] || generateId(),
+                    id: row[0] || '',
                     student_id: row[1] || '',
                     student_nis: row[2] || '',
                     student_nama: row[3] || '',
                     note: row[4] || '',
                     created_at: row[5] ? parseInt(row[5]) : Date.now(),
                     updated_at: row[6] ? parseInt(row[6]) : Date.now()
-                })).filter(n => n.student_id && n.note);
+                })).filter(n => n.id && n.student_id && n.note);
                 
                 console.log('✅ Loaded notes:', studentNotes.length);
             } catch (error) {
@@ -1625,7 +1545,7 @@
                 
                 // Skip header row
                 locationRecords = rows.slice(1).map(row => ({
-                    id: row[0] || generateId(),
+                    id: row[0] || '',
                     attendance_id: row[1] || '',
                     student_id: row[2] || '',
                     student_nis: row[3] || '',
@@ -1636,7 +1556,7 @@
                     within_radius: row[8] === 'true',
                     distance: parseFloat(row[9]) || 0,
                     timestamp: row[10] ? parseInt(row[10]) : Date.now()
-                })).filter(l => l.student_id);
+                })).filter(l => l.id && l.student_id);
                 
                 console.log('✅ Loaded location records:', locationRecords.length);
                 return locationRecords;
@@ -1681,10 +1601,14 @@
         // ==================== FUNGSI SAVE DATA KE SHEETS ====================
         async function saveStudents() {
             try {
-                const rows = [['ID', 'NIS', 'Nama', 'Kelas', 'Jurusan', 'Photo', 'CreatedAt', 'UpdatedAt']];
+                // Header untuk sheet Siswa
+                const headers = ['id', 'nis', 'nama', 'kelas', 'jurusan', 'photo', 'created_at', 'updated_at'];
+                
+                // Buat array values
+                const values = [headers];
                 
                 students.forEach(student => {
-                    rows.push([
+                    values.push([
                         student.id,
                         student.nis,
                         student.nama,
@@ -1696,6 +1620,7 @@
                     ]);
                 });
                 
+                // Tulis seluruh data ke sheet (PUT)
                 const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.STUDENTS.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.STUDENTS.SHEET_NAME}!A:H?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
                 await fetch(url, {
                     method: 'PUT',
@@ -1703,7 +1628,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        values: rows
+                        values: values
                     })
                 });
                 
@@ -1711,12 +1636,16 @@
             } catch (error) {
                 console.error('❌ Gagal simpan siswa:', error);
                 showToast('Gagal simpan siswa', 'error');
+                throw error;
             }
         }
 
         async function saveAttendance() {
             try {
-                const rows = [['ID', 'StudentID', 'StudentNIS', 'StudentNama', 'StudentKelas', 'StudentJurusan', 'StudentPhoto', 'Status', 'Metode', 'Tanggal', 'Timestamp', 'Keterangan', 'LocationLat', 'LocationLng', 'LocationAccuracy']];
+                // Header untuk sheet Absensi
+                const headers = ['id', 'student_id', 'student_nis', 'student_nama', 'student_kelas', 'student_jurusan', 'student_photo', 'status', 'metode', 'tanggal', 'timestamp', 'keterangan', 'location_lat', 'location_lng', 'location_accuracy'];
+                
+                const values = [headers];
                 
                 attendanceRecords.forEach(record => {
                     const row = [
@@ -1743,7 +1672,7 @@
                         row.push('', '', '');
                     }
                     
-                    rows.push(row);
+                    values.push(row);
                 });
                 
                 const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE.SHEET_NAME}!A:O?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
@@ -1753,7 +1682,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        values: rows
+                        values: values
                     })
                 });
                 
@@ -1761,15 +1690,19 @@
             } catch (error) {
                 console.error('❌ Gagal simpan absensi:', error);
                 showToast('Gagal simpan absensi', 'error');
+                throw error;
             }
         }
 
         async function savePelanggaran() {
             try {
-                const rows = [['ID', 'StudentID', 'StudentNIS', 'StudentNama', 'StudentKelas', 'StudentPhoto', 'Tanggal', 'KategoriID', 'KategoriNama', 'Poin', 'Jenis', 'Keterangan', 'CreatedAt']];
+                // Header untuk sheet Pelanggaran
+                const headers = ['id', 'student_id', 'student_nis', 'student_nama', 'student_kelas', 'student_photo', 'tanggal', 'kategori_id', 'kategori_nama', 'poin', 'jenis', 'keterangan', 'created_at'];
+                
+                const values = [headers];
                 
                 pelanggaranRecords.forEach(p => {
-                    rows.push([
+                    values.push([
                         p.id,
                         p.student_id,
                         p.student_nis,
@@ -1793,7 +1726,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        values: rows
+                        values: values
                     })
                 });
                 
@@ -1801,15 +1734,19 @@
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran:', error);
                 showToast('Gagal simpan pelanggaran', 'error');
+                throw error;
             }
         }
 
         async function saveStudentNotes() {
             try {
-                const rows = [['ID', 'StudentID', 'StudentNIS', 'StudentNama', 'Note', 'CreatedAt', 'UpdatedAt']];
+                // Header untuk sheet Catatan
+                const headers = ['id', 'student_id', 'student_nis', 'student_nama', 'note', 'created_at', 'updated_at'];
+                
+                const values = [headers];
                 
                 studentNotes.forEach(note => {
-                    rows.push([
+                    values.push([
                         note.id,
                         note.student_id,
                         note.student_nis,
@@ -1827,7 +1764,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        values: rows
+                        values: values
                     })
                 });
                 
@@ -1835,15 +1772,19 @@
             } catch (error) {
                 console.error('Gagal simpan catatan:', error);
                 showToast('Gagal simpan catatan', 'error');
+                throw error;
             }
         }
 
         async function saveConfig() {
             try {
-                const rows = [['Key', 'Value']];
+                // Header untuk sheet Config
+                const headers = ['key', 'value'];
+                
+                const values = [headers];
                 
                 Object.entries(configData).forEach(([key, value]) => {
-                    rows.push([key, value]);
+                    values.push([key, value]);
                 });
                 
                 const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.CONFIG.ID}/values/${SHEETS_CONFIG.SPREADSHEETS.CONFIG.SHEET_NAME}!A:B?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
@@ -1853,13 +1794,14 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        values: rows
+                        values: values
                     })
                 });
                 
                 console.log('✅ Config saved to sheets');
             } catch (error) {
                 console.error('Gagal simpan konfigurasi:', error);
+                throw error;
             }
         }
 
@@ -2164,7 +2106,7 @@
 
         // ==================== FUNGSI UTILITY ====================
         function generateId() {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+            return 'ID_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
         }
 
         function formatDate(date) {
@@ -3882,31 +3824,27 @@
             const student = students.find(s => s.id === studentId);
             if (!student) return;
             
-            let existingAttendance = attendanceRecords.find(r => 
-                r.student_id === studentId && 
-                r.tanggal === currentDate && 
-                r.status === (jenis === 'hadir' ? 'hadir' : 'pulang')
+            // Hapus record lama untuk jenis ini jika ada
+            attendanceRecords = attendanceRecords.filter(r => 
+                !(r.student_id === studentId && r.tanggal === currentDate && r.status === (jenis === 'hadir' ? 'hadir' : 'pulang'))
             );
             
-            if (existingAttendance) {
-                existingAttendance.status = status;
-            } else {
-                const newAttendance = {
-                    id: generateId(),
-                    student_id: student.id,
-                    student_nis: student.nis,
-                    student_nama: student.nama,
-                    student_kelas: student.kelas,
-                    student_jurusan: student.jurusan,
-                    student_photo: student.photo || '',
-                    status: status,
-                    metode: 'manual',
-                    keterangan: '',
-                    tanggal: currentDate,
-                    timestamp: Date.now()
-                };
-                attendanceRecords.push(newAttendance);
-            }
+            // Tambah record baru
+            const newAttendance = {
+                id: generateId(),
+                student_id: student.id,
+                student_nis: student.nis,
+                student_nama: student.nama,
+                student_kelas: student.kelas,
+                student_jurusan: student.jurusan,
+                student_photo: student.photo || '',
+                status: status,
+                metode: 'manual',
+                keterangan: '',
+                tanggal: currentDate,
+                timestamp: Date.now()
+            };
+            attendanceRecords.push(newAttendance);
             
             await saveAttendance();
             
@@ -3959,29 +3897,27 @@
             const filteredStudents = getFilteredStudents();
             
             for (const student of filteredStudents) {
-                const existingHadir = attendanceRecords.find(r => 
-                    r.student_id === student.id && 
-                    r.tanggal === currentDate && 
-                    r.status === 'hadir'
+                // Hapus record hadir lama jika ada
+                attendanceRecords = attendanceRecords.filter(r => 
+                    !(r.student_id === student.id && r.tanggal === currentDate && r.status === 'hadir')
                 );
                 
-                if (!existingHadir) {
-                    const newAttendance = {
-                        id: generateId(),
-                        student_id: student.id,
-                        student_nis: student.nis,
-                        student_nama: student.nama,
-                        student_kelas: student.kelas,
-                        student_jurusan: student.jurusan,
-                        student_photo: student.photo || '',
-                        status: 'hadir',
-                        metode: 'manual',
-                        keterangan: '',
-                        tanggal: currentDate,
-                        timestamp: Date.now()
-                    };
-                    attendanceRecords.push(newAttendance);
-                }
+                // Tambah record baru
+                const newAttendance = {
+                    id: generateId(),
+                    student_id: student.id,
+                    student_nis: student.nis,
+                    student_nama: student.nama,
+                    student_kelas: student.kelas,
+                    student_jurusan: student.jurusan,
+                    student_photo: student.photo || '',
+                    status: 'hadir',
+                    metode: 'manual',
+                    keterangan: '',
+                    tanggal: currentDate,
+                    timestamp: Date.now()
+                };
+                attendanceRecords.push(newAttendance);
             }
             
             await saveAttendance();
@@ -3998,29 +3934,27 @@
             const filteredStudents = getFilteredStudents();
             
             for (const student of filteredStudents) {
-                const existingPulang = attendanceRecords.find(r => 
-                    r.student_id === student.id && 
-                    r.tanggal === currentDate && 
-                    r.status === 'pulang'
+                // Hapus record pulang lama jika ada
+                attendanceRecords = attendanceRecords.filter(r => 
+                    !(r.student_id === student.id && r.tanggal === currentDate && r.status === 'pulang')
                 );
                 
-                if (!existingPulang) {
-                    const newAttendance = {
-                        id: generateId(),
-                        student_id: student.id,
-                        student_nis: student.nis,
-                        student_nama: student.nama,
-                        student_kelas: student.kelas,
-                        student_jurusan: student.jurusan,
-                        student_photo: student.photo || '',
-                        status: 'pulang',
-                        metode: 'manual',
-                        keterangan: '',
-                        tanggal: currentDate,
-                        timestamp: Date.now()
-                    };
-                    attendanceRecords.push(newAttendance);
-                }
+                // Tambah record baru
+                const newAttendance = {
+                    id: generateId(),
+                    student_id: student.id,
+                    student_nis: student.nis,
+                    student_nama: student.nama,
+                    student_kelas: student.kelas,
+                    student_jurusan: student.jurusan,
+                    student_photo: student.photo || '',
+                    status: 'pulang',
+                    metode: 'manual',
+                    keterangan: '',
+                    tanggal: currentDate,
+                    timestamp: Date.now()
+                };
+                attendanceRecords.push(newAttendance);
             }
             
             await saveAttendance();
@@ -4042,6 +3976,7 @@
         }
 
         async function confirmDeleteStatus() {
+            // Hapus semua absensi untuk tanggal ini
             attendanceRecords = attendanceRecords.filter(r => r.tanggal !== currentDate);
             
             await saveAttendance();
@@ -4533,6 +4468,57 @@
             }
         }
 
+        // ==================== FUNGSI IMPORT EXCEL ====================
+        async function handleExcelImport(input) {
+            if (!input.files || !input.files[0]) return;
+            
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                try {
+                    showLoading('Mengimpor data...');
+                    
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // Konversi ke format student
+                    const newStudents = jsonData.map(row => ({
+                        id: generateId(),
+                        nis: row.NIS || row.nis || row.Nis || '',
+                        nama: row.NAMA || row.nama || row.Nama || '',
+                        kelas: row.KELAS || row.kelas || row.Kelas || '',
+                        jurusan: row.JURUSAN || row.jurusan || row.Jurusan || '',
+                        photo: row.PHOTO || row.photo || row.Photo || '',
+                        created_at: Date.now(),
+                        updated_at: Date.now()
+                    })).filter(s => s.nis && s.nama);
+                    
+                    students = [...students, ...newStudents];
+                    
+                    await saveStudents();
+                    
+                    renderStudentTable();
+                    renderSiswaManagementTable();
+                    updateClassFilter();
+                    
+                    input.value = '';
+                    showToast(`Berhasil import ${newStudents.length} siswa`, 'success');
+                    
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showToast('Gagal import file', 'error');
+                } finally {
+                    hideLoading();
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
         // ==================== INITIALIZATION ====================
         async function init() {
             await loadOpeningLogo();
@@ -4584,6 +4570,7 @@
         }
 
         window.onload = init;
+        window.handleExcelImport = handleExcelImport;
 
         // Export functions
         window.showPage = showPage;
