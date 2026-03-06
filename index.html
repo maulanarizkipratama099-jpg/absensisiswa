@@ -1322,36 +1322,20 @@
     <div id="toastContainer"></div>
 
     <script>
-        // ==================== KONFIGURASI ====================
-        // Mode pengembangan: true = pakai data default, false = pakai Google Sheets
-        const USE_MOCK_DATA = true; // Ganti ke false jika sudah siap pakai Google Sheets
+       // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
+const USE_MOCK_DATA = false; // SET KE false UNTUK PAKAI GOOGLE SHEET
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxs1neMiQgwvBVluom78oSjxoU1gainSTTkacTNR75VKctZEFZ-5ooIf35hV44RHSty/exec"; // GANTI DENGAN URL WEB APP ANDA
 
-        // ==================== KONFIGURASI GOOGLE SHEETS ====================
-        const GOOGLE_SHEETS_CONFIG = {
-            // GANTI DENGAN ID GOOGLE SHEET ANDA
-            SPREADSHEET_ID: "18GxzjmanmXTGbGWA0p1sjcIo2OV_r4ugtpWQPAoFDco", 
-            API_KEY: "AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18", // ✅ Sudah diperbaiki
-            
-            SHEETS: {
-                CONFIG: "CONFIG",
-                STUDENTS: "STUDENTS",
-                ATTENDANCE: "ATTENDANCE",
-                PELANGGARAN: "PELANGGARAN",
-                PELANGGARAN_KATEGORI: "PELANGGARAN_KATEGORI",
-                LOCATIONS: "LOCATIONS",
-                NOTES: "NOTES"
-            },
-            
-            RANGES: {
-                CONFIG: "A:B",
-                STUDENTS: "A:H",
-                ATTENDANCE: "A:O",
-                PELANGGARAN: "A:M",
-                PELANGGARAN_KATEGORI: "A:D",
-                LOCATIONS: "A:K",
-                NOTES: "A:G"
-            }
-        };
+// Sheet names (sama seperti sebelumnya)
+const SHEET_NAMES = {
+    CONFIG: "CONFIG",
+    STUDENTS: "STUDENTS",
+    ATTENDANCE: "ATTENDANCE",
+    PELANGGARAN: "PELANGGARAN",
+    PELANGGARAN_KATEGORI: "PELANGGARAN_KATEGORI",
+    LOCATIONS: "LOCATIONS",
+    NOTES: "NOTES"
+};
 
         // Sheet ID untuk hafalan
         const SHEET_IDS = {
@@ -1432,77 +1416,129 @@
         let studentCache = new Map();
         let surahNames = [];
 
-        // ==================== FUNGSI GOOGLE SHEETS ====================
-        async function fetchSheetData(sheetName, range = null) {
-            // Jika mode mock data aktif, langsung kembalikan data default
-            if (USE_MOCK_DATA) {
-                console.log(`📋 Menggunakan mock data untuk ${sheetName}`);
-                return DEFAULT_DATA[sheetName] || [];
+       // ==================== FUNGSI BARU UNTUK AKSES GOOGLE SHEETS VIA APPS SCRIPT ====================
+async function fetchSheetData(sheetName) {
+    if (USE_MOCK_DATA) {
+        console.log(`📋 Menggunakan mock data untuk ${sheetName}`);
+        return DEFAULT_DATA[sheetName] || [];
+    }
+    
+    try {
+        // Map sheet name to action
+        const actionMap = {
+            'CONFIG': 'getConfig',
+            'STUDENTS': 'getStudents',
+            'ATTENDANCE': 'getAttendance',
+            'PELANGGARAN': 'getPelanggaran',
+            'PELANGGARAN_KATEGORI': 'getKategori',
+            'LOCATIONS': 'getLocations',
+            'NOTES': 'getNotes'
+        };
+        
+        const action = actionMap[sheetName] || `get${sheetName.charAt(0).toUpperCase() + sheetName.slice(1).toLowerCase()}`;
+        const url = `${APPS_SCRIPT_URL}?action=${action}`;
+        
+        console.log(`📥 Fetching ${sheetName}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 detik timeout
+        
+        const response = await fetch(url, { 
+            signal: controller.signal,
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json'
             }
-            
-            try {
-                const rangeToUse = range || GOOGLE_SHEETS_CONFIG.RANGES[sheetName] || "A:Z";
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID}/values/${sheetName}!${rangeToUse}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
-                
-                console.log(`📥 Fetching ${sheetName}...`);
-                
-                // Tambahkan timeout 5 detik
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
-                const response = await fetch(url, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    console.warn(`⚠️ Gagal fetch ${sheetName} (HTTP ${response.status}), menggunakan data default`);
-                    // Coba load dari cache
-                    const cached = localStorage.getItem(`backup_${sheetName}`);
-                    if (cached) {
-                        return JSON.parse(cached);
-                    }
-                    return DEFAULT_DATA[sheetName] || [];
-                }
-                
-                const data = await response.json();
-                return data.values || DEFAULT_DATA[sheetName] || [];
-            } catch (error) {
-                console.error(`❌ Gagal fetch ${sheetName}:`, error);
-                // Coba load dari cache
-                const cached = localStorage.getItem(`backup_${sheetName}`);
-                if (cached) {
-                    console.log(`📦 Memuat ${sheetName} dari cache`);
-                    return JSON.parse(cached);
-                }
-                console.warn(`⚠️ Menggunakan data default untuk ${sheetName}`);
-                return DEFAULT_DATA[sheetName] || [];
-            }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            return result.data || [];
+        } else {
+            console.error('Error from Apps Script:', result.error);
+            // Coba load dari cache
+            const cached = localStorage.getItem(`backup_${sheetName}`);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+            return DEFAULT_DATA[sheetName] || [];
+        }
+        
+    } catch (error) {
+        console.error(`❌ Gagal fetch ${sheetName}:`, error);
+        const cached = localStorage.getItem(`backup_${sheetName}`);
+        if (cached) {
+            console.log(`📦 Memuat ${sheetName} dari cache`);
+            return JSON.parse(cached);
+        }
+        return DEFAULT_DATA[sheetName] || [];
+    }
+}
 
-        async function updateSheetData(sheetName, values) {
-            try {
-                // Simpan ke localStorage sebagai backup
-                localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
-                
-                // Simpan ke sessionStorage untuk sesi ini
-                sessionStorage.setItem(`cache_${sheetName}`, JSON.stringify(values));
-                
-                // Log untuk development
-                console.log(`📝 Data ${sheetName} disimpan di cache lokal (${values.length} baris)`);
-                
-                // Di mode mock, kita hanya simpan di localStorage
-                if (USE_MOCK_DATA) {
-                    return true;
-                }
-                
-                // TODO: Untuk production dengan Google Sheets, perlu implementasi OAuth2
-                // atau menggunakan Google Apps Script Web App
-                
-                return true;
-            } catch (error) {
-                console.error(`❌ Gagal update ${sheetName}:`, error);
-                return false;
-            }
+        
+async function updateSheetData(sheetName, values) {
+    try {
+        // Simpan ke localStorage sebagai backup
+        localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
+        
+        console.log(`📝 Data ${sheetName} disimpan di cache lokal (${values.length} baris)`);
+        
+        if (USE_MOCK_DATA) {
+            return true;
         }
+        
+        // Map sheet name to action
+        const actionMap = {
+            'CONFIG': 'saveConfig',
+            'STUDENTS': 'saveStudents',
+            'ATTENDANCE': 'saveAttendance',
+            'PELANGGARAN': 'savePelanggaran',
+            'PELANGGARAN_KATEGORI': 'saveKategori',
+            'LOCATIONS': 'saveLocations',
+            'NOTES': 'saveNotes'
+        };
+        
+        const action = actionMap[sheetName] || `save${sheetName.charAt(0).toUpperCase() + sheetName.slice(1).toLowerCase()}`;
+        
+        // Kirim ke Apps Script menggunakan FormData (untuk POST)
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('data', JSON.stringify(values));
+        
+        console.log(`📤 Mengirim ${sheetName} ke Apps Script...`);
+        
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log(`✅ ${sheetName} saved to Google Sheets`);
+            return true;
+        } else {
+            console.error(`❌ Gagal simpan ${sheetName}:`, result.error);
+            return false;
+        }
+        
+    } catch (error) {
+        console.error(`❌ Gagal update ${sheetName}:`, error);
+        return false;
+    }
+}
 
         function arrayToObjects(rows) {
             if (!rows || rows.length < 2) return [];
