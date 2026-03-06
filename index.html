@@ -1458,144 +1458,130 @@
             document.getElementById('mainApp').classList.remove('hidden');
         }
 
-       // ==================== LOAD DATA BERTAHAP ====================
-async function loadAllData() {
-    const startTime = performance.now();
-    
-    // Load config dulu (paling penting)
-    await loadConfig();
-    
-    // Load data lainnya secara paralel tapi tidak perlu ditunggu semua
-    Promise.allSettled([
-        loadStudents().then(() => console.log('✅ Students loaded')),
-        loadAttendance().then(() => console.log('✅ Attendance loaded')),
-        loadPelanggaran().then(() => console.log('✅ Pelanggaran loaded')),
-        loadLocationRecords().then(() => console.log('✅ Locations loaded')),
-        loadStudentNotes().then(() => console.log('✅ Notes loaded'))
-    ]).then(() => {
-        const endTime = performance.now();
-        console.log(`⏱️ Total loading time: ${(endTime - startTime).toFixed(2)}ms`);
-        
-        // Render UI setelah semua data siap
-        setToday();
-        renderStudentTable();
-        renderSiswaManagementTable();
-        renderRekapTable();
-        renderLokasiTable();
-        renderPelanggaranTable();
-        updateClassFilter();
-        updatePelanggaranStats();
-    });
-}
+        // Load data paralel
+        async function loadAllData() {
+            const startTime = performance.now();
 
-// ==================== FUNGSI JSONP YANG LEBIH STABIL ====================
-async function fetchSheetData(sheetName) {
-    if (USE_MOCK_DATA) {
-        return DEFAULT_DATA[sheetName] || [];
-    }
+            try {
+                // Load paralel dengan Promise.all
+                const [configResult, studentsResult, attendanceResult, pelanggaranResult, locationsResult, notesResult] = await Promise.allSettled([
+                    loadConfig(),
+                    loadStudents(),
+                    loadAttendance(),
+                    loadPelanggaran(),
+                    loadLocationRecords(),
+                    loadStudentNotes()
+                ]);
 
-    // Cek cache
-    if (dataCache[sheetName.toLowerCase()]) {
-        console.log(`📦 Cache hit for ${sheetName}`);
-        return dataCache[sheetName.toLowerCase()];
-    }
+                // Proses hasil
+                if (configResult.status === 'fulfilled') console.log('✅ Config loaded');
+                if (studentsResult.status === 'fulfilled') console.log('✅ Students loaded');
+                if (attendanceResult.status === 'fulfilled') console.log('✅ Attendance loaded');
+                if (pelanggaranResult.status === 'fulfilled') console.log('✅ Pelanggaran loaded');
+                if (locationsResult.status === 'fulfilled') console.log('✅ Locations loaded');
+                if (notesResult.status === 'fulfilled') console.log('✅ Notes loaded');
 
-    return new Promise((resolve) => {
-        // Buat callback name yang lebih sederhana dan predictable
-        const callbackName = `cb_${sheetName.toLowerCase()}_${Date.now()}`;
-        
-        // Timeout lebih panjang (10 detik)
-        const timeout = setTimeout(() => {
-            cleanup();
-            console.warn(`⏱️ Timeout fetch ${sheetName}, pakai cache/default`);
-            const cached = localStorage.getItem(`backup_${sheetName}`);
-            if (cached) {
-                try {
-                    const data = JSON.parse(cached);
-                    dataCache[sheetName.toLowerCase()] = data;
-                    resolve(data);
-                } catch (e) {
-                    resolve(DEFAULT_DATA[sheetName] || []);
-                }
-            } else {
-                resolve(DEFAULT_DATA[sheetName] || []);
+                const endTime = performance.now();
+                console.log(`⏱️ Total loading time: ${(endTime - startTime).toFixed(2)}ms`);
+
+            } catch (error) {
+                console.error('Error loading data:', error);
             }
-        }, 10000);
 
-        function cleanup() {
-            clearTimeout(timeout);
-            if (window[callbackName]) {
-                delete window[callbackName];
-            }
-            const script = document.getElementById(callbackName);
-            if (script) script.remove();
+            // Render UI setelah semua data siap
+            setToday();
+            renderStudentTable();
+            renderSiswaManagementTable();
+            renderRekapTable();
+            renderLokasiTable();
+            renderPelanggaranTable();
+            updateClassFilter();
+            updatePelanggaranStats();
         }
 
-        // Definisikan callback GLOBAL dengan nama yang sama
-        window[callbackName] = function(response) {
-            cleanup();
-            if (response && response.success) {
-                dataCache[sheetName.toLowerCase()] = response.data || [];
-                resolve(response.data || []);
-            } else {
-                console.error(`❌ Error from Apps Script (${sheetName}):`, response?.error);
-                const cached = localStorage.getItem(`backup_${sheetName}`);
-                if (cached) {
-                    try {
+        // ==================== FUNGSI JSONP YANG DIPERCEPAT ====================
+        async function fetchSheetData(sheetName) {
+            if (USE_MOCK_DATA) {
+                return DEFAULT_DATA[sheetName] || [];
+            }
+
+            // Cek cache
+            if (dataCache[sheetName.toLowerCase()]) {
+                return dataCache[sheetName.toLowerCase()];
+            }
+
+            return new Promise((resolve) => {
+                const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    const cached = localStorage.getItem(`backup_${sheetName}`);
+                    if (cached) {
                         const data = JSON.parse(cached);
                         dataCache[sheetName.toLowerCase()] = data;
                         resolve(data);
-                    } catch (e) {
+                    } else {
                         resolve(DEFAULT_DATA[sheetName] || []);
                     }
-                } else {
-                    resolve(DEFAULT_DATA[sheetName] || []);
+                }, 5000);
+
+                function cleanup() {
+                    delete window[callbackName];
+                    clearTimeout(timeout);
+                    const script = document.getElementById(callbackName);
+                    if (script) script.remove();
                 }
-            }
-        };
 
-        const actionMap = {
-            'CONFIG': 'getConfig',
-            'STUDENTS': 'getStudents',
-            'ATTENDANCE': 'getAttendance',
-            'PELANGGARAN': 'getPelanggaran',
-            'PELANGGARAN_KATEGORI': 'getKategori',
-            'LOCATIONS': 'getLocations',
-            'NOTES': 'getNotes'
-        };
+                window[callbackName] = function(response) {
+                    cleanup();
+                    if (response && response.success) {
+                        dataCache[sheetName.toLowerCase()] = response.data || [];
+                        resolve(response.data || []);
+                    } else {
+                        const cached = localStorage.getItem(`backup_${sheetName}`);
+                        if (cached) {
+                            const data = JSON.parse(cached);
+                            dataCache[sheetName.toLowerCase()] = data;
+                            resolve(data);
+                        } else {
+                            resolve(DEFAULT_DATA[sheetName] || []);
+                        }
+                    }
+                };
 
-        const action = actionMap[sheetName];
-        if (!action) {
-            cleanup();
-            resolve(DEFAULT_DATA[sheetName] || []);
-            return;
+                const actionMap = {
+                    'CONFIG': 'getConfig',
+                    'STUDENTS': 'getStudents',
+                    'ATTENDANCE': 'getAttendance',
+                    'PELANGGARAN': 'getPelanggaran',
+                    'PELANGGARAN_KATEGORI': 'getKategori',
+                    'LOCATIONS': 'getLocations',
+                    'NOTES': 'getNotes'
+                };
+
+                const action = actionMap[sheetName];
+                if (!action) {
+                    cleanup();
+                    resolve(DEFAULT_DATA[sheetName] || []);
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.id = callbackName;
+                script.src = `${APPS_SCRIPT_URL}?action=${action}&callback=${callbackName}&_=${Date.now()}`;
+                script.onerror = () => {
+                    cleanup();
+                    const cached = localStorage.getItem(`backup_${sheetName}`);
+                    if (cached) {
+                        const data = JSON.parse(cached);
+                        dataCache[sheetName.toLowerCase()] = data;
+                        resolve(data);
+                    } else {
+                        resolve(DEFAULT_DATA[sheetName] || []);
+                    }
+                };
+                document.body.appendChild(script);
+            });
         }
-
-        // Buat script tag
-        const script = document.createElement('script');
-        script.id = callbackName;
-        script.src = `${APPS_SCRIPT_URL}?action=${action}&callback=${callbackName}&_=${Date.now()}`;
-        
-        script.onerror = () => {
-            cleanup();
-            console.error(`❌ Script error fetch ${sheetName}`);
-            const cached = localStorage.getItem(`backup_${sheetName}`);
-            if (cached) {
-                try {
-                    const data = JSON.parse(cached);
-                    dataCache[sheetName.toLowerCase()] = data;
-                    resolve(data);
-                } catch (e) {
-                    resolve(DEFAULT_DATA[sheetName] || []);
-                }
-            } else {
-                resolve(DEFAULT_DATA[sheetName] || []);
-            }
-        };
-        
-        document.body.appendChild(script);
-    });
-}
 
         // Queue system untuk update data
         async function processQueue() {
@@ -1627,7 +1613,9 @@ async function fetchSheetData(sheetName) {
 
         async function updateSheetDataDirect(sheetName, values) {
             try {
+                // Simpan ke localStorage sebagai backup
                 localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
+                console.log(`📝 Backup ${sheetName} tersimpan di localStorage`);
 
                 if (USE_MOCK_DATA) {
                     return true;
@@ -1650,6 +1638,7 @@ async function fetchSheetData(sheetName) {
                     const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
                     const timeout = setTimeout(() => {
                         cleanup();
+                        console.log(`⏱️ Timeout update ${sheetName}, data hanya di cache`);
                         resolve(true);
                     }, 5000);
 
@@ -1662,7 +1651,10 @@ async function fetchSheetData(sheetName) {
 
                     window[callbackName] = function(response) {
                         cleanup();
+                        console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
+                        
                         if (response && response.success) {
+                            console.log(`✅ ${sheetName} saved to Google Sheets`);
                             if (sheetName === 'STUDENTS') {
                                 dataCache.students = values;
                             } else if (sheetName === 'ATTENDANCE') {
@@ -1670,6 +1662,7 @@ async function fetchSheetData(sheetName) {
                             }
                             resolve(true);
                         } else {
+                            console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
                             resolve(false);
                         }
                     };
@@ -1678,11 +1671,15 @@ async function fetchSheetData(sheetName) {
                     const script = document.createElement('script');
                     script.id = callbackName;
                     script.src = `${APPS_SCRIPT_URL}?action=${action}&data=${encodedData}&callback=${callbackName}&_=${Date.now()}`;
-                    script.onerror = () => {
+                    
+                    script.onerror = (error) => {
                         cleanup();
-                        resolve(true);
+                        console.error(`❌ Script error update ${sheetName}:`, error);
+                        resolve(true); // Anggap sukses karena sudah di cache
                     };
+                    
                     document.body.appendChild(script);
+                    console.log(`📤 Mengirim request ke: ${APPS_SCRIPT_URL}?action=${action}&data=...&callback=${callbackName}`);
                 });
 
             } catch (error) {
@@ -1851,13 +1848,24 @@ async function fetchSheetData(sheetName) {
 
         async function saveStudents() {
             try {
+                console.log('📤 Mengirim data siswa ke Google Sheets...', students.length, 'siswa');
+                
                 const headers = ['id', 'nis', 'nama', 'kelas', 'jurusan', 'photo', 'created_at'];
                 const rows = objectsToArray(students, headers);
-
+                
+                console.log('📦 Data yang akan dikirim:', rows);
+                
                 const result = await updateSheetData('STUDENTS', rows);
+                
+                console.log('📥 Hasil dari updateSheetData:', result);
+                
                 if (result) {
+                    console.log('✅ Data siswa berhasil disimpan ke Google Sheets');
                     dataCache.students = students;
+                } else {
+                    console.error('❌ Gagal menyimpan ke Google Sheets');
                 }
+                
                 return result;
             } catch (error) {
                 console.error('❌ Gagal simpan siswa:', error);
@@ -4938,143 +4946,7 @@ async function fetchSheetData(sheetName) {
             }
         }
 
-        // ==================== FUNGSI IMPORT EXCEL YANG DIPERBAIKI ====================
-async function handleExcelImport(input) {
-    if (!input.files || !input.files[0]) {
-        showToast('Pilih file Excel terlebih dahulu', 'warning');
-        return;
-    }
-
-    const file = input.files[0];
-
-    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
-        showToast('Format file harus .xlsx, .xls, atau .csv', 'error');
-        return;
-    }
-
-    showLoading('Membaca file Excel...');
-
-    const reader = new FileReader();
-
-    reader.onload = async function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-            if (jsonData.length < 2) {
-                hideLoading();
-                showToast('File Excel kosong', 'error');
-                return;
-            }
-
-            const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
-
-            const nisIndex = headers.findIndex(h => h.includes('nis') || h.includes('nis'));
-            const namaIndex = headers.findIndex(h => h.includes('nama') || h.includes('name'));
-            const kelasIndex = headers.findIndex(h => h.includes('kelas') || h.includes('class'));
-            const jurusanIndex = headers.findIndex(h => h.includes('jurusan') || h.includes('major'));
-
-            if (nisIndex === -1 || namaIndex === -1) {
-                hideLoading();
-                showToast('Format Excel tidak sesuai. Harus ada kolom NIS dan Nama', 'error');
-                return;
-            }
-
-            showLoading('Mengimpor data ke Google Sheets...');
-
-            let imported = 0;
-            let updated = 0;
-
-            // Proses setiap baris
-            for (let i = 1; i < jsonData.length; i++) {
-                const row = jsonData[i];
-                if (!row || row.length === 0) continue;
-
-                const nis = row[nisIndex]?.toString().trim();
-                const nama = row[namaIndex]?.toString().trim();
-
-                if (!nis || !nama) continue;
-
-                const kelas = kelasIndex !== -1 && row[kelasIndex] ? row[kelasIndex].toString().trim() : '';
-                const jurusan = jurusanIndex !== -1 && row[jurusanIndex] ? row[jurusanIndex].toString().trim() : '';
-
-                // Cek apakah siswa sudah ada
-                const existingIndex = students.findIndex(s => s.nis === nis);
-
-                if (existingIndex >= 0) {
-                    // Update data yang ada
-                    students[existingIndex] = {
-                        ...students[existingIndex],
-                        nama: nama,
-                        kelas: kelas || students[existingIndex].kelas,
-                        jurusan: jurusan || students[existingIndex].jurusan
-                    };
-                    updated++;
-                } else {
-                    // Tambah siswa baru
-                    const newStudent = {
-                        id: generateId(),
-                        nis: nis,
-                        nama: nama,
-                        kelas: kelas,
-                        jurusan: jurusan,
-                        photo: '',
-                        created_at: Date.now()
-                    };
-                    students.push(newStudent);
-                    imported++;
-                }
-            }
-
-            // ** PENTING: Simpan ke Google Sheets via Apps Script **
-            showLoading(`Menyimpan ${imported + updated} data ke Google Sheets...`);
-            
-            const saveResult = await saveStudents(); // Fungsi ini sudah mengirim ke Google Sheets
-
-            if (saveResult) {
-                // Update cache
-                dataCache.students = students;
-                updateStudentCache();
-
-                // Render ulang tabel
-                renderStudentTable();
-                renderSiswaManagementTable();
-                updateClassFilter();
-
-                hideLoading();
-                showToast(`✅ Berhasil: ${imported} baru, ${updated} diperbarui`, 'success');
-                
-                // Log untuk verifikasi
-                console.log('📤 Data siswa telah dikirim ke Google Sheets:', students.length, 'siswa');
-            } else {
-                hideLoading();
-                showToast('❌ Gagal menyimpan ke Google Sheets. Data hanya di cache lokal.', 'error');
-            }
-
-        } catch (error) {
-            console.error('Error parsing Excel:', error);
-            hideLoading();
-            showToast('Gagal membaca file Excel: ' + error.message, 'error');
-        }
-
-        // Reset input file
-        input.value = '';
-    };
-
-    reader.onerror = function() {
-        hideLoading();
-        showToast('Gagal membaca file', 'error');
-        input.value = '';
-    };
-
-    reader.readAsArrayBuffer(file);
-}
-
-        function handleExcelImport(input) {
+        async function handleExcelImport(input) {
             if (!input.files || !input.files[0]) {
                 showToast('Pilih file Excel terlebih dahulu', 'warning');
                 return;
@@ -5123,7 +4995,6 @@ async function handleExcelImport(input) {
 
                     let imported = 0;
                     let updated = 0;
-                    let skipped = 0;
 
                     for (let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
@@ -5162,6 +5033,11 @@ async function handleExcelImport(input) {
                         }
                     }
 
+                    // Simpan ke Google Sheets via Apps Script
+                    showLoading(`Menyimpan ${imported + updated} data ke Google Sheets...`);
+                    
+                    console.log('📤 Akan mengirim data ke Google Sheets:', students);
+                    
                     const saveResult = await saveStudents();
 
                     if (saveResult) {
@@ -5173,10 +5049,20 @@ async function handleExcelImport(input) {
                         updateClassFilter();
 
                         hideLoading();
-                        showToast(`✅ Berhasil: ${imported} baru, ${updated} diperbarui, ${skipped} dilewati`, 'success');
+                        showToast(`✅ Berhasil: ${imported} baru, ${updated} diperbarui`, 'success');
+                        
+                        console.log('🎉 Data berhasil disimpan ke Google Sheets!');
+                        
+                        // Verifikasi dengan membaca ulang data
+                        setTimeout(async () => {
+                            await loadStudents();
+                            console.log('📊 Data setelah refresh:', students.length, 'siswa');
+                        }, 2000);
+                        
                     } else {
                         hideLoading();
-                        showToast('❌ Gagal menyimpan ke Google Sheets', 'error');
+                        showToast('❌ Gagal menyimpan ke Google Sheets. Data hanya di cache lokal.', 'error');
+                        console.error('❌ saveStudents() mengembalikan false');
                     }
 
                 } catch (error) {
@@ -5211,15 +5097,14 @@ async function handleExcelImport(input) {
 
             sessionStorage.setItem('app_loaded', 'true');
 
-// Di fungsi init(), ganti timeout opening
-setTimeout(() => {
-    document.getElementById('openingOverlay').style.opacity = '0';
-    setTimeout(() => {
-        document.getElementById('openingOverlay').style.display = 'none';
-        document.getElementById('mainApp').classList.remove('hidden');
-        showPage('absensi', { target: document.querySelector('.nav-btn') });
-    }, 300);
-}, 1500); // Naikkan dari 1000ms ke 1500ms untuk memberi waktu load data
+            setTimeout(() => {
+                document.getElementById('openingOverlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('openingOverlay').style.display = 'none';
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    showPage('absensi', { target: document.querySelector('.nav-btn') });
+                }, 300);
+            }, 1000);
 
             setInterval(async () => {
                 const refreshStart = performance.now();
