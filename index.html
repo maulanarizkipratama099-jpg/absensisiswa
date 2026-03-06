@@ -12,6 +12,7 @@
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
+        /* [CSS ANDA TETAP SAMA] */
         * {
             margin: 0;
             padding: 0;
@@ -1322,18 +1323,18 @@
     <div id="toastContainer"></div>
 
     <script>
-        // ==================== KONFIGURASI GOOGLE SHEETS ====================
+        // ==================== KONFIGURASI GOOGLE SHEETS (SUDAH DIISI ID ASLI) ====================
         const SHEETS_CONFIG = {
             API_KEY: "AIzaSyBX70opf2IbxQ-5XD1qAj0FkXxKmJlH4Rk",
             SPREADSHEETS: {
-                STUDENTS: "18GxzjmanmXTGbGWA0p1sjcIo2OV_r4ugtpWQPAoFDco", // Ganti dengan ID Google Sheet Data Siswa
-                ATTENDANCE: "1kzGkCg-9XRlpakEOIQOpSLmf1cewbse1AoSh6Df1agQ", // Ganti dengan ID Google Sheet Absensi
-                VIOLATIONS: "1ikOUPo3qd6sFfa6uo5HIEgYarvIlDhVEDujZTEI_EGw", // Ganti dengan ID Google Sheet Pelanggaran
-                LOCATIONS: "1iC9oQccoAsgW7JZeqXp5OdYC7erXHmTRSNj7Y4SpUv4", // Ganti dengan ID Google Sheet Lokasi
-                NOTES: "1H6UgjDQTFO2x79X2so5i7raaad7ElNcX28OfDrw0EIE", // Ganti dengan ID Google Sheet Catatan
-                CONFIG: "1JyONW8FgZ31Qv9YWTpguVbkG7zCfgNAcfXuoBcKqCmM", // Ganti dengan ID Google Sheet Konfigurasi
-                QURAN: "1wekTDtB5Nlt-DhAIk2XiHvg_1_AfAQ0NFCt3Llivb8s", // Google Sheet Hafalan Quran
-                HADIST: "1Pr6JQz-pacVeACXgSbygoSPTKJ2rJ9ilzth5TrKb-Zs" // Google Sheet Hafalan Hadist
+                STUDENTS: "18GxzjmanmXTGbGWA0p1sjcIo2OV_r4ugtpWQPAoFDco",
+                ATTENDANCE: "1kzGkCg-9XRlpakEOIQOpSLmf1cewbse1AoSh6Df1agQ",
+                VIOLATIONS: "1ikOUPo3qd6sFfa6uo5HIEgYarvIlDhVEDujZTEI_EGw",
+                LOCATIONS: "1iC9oQccoAsgW7JZeqXp5OdYC7erXHmTRSNj7Y4SpUv4",
+                NOTES: "1H6UgjDQTFO2x79X2so5i7raaad7ElNcX28OfDrw0EIE",
+                CONFIG: "1JyONW8FgZ31Qv9YWTpguVbkG7zCfgNAcfXuoBcKqCmM",
+                QURAN: "1wekTDtB5Nlt-DhAIk2XiHvg_1_AfAQ0NFCt3Llivb8s",
+                HADIST: "1Pr6JQz-pacVeACXgSbygoSPTKJ2rJ9ilzth5TrKb-Zs"
             },
             SHEET_NAMES: {
                 STUDENTS: "DataSiswa",
@@ -1399,23 +1400,65 @@
         let dateRangeFilter = { start: null, end: null };
         let studentCache = new Map();
 
+        // ==================== FUNGSI TEST KONEKSI ====================
+        async function testGoogleSheetsConnection() {
+            try {
+                showLoading('Menguji koneksi ke Google Sheets...');
+                
+                // Test baca sheet Students
+                const testUrl = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.STUDENTS}/values/A1:A1?key=${SHEETS_CONFIG.API_KEY}`;
+                console.log('🔍 Testing connection:', testUrl);
+                
+                const response = await fetch(testUrl);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Koneksi sukses:', data);
+                    showToast('✅ Koneksi ke Google Sheets berhasil!', 'success');
+                    return true;
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Gagal:', response.status, errorText);
+                    showToast(`❌ Gagal: ${response.status} - Periksa API Key dan share settings`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showToast('❌ Gagal koneksi: ' + error.message, 'error');
+                return false;
+            } finally {
+                hideLoading();
+            }
+        }
+
         // ==================== FUNGSI GOOGLE SHEETS ====================
         async function fetchSheetData(sheetId, sheetName, range) {
             try {
                 const url = `${SHEETS_CONFIG.BASE_URL}/${sheetId}/values/${sheetName}!${range}?key=${SHEETS_CONFIG.API_KEY}`;
+                console.log('📡 Fetching:', url);
+                
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Error response:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
                 const data = await response.json();
                 return data.values || [];
             } catch (error) {
-                console.error(`Error fetching sheet ${sheetId} - ${sheetName}:`, error);
+                console.error(`❌ Error fetching sheet ${sheetId} - ${sheetName}:`, error);
                 throw error;
             }
         }
 
-        async function appendSheetData(sheetId, sheetName, values) {
+        async function appendToSheet(sheetId, sheetName, values) {
             try {
                 const url = `${SHEETS_CONFIG.BASE_URL}/${sheetId}/values/${sheetName}:append?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                console.log('📝 Appending to sheet:', url);
+                console.log('📝 Values:', values);
+                
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -1425,10 +1468,18 @@
                         values: [values]
                     })
                 });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return await response.json();
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Error response:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Append successful:', data);
+                return data;
             } catch (error) {
-                console.error(`Error appending to sheet ${sheetId} - ${sheetName}:`, error);
+                console.error(`❌ Error appending to sheet ${sheetId} - ${sheetName}:`, error);
                 throw error;
             }
         }
@@ -1436,6 +1487,8 @@
         async function updateSheetData(sheetId, sheetName, range, values) {
             try {
                 const url = `${SHEETS_CONFIG.BASE_URL}/${sheetId}/values/${sheetName}!${range}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
+                console.log('📝 Updating sheet:', url);
+                
                 const response = await fetch(url, {
                     method: 'PUT',
                     headers: {
@@ -1445,10 +1498,18 @@
                         values: [values]
                     })
                 });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return await response.json();
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Error response:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Update successful:', data);
+                return data;
             } catch (error) {
-                console.error(`Error updating sheet ${sheetId} - ${sheetName}:`, error);
+                console.error(`❌ Error updating sheet ${sheetId} - ${sheetName}:`, error);
                 throw error;
             }
         }
@@ -1456,16 +1517,26 @@
         async function clearSheetData(sheetId, sheetName, range) {
             try {
                 const url = `${SHEETS_CONFIG.BASE_URL}/${sheetId}/values/${sheetName}!${range}:clear?key=${SHEETS_CONFIG.API_KEY}`;
+                console.log('🧹 Clearing sheet:', url);
+                
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     }
                 });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return await response.json();
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Error response:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Clear successful:', data);
+                return data;
             } catch (error) {
-                console.error(`Error clearing sheet ${sheetId} - ${sheetName}:`, error);
+                console.error(`❌ Error clearing sheet ${sheetId} - ${sheetName}:`, error);
                 throw error;
             }
         }
@@ -1497,6 +1568,7 @@
         // ==================== FUNGSI LOAD DATA ====================
         async function loadStudents() {
             try {
+                console.log('📚 Loading students from Google Sheets...');
                 const rows = await fetchSheetData(
                     SHEETS_CONFIG.SPREADSHEETS.STUDENTS,
                     SHEETS_CONFIG.SHEET_NAMES.STUDENTS,
@@ -1531,6 +1603,7 @@
 
         async function loadAttendance() {
             try {
+                console.log('📋 Loading attendance from Google Sheets...');
                 const rows = await fetchSheetData(
                     SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE,
                     SHEETS_CONFIG.SHEET_NAMES.ATTENDANCE,
@@ -1538,7 +1611,13 @@
                 );
                 
                 attendanceRecords = rows.map(row => {
-                    const location = row[11] ? JSON.parse(row[11]) : null;
+                    let location = null;
+                    try {
+                        location = row[11] ? JSON.parse(row[11]) : null;
+                    } catch (e) {
+                        console.warn('Invalid location JSON:', row[11]);
+                    }
+                    
                     return {
                         id: row[0] || generateId(),
                         student_id: row[1] || '',
@@ -1568,6 +1647,7 @@
 
         async function loadPelanggaran() {
             try {
+                console.log('⚠️ Loading pelanggaran from Google Sheets...');
                 const rows = await fetchSheetData(
                     SHEETS_CONFIG.SPREADSHEETS.VIOLATIONS,
                     SHEETS_CONFIG.SHEET_NAMES.VIOLATIONS,
@@ -1603,6 +1683,7 @@
 
         async function loadLocationRecords() {
             try {
+                console.log('📍 Loading location records from Google Sheets...');
                 const rows = await fetchSheetData(
                     SHEETS_CONFIG.SPREADSHEETS.LOCATIONS,
                     SHEETS_CONFIG.SHEET_NAMES.LOCATIONS,
@@ -1633,6 +1714,7 @@
 
         async function loadStudentNotes() {
             try {
+                console.log('📝 Loading notes from Google Sheets...');
                 const rows = await fetchSheetData(
                     SHEETS_CONFIG.SPREADSHEETS.NOTES,
                     SHEETS_CONFIG.SHEET_NAMES.NOTES,
@@ -1660,6 +1742,7 @@
 
         async function loadConfig() {
             try {
+                console.log('⚙️ Loading config from Google Sheets...');
                 const rows = await fetchSheetData(
                     SHEETS_CONFIG.SPREADSHEETS.CONFIG,
                     SHEETS_CONFIG.SHEET_NAMES.CONFIG,
@@ -1692,72 +1775,38 @@
             }
         }
 
-        async function saveConfig() {
-            try {
-                // Clear existing data
-                await clearSheetData(
-                    SHEETS_CONFIG.SPREADSHEETS.CONFIG,
-                    SHEETS_CONFIG.SHEET_NAMES.CONFIG,
-                    "A2:B1000"
-                );
-                
-                // Save new data
-                const rows = [
-                    ['school_logo', configData.school_logo || '']
-                ];
-                
-                const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.CONFIG}/values/${SHEETS_CONFIG.SHEET_NAMES.CONFIG}!A2:B${rows.length + 1}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
-                
-                await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        values: rows
-                    })
-                });
-                
-                console.log('✅ Config saved to Google Sheets');
-            } catch (error) {
-                console.error('❌ Gagal simpan konfigurasi ke Google Sheets:', error);
-            }
-        }
-
+        // ==================== FUNGSI SAVE DATA (MENGGUNAKAN APPEND) ====================
         async function saveStudents() {
             try {
-                // Clear existing data
-                await clearSheetData(
-                    SHEETS_CONFIG.SPREADSHEETS.STUDENTS,
-                    SHEETS_CONFIG.SHEET_NAMES.STUDENTS,
-                    "A2:G1000"
-                );
+                console.log('💾 Saving students to Google Sheets...');
                 
-                // Save new data
-                const rows = students.map(s => [
-                    s.id,
-                    s.nis,
-                    s.nama,
-                    s.kelas,
-                    s.jurusan,
-                    s.photo || '',
-                    s.created_at ? s.created_at.toString() : Date.now().toString()
-                ]);
+                // Cari data yang baru ditambahkan (dalam 5 detik terakhir)
+                const fiveSecondsAgo = Date.now() - 5000;
+                const newStudents = students.filter(s => s.created_at > fiveSecondsAgo);
                 
-                if (rows.length > 0) {
-                    const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.STUDENTS}/values/${SHEETS_CONFIG.SHEET_NAMES.STUDENTS}!A2:G${rows.length + 1}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
-                    
-                    await fetch(url, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            values: rows
-                        })
-                    });
+                if (newStudents.length === 0) {
+                    console.log('Tidak ada data siswa baru untuk disimpan');
+                    return;
                 }
                 
+                // Simpan satu per satu
+                for (const student of newStudents) {
+                    await appendToSheet(
+                        SHEETS_CONFIG.SPREADSHEETS.STUDENTS,
+                        SHEETS_CONFIG.SHEET_NAMES.STUDENTS,
+                        [
+                            student.id,
+                            student.nis,
+                            student.nama,
+                            student.kelas,
+                            student.jurusan,
+                            student.photo || '',
+                            student.created_at ? student.created_at.toString() : Date.now().toString()
+                        ]
+                    );
+                }
+                
+                showToast(`✅ ${newStudents.length} data siswa tersimpan`, 'success');
                 console.log('✅ Students saved to Google Sheets');
             } catch (error) {
                 console.error('❌ Gagal simpan siswa ke Google Sheets:', error);
@@ -1767,44 +1816,41 @@
 
         async function saveAttendance() {
             try {
-                // Clear existing data
-                await clearSheetData(
-                    SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE,
-                    SHEETS_CONFIG.SHEET_NAMES.ATTENDANCE,
-                    "A2:P1000"
-                );
+                console.log('💾 Saving attendance to Google Sheets...');
                 
-                // Save new data
-                const rows = attendanceRecords.map(r => [
-                    r.id,
-                    r.student_id,
-                    r.student_nis,
-                    r.student_nama,
-                    r.student_kelas,
-                    r.student_jurusan,
-                    r.student_photo || '',
-                    r.status,
-                    r.metode || 'manual',
-                    r.keterangan || '',
-                    r.tanggal,
-                    r.location ? JSON.stringify(r.location) : '',
-                    r.timestamp ? r.timestamp.toString() : Date.now().toString()
-                ]);
+                // Cari data yang baru ditambahkan (dalam 5 detik terakhir)
+                const fiveSecondsAgo = Date.now() - 5000;
+                const newRecords = attendanceRecords.filter(r => r.timestamp > fiveSecondsAgo);
                 
-                if (rows.length > 0) {
-                    const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE}/values/${SHEETS_CONFIG.SHEET_NAMES.ATTENDANCE}!A2:P${rows.length + 1}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
-                    
-                    await fetch(url, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            values: rows
-                        })
-                    });
+                if (newRecords.length === 0) {
+                    console.log('Tidak ada data absensi baru untuk disimpan');
+                    return;
                 }
                 
+                // Simpan satu per satu
+                for (const record of newRecords) {
+                    await appendToSheet(
+                        SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE,
+                        SHEETS_CONFIG.SHEET_NAMES.ATTENDANCE,
+                        [
+                            record.id,
+                            record.student_id,
+                            record.student_nis,
+                            record.student_nama,
+                            record.student_kelas,
+                            record.student_jurusan,
+                            record.student_photo || '',
+                            record.status,
+                            record.metode || 'manual',
+                            record.keterangan || '',
+                            record.tanggal,
+                            record.location ? JSON.stringify(record.location) : '',
+                            record.timestamp ? record.timestamp.toString() : Date.now().toString()
+                        ]
+                    );
+                }
+                
+                showToast(`✅ ${newRecords.length} data absensi tersimpan`, 'success');
                 console.log('✅ Attendance saved to Google Sheets');
             } catch (error) {
                 console.error('❌ Gagal simpan absensi ke Google Sheets:', error);
@@ -1814,44 +1860,41 @@
 
         async function savePelanggaran() {
             try {
-                // Clear existing data
-                await clearSheetData(
-                    SHEETS_CONFIG.SPREADSHEETS.VIOLATIONS,
-                    SHEETS_CONFIG.SHEET_NAMES.VIOLATIONS,
-                    "A2:P1000"
-                );
+                console.log('💾 Saving pelanggaran to Google Sheets...');
                 
-                // Save new data
-                const rows = pelanggaranRecords.map(p => [
-                    p.id,
-                    p.student_id,
-                    p.student_nis,
-                    p.student_nama,
-                    p.student_kelas,
-                    p.student_photo || '',
-                    p.tanggal,
-                    p.kategori_id || '',
-                    p.kategori_nama || '',
-                    p.poin ? p.poin.toString() : '0',
-                    p.jenis || '',
-                    p.keterangan || '',
-                    p.created_at ? p.created_at.toString() : Date.now().toString()
-                ]);
+                // Cari data yang baru ditambahkan (dalam 5 detik terakhir)
+                const fiveSecondsAgo = Date.now() - 5000;
+                const newRecords = pelanggaranRecords.filter(p => p.created_at > fiveSecondsAgo);
                 
-                if (rows.length > 0) {
-                    const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.VIOLATIONS}/values/${SHEETS_CONFIG.SHEET_NAMES.VIOLATIONS}!A2:P${rows.length + 1}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
-                    
-                    await fetch(url, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            values: rows
-                        })
-                    });
+                if (newRecords.length === 0) {
+                    console.log('Tidak ada data pelanggaran baru untuk disimpan');
+                    return;
                 }
                 
+                // Simpan satu per satu
+                for (const record of newRecords) {
+                    await appendToSheet(
+                        SHEETS_CONFIG.SPREADSHEETS.VIOLATIONS,
+                        SHEETS_CONFIG.SHEET_NAMES.VIOLATIONS,
+                        [
+                            record.id,
+                            record.student_id,
+                            record.student_nis,
+                            record.student_nama,
+                            record.student_kelas,
+                            record.student_photo || '',
+                            record.tanggal,
+                            record.kategori_id || '',
+                            record.kategori_nama || '',
+                            record.poin ? record.poin.toString() : '0',
+                            record.jenis || '',
+                            record.keterangan || '',
+                            record.created_at ? record.created_at.toString() : Date.now().toString()
+                        ]
+                    );
+                }
+                
+                showToast(`✅ ${newRecords.length} data pelanggaran tersimpan`, 'success');
                 console.log('✅ Pelanggaran saved to Google Sheets');
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran ke Google Sheets:', error);
@@ -1859,80 +1902,64 @@
             }
         }
 
-        async function saveLocationRecord(record) {
-            try {
-                const rows = [[
-                    record.id,
-                    record.attendance_id || '',
-                    record.student_id || '',
-                    record.student_nis || '',
-                    record.student_nama || '',
-                    record.lat ? record.lat.toString() : '',
-                    record.lng ? record.lng.toString() : '',
-                    record.accuracy ? record.accuracy.toString() : '',
-                    record.within_radius ? 'true' : 'false',
-                    record.distance ? record.distance.toString() : '',
-                    record.timestamp ? record.timestamp.toString() : Date.now().toString()
-                ]];
-                
-                const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.LOCATIONS}/values/${SHEETS_CONFIG.SHEET_NAMES.LOCATIONS}!A2:K${rows.length + 1}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
-                
-                await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        values: rows
-                    })
-                });
-                
-                console.log('✅ Location record saved to Google Sheets');
-                return true;
-            } catch (error) {
-                console.error('❌ Gagal simpan lokasi ke Google Sheets:', error);
-                return false;
-            }
-        }
-
         async function saveStudentNotes() {
             try {
-                // Clear existing data
-                await clearSheetData(
-                    SHEETS_CONFIG.SPREADSHEETS.NOTES,
-                    SHEETS_CONFIG.SHEET_NAMES.NOTES,
-                    "A2:G1000"
-                );
+                console.log('💾 Saving notes to Google Sheets...');
                 
-                // Save new data
-                const rows = studentNotes.map(n => [
-                    n.id,
-                    n.student_id,
-                    n.student_nis || '',
-                    n.student_nama || '',
-                    n.note || '',
-                    n.created_at ? n.created_at.toString() : Date.now().toString(),
-                    n.updated_at ? n.updated_at.toString() : Date.now().toString()
-                ]);
+                // Cari data yang baru ditambahkan (dalam 5 detik terakhir)
+                const fiveSecondsAgo = Date.now() - 5000;
+                const newRecords = studentNotes.filter(n => n.updated_at > fiveSecondsAgo);
                 
-                if (rows.length > 0) {
-                    const url = `${SHEETS_CONFIG.BASE_URL}/${SHEETS_CONFIG.SPREADSHEETS.NOTES}/values/${SHEETS_CONFIG.SHEET_NAMES.NOTES}!A2:G${rows.length + 1}?valueInputOption=USER_ENTERED&key=${SHEETS_CONFIG.API_KEY}`;
-                    
-                    await fetch(url, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            values: rows
-                        })
-                    });
+                if (newRecords.length === 0) {
+                    console.log('Tidak ada data catatan baru untuk disimpan');
+                    return;
                 }
                 
+                // Simpan satu per satu
+                for (const record of newRecords) {
+                    await appendToSheet(
+                        SHEETS_CONFIG.SPREADSHEETS.NOTES,
+                        SHEETS_CONFIG.SHEET_NAMES.NOTES,
+                        [
+                            record.id,
+                            record.student_id,
+                            record.student_nis || '',
+                            record.student_nama || '',
+                            record.note || '',
+                            record.created_at ? record.created_at.toString() : Date.now().toString(),
+                            record.updated_at ? record.updated_at.toString() : Date.now().toString()
+                        ]
+                    );
+                }
+                
+                showToast(`✅ ${newRecords.length} data catatan tersimpan`, 'success');
                 console.log('✅ Notes saved to Google Sheets');
             } catch (error) {
                 console.error('❌ Gagal simpan catatan ke Google Sheets:', error);
                 showToast('Gagal simpan catatan', 'error');
+            }
+        }
+
+        async function saveConfig() {
+            try {
+                console.log('💾 Saving config to Google Sheets...');
+                
+                // Clear dulu lalu simpan ulang semua (karena config cuma 1 baris)
+                await clearSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.CONFIG,
+                    SHEETS_CONFIG.SHEET_NAMES.CONFIG,
+                    "A2:B1000"
+                );
+                
+                await appendToSheet(
+                    SHEETS_CONFIG.SPREADSHEETS.CONFIG,
+                    SHEETS_CONFIG.SHEET_NAMES.CONFIG,
+                    ['school_logo', configData.school_logo || '']
+                );
+                
+                console.log('✅ Config saved to Google Sheets');
+            } catch (error) {
+                console.error('❌ Gagal simpan konfigurasi ke Google Sheets:', error);
             }
         }
 
@@ -2991,6 +3018,8 @@
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.student_id !== studentToDelete);
                 studentNotes = studentNotes.filter(n => n.student_id !== studentToDelete);
                 
+                // Catatan: Untuk delete, kita perlu clear dan resave semua data (karena append-only)
+                // Ini bisa dioptimasi tapi untuk sekarang kita lakukan full refresh
                 await saveStudents();
                 await saveAttendance();
                 await savePelanggaran();
@@ -3054,16 +3083,35 @@
                 locationRecords = [];
                 studentNotes = [];
                 
-                await saveStudents();
-                await saveAttendance();
-                await savePelanggaran();
-                await saveStudentNotes();
+                // Clear semua sheet
+                await clearSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.STUDENTS,
+                    SHEETS_CONFIG.SHEET_NAMES.STUDENTS,
+                    "A2:G1000"
+                );
                 
-                // Clear locations sheet
+                await clearSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.ATTENDANCE,
+                    SHEETS_CONFIG.SHEET_NAMES.ATTENDANCE,
+                    "A2:P1000"
+                );
+                
+                await clearSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.VIOLATIONS,
+                    SHEETS_CONFIG.SHEET_NAMES.VIOLATIONS,
+                    "A2:P1000"
+                );
+                
                 await clearSheetData(
                     SHEETS_CONFIG.SPREADSHEETS.LOCATIONS,
                     SHEETS_CONFIG.SHEET_NAMES.LOCATIONS,
                     "A2:K1000"
+                );
+                
+                await clearSheetData(
+                    SHEETS_CONFIG.SPREADSHEETS.NOTES,
+                    SHEETS_CONFIG.SHEET_NAMES.NOTES,
+                    "A2:G1000"
                 );
                 
                 renderStudentTable();
@@ -4641,20 +4689,27 @@
         async function init() {
             await loadOpeningLogo();
             
-            document.getElementById('openingStatus').textContent = 'Memuat data siswa...';
-            await loadStudents();
+            // Test koneksi dulu
+            const connected = await testGoogleSheetsConnection();
             
-            document.getElementById('openingStatus').textContent = 'Memuat data absensi...';
-            await loadAttendance();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data pelanggaran...';
-            await loadPelanggaran();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data lokasi...';
-            await loadLocationRecords();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat catatan siswa...';
-            await loadStudentNotes();
+            if (connected) {
+                document.getElementById('openingStatus').textContent = 'Memuat data siswa...';
+                await loadStudents();
+                
+                document.getElementById('openingStatus').textContent = 'Memuat data absensi...';
+                await loadAttendance();
+                
+                document.getElementById('openingStatus').textContent = 'Memuat data pelanggaran...';
+                await loadPelanggaran();
+                
+                document.getElementById('openingStatus').textContent = 'Memuat data lokasi...';
+                await loadLocationRecords();
+                
+                document.getElementById('openingStatus').textContent = 'Memuat catatan siswa...';
+                await loadStudentNotes();
+            } else {
+                showToast('Gagal terhubung ke Google Sheets. Periksa koneksi dan API Key.', 'error');
+            }
             
             setToday();
             renderStudentTable();
