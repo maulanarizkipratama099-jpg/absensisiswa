@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "mas-ibnu-husain",
+  "private_key_id": "beff38deb79fa85eb8601c777d44589e4fab7ff6",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDEn1gjN/OxcPmq\nylb231A8KmTAPaYcJd+Q93al9Y5W3GfmcJzGv5xpQz1okZdulPjrqnWLQTdMhKcP\nT5x7fXbQsaRUgoMY0m4A857kbmXVBGfgY3ZWUig+snMbQdGyQesnXHlFpGWdvWHE\n2/HRtTEX0ZBsC8lAzX28lYUZCz0iwN0LvuDPNv7LFLWzwPI2b/yGNZkGsVWj/Fap\ngrfXzxxB0nY0zkSGeq3ip3rVshitwLok6EVfOTqvUM0szBQbDinLO/758xkmX2as\nNuy7quTohNT/ftFQua+Q1PJMwbab/p5WvorlkX1Wn6fXqOtcGVW+wnsFzqPpYSto\nrSCVLW1fAgMBAAECggEAWSz54PNB+9LE8XCWs54Bul/x1PzA51hIBuwtbESsG3oY\nR3wApuWFj3o3EkOh/j3jjaMAb7mS1on9aOTPEHUNW8aNxORyh+H8kULs6Can2c6H\nPE5v/+OALDtsGEsoS6Q4/l+jAvJ2Qe4ANzQX/2ghzW83BMHts43ffpYDySF/R1CM\n7wo6jP2vkrdzwbhkcdonjBKSphW8AZssTAEzxlsvifwpWBo0BGbY/NIeEfAn3FJ5\n11ZpMAzDuYhT8gAi+br+9oJZrJqm3f2E5fFCVaFvmL59+iS96Vz28Gzs+F0hFZix\ng/Fy4uv4+DQH0lRqhchQPWAVKdD+h1+89Pdsbt2YFQKBgQDoNPFkcdRkStMg7lGM\n/E5hCdXZnoXkKbSObni/OwkL0UeV322yPa0kK4Y02I+mIAu6bnRakChtiIbBenXz\ns7gz/H7wOa5MWQfO61KViK00CQUqhNo4hGB6fVuqPzV+TVpFIMlvmfFe3G8YSg2e\nrk1Ki/QLpzsJ2UUgBH6PXaYuawKBgQDYxPtIetsYRxFKNaCbZzscSF+sLXvSFWKd\nq1t72AQ+npjlHH1mxaU0n+VyNLx97UQ4/AuwtBmBp3rehAv0P1atfI/ZEGhBJmlZ\nTq1qOtxU+DL+X9WA8cWS/o38wPeI6WFCP4N40VN+H9EFC3DOQEvhzvXyDimgxOEm\n96z34vbR3QKBgQCgmZVnAi+CmhnCCfJPT2WqSdIlLDWwY4PkitVqdZtBGCKprplB\nENVCUfQFcs6PeFSEQcapqFC9yRJimJ8hyWgaVIU7ArnhRiZXX3yDvb8FYUO4b6A6\nPJw5u5/9dLA7xaYsb4vCazd8g3s20mjvGeCNMZS9xpDXs/TSOymJYJ0CNwKBgAwQ\n6uvd6tQvIIdA9O+xj1jDro+m+H15M0QThcQfAh16NoiKTXCrD8ceH2d8CAH6cxG4\n9e2gGMtexzgboY6299wwUtGCWEtIGBUgjAadwCX6qtv9+aRz0Mud38lx9FVqqD9H\nycmv3TXoD3p4aI8ShSbMnmQa5bZNPzssDjS+LX8BAoGAd9dtO4+R0wETVjT+OOcE\nRDZb2TJ35o8bFNVWuJGDFUA1N+uK9uy5dXHDwwxB8je3qOQruZ+klEhw7hCOkdkq\nnQus5A8QOvsy1ERAhHBGiXzUmcJS48WjN4GmRyoxzJFI2wgMUUZCEEKT7jSeCuD7\nMbGZJtPbSnCgXfCKulIe3uM=\n-----END PRIVATE KEY-----\n",
+  "client_email": "absensi-siswa@mas-ibnu-husain.iam.gserviceaccount.com",
+  "client_id": "100666647716467832375",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/absensi-siswa%40mas-ibnu-husain.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
