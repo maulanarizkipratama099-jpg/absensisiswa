@@ -1597,53 +1597,53 @@ async function updateSheetData(sheetName, values) {
         }
 
         // ==================== FUNGSI LOAD DATA ====================
-        async function loadConfig() {
-            try {
-                const rows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.CONFIG);
-                
-                if (rows.length > 1) {
-                    for (let i = 1; i < rows.length; i++) {
-                        if (rows[i].length >= 2) {
-                            const key = rows[i][0];
-                            const value = rows[i][1];
-                            if (key) configData[key] = value;
-                        }
-                    }
-                    
-                    // Parse angka
-                    if (configData.school_lat) configData.school_lat = parseFloat(configData.school_lat);
-                    if (configData.school_lng) configData.school_lng = parseFloat(configData.school_lng);
-                    if (configData.school_radius) configData.school_radius = parseInt(configData.school_radius);
-                    
-                    // Update SCHOOL_LOCATION
-                    SCHOOL_LOCATION.lat = configData.school_lat || SCHOOL_LOCATION.lat;
-                    SCHOOL_LOCATION.lng = configData.school_lng || SCHOOL_LOCATION.lng;
-                    SCHOOL_LOCATION.radius = configData.school_radius || SCHOOL_LOCATION.radius;
-                    SCHOOL_LOCATION.address = configData.address || SCHOOL_LOCATION.address;
-                    
-                    // Update logo
-                    if (configData.school_logo) {
-                        document.getElementById('logoImage').src = configData.school_logo;
-                        document.getElementById('logoImage').classList.remove('hidden');
-                        document.getElementById('logoDefault').classList.add('hidden');
-                        
-                        document.getElementById('openingLogoImage').src = configData.school_logo;
-                        document.getElementById('openingLogoImage').classList.remove('hidden');
-                        document.getElementById('openingLogoIcon').classList.add('hidden');
-                    }
-                    
-                    // Update teks sekolah
-                    document.getElementById('schoolName').textContent = configData.school_name || 'MAS IBNU HUSAIN';
-                    document.getElementById('schoolNameHeader').textContent = configData.school_name || 'MAS IBNU HUSAIN';
+async function loadConfig() {
+    try {
+        const rows = await fetchSheetData('CONFIG'); // ✅ PAKAI NAMA SHEET LANGSUNG
+        
+        if (rows.length > 1) {
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].length >= 2) {
+                    const key = rows[i][0];
+                    const value = rows[i][1];
+                    if (key) configData[key] = value;
                 }
-                
-                console.log('✅ Loaded config');
-                return configData;
-            } catch (error) {
-                console.error('❌ Gagal load config:', error);
-                return configData;
             }
+            
+            // Parse angka
+            if (configData.school_lat) configData.school_lat = parseFloat(configData.school_lat);
+            if (configData.school_lng) configData.school_lng = parseFloat(configData.school_lng);
+            if (configData.school_radius) configData.school_radius = parseInt(configData.school_radius);
+            
+            // Update SCHOOL_LOCATION
+            SCHOOL_LOCATION.lat = configData.school_lat || SCHOOL_LOCATION.lat;
+            SCHOOL_LOCATION.lng = configData.school_lng || SCHOOL_LOCATION.lng;
+            SCHOOL_LOCATION.radius = configData.school_radius || SCHOOL_LOCATION.radius;
+            SCHOOL_LOCATION.address = configData.address || SCHOOL_LOCATION.address;
+            
+            // Update logo
+            if (configData.school_logo) {
+                document.getElementById('logoImage').src = configData.school_logo;
+                document.getElementById('logoImage').classList.remove('hidden');
+                document.getElementById('logoDefault').classList.add('hidden');
+                
+                document.getElementById('openingLogoImage').src = configData.school_logo;
+                document.getElementById('openingLogoImage').classList.remove('hidden');
+                document.getElementById('openingLogoIcon').classList.add('hidden');
+            }
+            
+            // Update teks sekolah
+            document.getElementById('schoolName').textContent = configData.school_name || 'MAS IBNU HUSAIN';
+            document.getElementById('schoolNameHeader').textContent = configData.school_name || 'MAS IBNU HUSAIN';
         }
+        
+        console.log('✅ Loaded config');
+        return configData;
+    } catch (error) {
+        console.error('❌ Gagal load config:', error);
+        return configData;
+    }
+}
 
         async function saveConfig() {
             try {
@@ -1661,35 +1661,35 @@ async function updateSheetData(sheetName, values) {
             }
         }
 
-        async function loadStudents() {
-            try {
-                const rows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.STUDENTS);
-                
-                if (rows.length > 1) {
-                    students = arrayToObjects(rows);
-                } else {
-                    // Coba load dari cache
-                    const cached = localStorage.getItem('backup_STUDENTS');
-                    if (cached) {
-                        students = arrayToObjects(JSON.parse(cached));
-                        console.log('📦 Loaded students from cache:', students.length);
-                    }
-                }
-                
-                studentCache.clear();
-                students.forEach(student => {
-                    const nis = String(student.nis).trim();
-                    studentCache.set(nis, student);
-                    studentCache.set(nis.replace(/^0+/, ''), student);
-                });
-                
-                console.log('✅ Loaded students:', students.length);
-                return students;
-            } catch (error) {
-                console.error('❌ Gagal load siswa:', error);
-                return [];
+async function loadStudents() {
+    try {
+        const rows = await fetchSheetData('STUDENTS'); // ✅ PAKAI NAMA SHEET LANGSUNG
+        
+        if (rows.length > 1) {
+            students = arrayToObjects(rows);
+        } else {
+            // Coba load dari cache
+            const cached = localStorage.getItem('backup_STUDENTS');
+            if (cached) {
+                students = arrayToObjects(JSON.parse(cached));
+                console.log('📦 Loaded students from cache:', students.length);
             }
         }
+        
+        studentCache.clear();
+        students.forEach(student => {
+            const nis = String(student.nis).trim();
+            studentCache.set(nis, student);
+            studentCache.set(nis.replace(/^0+/, ''), student);
+        });
+        
+        console.log('✅ Loaded students:', students.length);
+        return students;
+    } catch (error) {
+        console.error('❌ Gagal load siswa:', error);
+        return [];
+    }
+}
 
         async function saveStudents() {
             try {
@@ -1705,35 +1705,35 @@ async function updateSheetData(sheetName, values) {
             }
         }
 
-        async function loadAttendance() {
-            try {
-                const rows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.ATTENDANCE);
-                const records = arrayToObjects(rows);
-                
-                // Parse location
-                attendanceRecords = records.map(record => {
-                    if (record.location_lat && record.location_lng) {
-                        record.location = {
-                            lat: parseFloat(record.location_lat),
-                            lng: parseFloat(record.location_lng),
-                            accuracy: parseFloat(record.location_accuracy || 0),
-                            timestamp: record.timestamp || Date.now()
-                        };
-                        delete record.location_lat;
-                        delete record.location_lng;
-                        delete record.location_accuracy;
-                    }
-                    return record;
-                });
-                
-                console.log('✅ Loaded attendance:', attendanceRecords.length);
-                updateTodayStats();
-                return attendanceRecords;
-            } catch (error) {
-                console.error('❌ Gagal load absensi:', error);
-                return [];
+async function loadAttendance() {
+    try {
+        const rows = await fetchSheetData('ATTENDANCE'); // ✅ PAKAI NAMA SHEET LANGSUNG
+        const records = arrayToObjects(rows);
+        
+        // Parse location
+        attendanceRecords = records.map(record => {
+            if (record.location_lat && record.location_lng) {
+                record.location = {
+                    lat: parseFloat(record.location_lat),
+                    lng: parseFloat(record.location_lng),
+                    accuracy: parseFloat(record.location_accuracy || 0),
+                    timestamp: record.timestamp || Date.now()
+                };
+                delete record.location_lat;
+                delete record.location_lng;
+                delete record.location_accuracy;
             }
-        }
+            return record;
+        });
+        
+        console.log('✅ Loaded attendance:', attendanceRecords.length);
+        updateTodayStats();
+        return attendanceRecords;
+    } catch (error) {
+        console.error('❌ Gagal load absensi:', error);
+        return [];
+    }
+}
 
         async function saveAttendance() {
             try {
@@ -1757,34 +1757,34 @@ async function updateSheetData(sheetName, values) {
             }
         }
 
-        async function loadPelanggaran() {
-            try {
-                // Load pelanggaran
-                const pelanggaranRows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.PELANGGARAN);
-                pelanggaranRecords = arrayToObjects(pelanggaranRows);
-                
-                // Load kategori
-                const kategoriRows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.PELANGGARAN_KATEGORI);
-                kategoriPelanggaran = arrayToObjects(kategoriRows);
-                
-                if (kategoriPelanggaran.length === 0) {
-                    kategoriPelanggaran = [
-                        { id: "k1", nama: "Ringan", poin: 5, deskripsi: "Pelanggaran ringan seperti terlambat" },
-                        { id: "k2", nama: "Sedang", poin: 10, deskripsi: "Pelanggaran sedang seperti membolos" },
-                        { id: "k3", nama: "Berat", poin: 25, deskripsi: "Pelanggaran berat seperti tawuran" }
-                    ];
-                }
-                
-                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
-                renderPelanggaranTable();
-                updatePelanggaranStats();
-                return pelanggaranRecords;
-            } catch (error) {
-                console.error('❌ Gagal load pelanggaran:', error);
-                pelanggaranRecords = [];
-                return [];
-            }
+async function loadPelanggaran() {
+    try {
+        // Load pelanggaran
+        const pelanggaranRows = await fetchSheetData('PELANGGARAN'); // ✅ PAKAI NAMA SHEET LANGSUNG
+        pelanggaranRecords = arrayToObjects(pelanggaranRows);
+        
+        // Load kategori
+        const kategoriRows = await fetchSheetData('PELANGGARAN_KATEGORI'); // ✅ PAKAI NAMA SHEET LANGSUNG
+        kategoriPelanggaran = arrayToObjects(kategoriRows);
+        
+        if (kategoriPelanggaran.length === 0) {
+            kategoriPelanggaran = [
+                { id: "k1", nama: "Ringan", poin: 5, deskripsi: "Pelanggaran ringan seperti terlambat" },
+                { id: "k2", nama: "Sedang", poin: 10, deskripsi: "Pelanggaran sedang seperti membolos" },
+                { id: "k3", nama: "Berat", poin: 25, deskripsi: "Pelanggaran berat seperti tawuran" }
+            ];
         }
+        
+        console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
+        renderPelanggaranTable();
+        updatePelanggaranStats();
+        return pelanggaranRecords;
+    } catch (error) {
+        console.error('❌ Gagal load pelanggaran:', error);
+        pelanggaranRecords = [];
+        return [];
+    }
+}
 
         async function savePelanggaran() {
             try {
@@ -1806,18 +1806,18 @@ async function updateSheetData(sheetName, values) {
             }
         }
 
-        async function loadLocationRecords() {
-            try {
-                const rows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.LOCATIONS);
-                locationRecords = arrayToObjects(rows);
-                
-                console.log('✅ Loaded location records:', locationRecords.length);
-                return locationRecords;
-            } catch (error) {
-                console.error('❌ Gagal load lokasi:', error);
-                return [];
-            }
-        }
+async function loadLocationRecords() {
+    try {
+        const rows = await fetchSheetData('LOCATIONS'); // ✅ PAKAI NAMA SHEET LANGSUNG
+        locationRecords = arrayToObjects(rows);
+        
+        console.log('✅ Loaded location records:', locationRecords.length);
+        return locationRecords;
+    } catch (error) {
+        console.error('❌ Gagal load lokasi:', error);
+        return [];
+    }
+}
 
         async function saveLocationRecord(record) {
             try {
@@ -1834,19 +1834,19 @@ async function updateSheetData(sheetName, values) {
             }
         }
 
-        async function loadStudentNotes() {
-            try {
-                const rows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.NOTES);
-                studentNotes = arrayToObjects(rows);
-                
-                console.log('✅ Loaded notes:', studentNotes.length);
-                return studentNotes;
-            } catch (error) {
-                console.error('❌ Gagal load catatan:', error);
-                studentNotes = [];
-                return [];
-            }
-        }
+async function loadStudentNotes() {
+    try {
+        const rows = await fetchSheetData('NOTES'); // ✅ PAKAI NAMA SHEET LANGSUNG
+        studentNotes = arrayToObjects(rows);
+        
+        console.log('✅ Loaded notes:', studentNotes.length);
+        return studentNotes;
+    } catch (error) {
+        console.error('❌ Gagal load catatan:', error);
+        studentNotes = [];
+        return [];
+    }
+}
 
         async function saveStudentNotes() {
             try {
