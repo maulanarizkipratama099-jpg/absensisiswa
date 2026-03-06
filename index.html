@@ -4,13 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>✨ Admin Absensi | MAS IBNU HUSAIN</title>
+    <!-- Optimasi loading dengan preconnect -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://maps.googleapis.com">
+    
+    <!-- Load CSS lebih awal -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
+    
+    <!-- Load library dengan async -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" async></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" async></script>
+    
+    <!-- Google Maps API - load defer -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places" defer></script>
+    
     <style>
         * {
             margin: 0;
@@ -532,6 +543,15 @@
             background: #10b981;
             border-radius: 50%;
             border: 2px solid white;
+        }
+
+        /* Optimasi performance */
+        .will-change-transform {
+            will-change: transform;
+        }
+        
+        .content-visibility-auto {
+            content-visibility: auto;
         }
     </style>
 </head>
@@ -1323,8 +1343,23 @@
 
     <script>
         // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
-        const USE_MOCK_DATA = false; // SET KE false UNTUK PAKAI GOOGLE SHEET
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyU_gVrwyXdV5YyhePhudHFw2GZnONI68veoVeuojlCqWR3jq3AHEycDnEViXxQlETI-Q/exec"; // GANTI DENGAN URL WEB APP ANDA
+        const USE_MOCK_DATA = false;
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypADTKst7j3tNiHW8Tsm6s7j3N5z9C-8xZ22EoeGjJ_ir9BybSJYdadK2SbhSmFbJN0g/exec";
+
+        // Cache untuk menyimpan data sementara
+        const dataCache = {
+            config: null,
+            students: null,
+            attendance: null,
+            pelanggaran: null,
+            locations: null,
+            notes: null,
+            kategori: null
+        };
+
+        // Queue untuk operasi database
+        const dbQueue = [];
+        let isProcessingQueue = false;
 
         // Sheet names
         const SHEET_NAMES = {
@@ -1403,7 +1438,7 @@
             school_lng: 112.749601,
             school_radius: 100
         };
-        
+
         let currentPage = 'absensi';
         let currentDate = new Date().toISOString().split('T')[0];
         let currentClassFilter = 'all';
@@ -1416,49 +1451,103 @@
         let studentCache = new Map();
         let surahNames = [];
 
-        // ==================== FUNGSI JSONP UNTUK APPS SCRIPT ====================
+        // ==================== OPTIMASI LOADING ====================
+        // Skip opening animation jika sudah pernah load
+        if (sessionStorage.getItem('app_loaded')) {
+            document.getElementById('openingOverlay').style.display = 'none';
+            document.getElementById('mainApp').classList.remove('hidden');
+        }
+
+        // Load data paralel
+        async function loadAllData() {
+            const startTime = performance.now();
+
+            try {
+                // Load paralel dengan Promise.all
+                const [configResult, studentsResult, attendanceResult, pelanggaranResult, locationsResult, notesResult] = await Promise.allSettled([
+                    loadConfig(),
+                    loadStudents(),
+                    loadAttendance(),
+                    loadPelanggaran(),
+                    loadLocationRecords(),
+                    loadStudentNotes()
+                ]);
+
+                // Proses hasil
+                if (configResult.status === 'fulfilled') console.log('✅ Config loaded');
+                if (studentsResult.status === 'fulfilled') console.log('✅ Students loaded');
+                if (attendanceResult.status === 'fulfilled') console.log('✅ Attendance loaded');
+                if (pelanggaranResult.status === 'fulfilled') console.log('✅ Pelanggaran loaded');
+                if (locationsResult.status === 'fulfilled') console.log('✅ Locations loaded');
+                if (notesResult.status === 'fulfilled') console.log('✅ Notes loaded');
+
+                const endTime = performance.now();
+                console.log(`⏱️ Total loading time: ${(endTime - startTime).toFixed(2)}ms`);
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+
+            // Render UI setelah semua data siap
+            setToday();
+            renderStudentTable();
+            renderSiswaManagementTable();
+            renderRekapTable();
+            renderLokasiTable();
+            renderPelanggaranTable();
+            updateClassFilter();
+            updatePelanggaranStats();
+        }
+
+        // ==================== FUNGSI JSONP YANG DIPERCEPAT ====================
         async function fetchSheetData(sheetName) {
             if (USE_MOCK_DATA) {
-                console.log(`📋 Menggunakan mock data untuk ${sheetName}`);
                 return DEFAULT_DATA[sheetName] || [];
             }
-            
+
+            // Cek cache
+            if (dataCache[sheetName.toLowerCase()]) {
+                return dataCache[sheetName.toLowerCase()];
+            }
+
             return new Promise((resolve) => {
-                const callbackName = `jsonp_callback_${Date.now()}`;
+                const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
                 const timeout = setTimeout(() => {
                     cleanup();
-                    console.log(`⏱️ Timeout fetch ${sheetName}, pakai cache/default`);
                     const cached = localStorage.getItem(`backup_${sheetName}`);
                     if (cached) {
-                        resolve(JSON.parse(cached));
+                        const data = JSON.parse(cached);
+                        dataCache[sheetName.toLowerCase()] = data;
+                        resolve(data);
                     } else {
                         resolve(DEFAULT_DATA[sheetName] || []);
                     }
-                }, 10000);
-                
+                }, 5000);
+
                 function cleanup() {
                     delete window[callbackName];
                     clearTimeout(timeout);
                     const script = document.getElementById(callbackName);
                     if (script) script.remove();
                 }
-                
+
                 window[callbackName] = function(response) {
                     cleanup();
                     if (response && response.success) {
+                        dataCache[sheetName.toLowerCase()] = response.data || [];
                         resolve(response.data || []);
                     } else {
-                        console.error(`❌ Error from Apps Script (${sheetName}):`, response?.error);
                         const cached = localStorage.getItem(`backup_${sheetName}`);
                         if (cached) {
-                            resolve(JSON.parse(cached));
+                            const data = JSON.parse(cached);
+                            dataCache[sheetName.toLowerCase()] = data;
+                            resolve(data);
                         } else {
                             resolve(DEFAULT_DATA[sheetName] || []);
                         }
                     }
                 };
-                
-                // Map sheet name to action
+
                 const actionMap = {
                     'CONFIG': 'getConfig',
                     'STUDENTS': 'getStudents',
@@ -1468,23 +1557,24 @@
                     'LOCATIONS': 'getLocations',
                     'NOTES': 'getNotes'
                 };
-                
+
                 const action = actionMap[sheetName];
                 if (!action) {
                     cleanup();
                     resolve(DEFAULT_DATA[sheetName] || []);
                     return;
                 }
-                
+
                 const script = document.createElement('script');
                 script.id = callbackName;
-                script.src = `${APPS_SCRIPT_URL}?action=${action}&callback=${callbackName}`;
+                script.src = `${APPS_SCRIPT_URL}?action=${action}&callback=${callbackName}&_=${Date.now()}`;
                 script.onerror = () => {
                     cleanup();
-                    console.error(`❌ Script error fetch ${sheetName}`);
                     const cached = localStorage.getItem(`backup_${sheetName}`);
                     if (cached) {
-                        resolve(JSON.parse(cached));
+                        const data = JSON.parse(cached);
+                        dataCache[sheetName.toLowerCase()] = data;
+                        resolve(data);
                     } else {
                         resolve(DEFAULT_DATA[sheetName] || []);
                     }
@@ -1493,17 +1583,42 @@
             });
         }
 
-        async function updateSheetData(sheetName, values) {
+        // Queue system untuk update data
+        async function processQueue() {
+            if (isProcessingQueue || dbQueue.length === 0) return;
+
+            isProcessingQueue = true;
+
+            while (dbQueue.length > 0) {
+                const task = dbQueue.shift();
+                try {
+                    await task();
+                } catch (error) {
+                    console.error('Queue task error:', error);
+                }
+            }
+
+            isProcessingQueue = false;
+        }
+
+        function queueUpdate(sheetName, values) {
+            return new Promise((resolve) => {
+                dbQueue.push(async () => {
+                    const result = await updateSheetDataDirect(sheetName, values);
+                    resolve(result);
+                });
+                processQueue();
+            });
+        }
+
+        async function updateSheetDataDirect(sheetName, values) {
             try {
-                // Simpan ke localStorage sebagai backup
                 localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
-                console.log(`📝 Backup ${sheetName} tersimpan di localStorage`);
-                
+
                 if (USE_MOCK_DATA) {
                     return true;
                 }
-                
-                // Map sheet name to action
+
                 const actionMap = {
                     'CONFIG': 'saveConfig',
                     'STUDENTS': 'saveStudents',
@@ -1513,74 +1628,74 @@
                     'LOCATIONS': 'saveLocations',
                     'NOTES': 'saveNotes'
                 };
-                
+
                 const action = actionMap[sheetName];
-                if (!action) {
-                    console.error(`❌ Unknown sheet name: ${sheetName}`);
-                    return false;
-                }
-                
-                // Kirim via JSONP
+                if (!action) return false;
+
                 return new Promise((resolve) => {
-                    const callbackName = `jsonp_callback_${Date.now()}`;
+                    const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
                     const timeout = setTimeout(() => {
                         cleanup();
-                        console.log(`⏱️ Timeout update ${sheetName}, data hanya di cache`);
                         resolve(true);
-                    }, 10000);
-                    
+                    }, 5000);
+
                     function cleanup() {
                         delete window[callbackName];
                         clearTimeout(timeout);
                         const script = document.getElementById(callbackName);
                         if (script) script.remove();
                     }
-                    
+
                     window[callbackName] = function(response) {
                         cleanup();
                         if (response && response.success) {
-                            console.log(`✅ ${sheetName} saved to Google Sheets`);
+                            if (sheetName === 'STUDENTS') {
+                                dataCache.students = values;
+                            } else if (sheetName === 'ATTENDANCE') {
+                                dataCache.attendance = values;
+                            }
                             resolve(true);
                         } else {
-                            console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
                             resolve(false);
                         }
                     };
-                    
+
                     const encodedData = encodeURIComponent(JSON.stringify(values));
                     const script = document.createElement('script');
                     script.id = callbackName;
-                    script.src = `${APPS_SCRIPT_URL}?action=${action}&data=${encodedData}&callback=${callbackName}`;
+                    script.src = `${APPS_SCRIPT_URL}?action=${action}&data=${encodedData}&callback=${callbackName}&_=${Date.now()}`;
                     script.onerror = () => {
                         cleanup();
-                        console.error(`❌ Script error update ${sheetName}`);
-                        resolve(false);
+                        resolve(true);
                     };
                     document.body.appendChild(script);
                 });
-                
+
             } catch (error) {
                 console.error(`❌ Gagal update ${sheetName}:`, error);
                 return false;
             }
         }
 
+        async function updateSheetData(sheetName, values) {
+            return queueUpdate(sheetName, values);
+        }
+
         function arrayToObjects(rows) {
             if (!rows || rows.length < 2) return [];
-            
+
             const headers = rows[0];
             const data = [];
-            
+
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (row.length === 0 || (row.length === 1 && row[0] === '')) continue;
-                
+
                 const obj = {};
                 headers.forEach((header, index) => {
                     if (header && header.trim()) {
                         let value = row[index] || '';
-                        
-                        // Parse tipe data khusus
+
                         if (header === 'created_at' || header === 'timestamp' || header === 'updated_at') {
                             if (value && !isNaN(value)) value = parseInt(value);
                         } else if (header === 'poin' || header === 'distance') {
@@ -1590,79 +1705,82 @@
                         } else if (header === 'within_radius') {
                             value = value === 'true' || value === 'TRUE' || value === '1';
                         }
-                        
+
                         obj[header.trim()] = value;
                     }
                 });
-                
+
                 data.push(obj);
             }
-            
+
             return data;
         }
 
         function objectsToArray(objects, headers) {
             const rows = [headers];
-            
+
             objects.forEach(obj => {
                 const row = headers.map(header => {
                     let value = obj[header] !== undefined ? obj[header] : '';
-                    
-                    // Handle special cases for location
+
                     if (header === 'location_lat' && obj.location) value = obj.location.lat || '';
                     if (header === 'location_lng' && obj.location) value = obj.location.lng || '';
                     if (header === 'location_accuracy' && obj.location) value = obj.location.accuracy || '';
-                    
+
                     return value;
                 });
                 rows.push(row);
             });
-            
+
             return rows;
         }
 
-        // ==================== FUNGSI LOAD DATA ====================
+        // ==================== FUNGSI LOAD DATA DENGAN CACHE ====================
         async function loadConfig() {
             try {
-                const data = await fetchSheetData('CONFIG');
-                
-                // Data dari Apps Script sudah berupa object, bukan array
-                if (data && typeof data === 'object') {
-                    configData = { ...configData, ...data };
-                    
-                    // Parse angka
-                    if (configData.school_lat) configData.school_lat = parseFloat(configData.school_lat);
-                    if (configData.school_lng) configData.school_lng = parseFloat(configData.school_lng);
-                    if (configData.school_radius) configData.school_radius = parseInt(configData.school_radius);
-                    
-                    // Update SCHOOL_LOCATION
-                    SCHOOL_LOCATION.lat = configData.school_lat || SCHOOL_LOCATION.lat;
-                    SCHOOL_LOCATION.lng = configData.school_lng || SCHOOL_LOCATION.lng;
-                    SCHOOL_LOCATION.radius = configData.school_radius || SCHOOL_LOCATION.radius;
-                    SCHOOL_LOCATION.address = configData.address || SCHOOL_LOCATION.address;
-                    
-                    // Update logo
-                    if (configData.school_logo) {
-                        document.getElementById('logoImage').src = configData.school_logo;
-                        document.getElementById('logoImage').classList.remove('hidden');
-                        document.getElementById('logoDefault').classList.add('hidden');
-                        
-                        document.getElementById('openingLogoImage').src = configData.school_logo;
-                        document.getElementById('openingLogoImage').classList.remove('hidden');
-                        document.getElementById('openingLogoIcon').classList.add('hidden');
-                    }
-                    
-                    // Update teks sekolah
-                    document.getElementById('schoolName').textContent = configData.school_name || 'MAS IBNU HUSAIN';
-                    document.getElementById('schoolNameHeader').textContent = configData.school_name || 'MAS IBNU HUSAIN';
+                if (dataCache.config) {
+                    configData = { ...configData, ...dataCache.config };
+                    applyConfig();
+                    return configData;
                 }
-                
-                console.log('✅ Loaded config');
+
+                const data = await fetchSheetData('CONFIG');
+
+                if (data && typeof data === 'object') {
+                    dataCache.config = data;
+                    configData = { ...configData, ...data };
+                    applyConfig();
+                }
+
                 return configData;
             } catch (error) {
                 console.error('❌ Gagal load config:', error);
                 return configData;
             }
+        }
+
+        function applyConfig() {
+            if (configData.school_lat) configData.school_lat = parseFloat(configData.school_lat);
+            if (configData.school_lng) configData.school_lng = parseFloat(configData.school_lng);
+            if (configData.school_radius) configData.school_radius = parseInt(configData.school_radius);
+
+            SCHOOL_LOCATION.lat = configData.school_lat || SCHOOL_LOCATION.lat;
+            SCHOOL_LOCATION.lng = configData.school_lng || SCHOOL_LOCATION.lng;
+            SCHOOL_LOCATION.radius = configData.school_radius || SCHOOL_LOCATION.radius;
+            SCHOOL_LOCATION.address = configData.address || SCHOOL_LOCATION.address;
+
+            if (configData.school_logo) {
+                document.getElementById('logoImage').src = configData.school_logo;
+                document.getElementById('logoImage').classList.remove('hidden');
+                document.getElementById('logoDefault').classList.add('hidden');
+
+                document.getElementById('openingLogoImage').src = configData.school_logo;
+                document.getElementById('openingLogoImage').classList.remove('hidden');
+                document.getElementById('openingLogoIcon').classList.add('hidden');
+            }
+
+            document.getElementById('schoolName').textContent = configData.school_name || 'MAS IBNU HUSAIN';
+            document.getElementById('schoolNameHeader').textContent = configData.school_name || 'MAS IBNU HUSAIN';
         }
 
         async function saveConfig() {
@@ -1671,7 +1789,7 @@
                 Object.entries(configData).forEach(([key, value]) => {
                     configArray.push([key, String(value)]);
                 });
-                
+
                 return await updateSheetData('CONFIG', configArray);
             } catch (error) {
                 console.error('❌ Gagal simpan config:', error);
@@ -1681,26 +1799,26 @@
 
         async function loadStudents() {
             try {
+                if (dataCache.students) {
+                    students = dataCache.students;
+                    updateStudentCache();
+                    return students;
+                }
+
                 const rows = await fetchSheetData('STUDENTS');
-                
+
                 if (rows && rows.length > 1) {
                     students = arrayToObjects(rows);
+                    dataCache.students = students;
                 } else {
                     const cached = localStorage.getItem('backup_STUDENTS');
                     if (cached) {
                         students = arrayToObjects(JSON.parse(cached));
-                        console.log('📦 Loaded students from cache:', students.length);
+                        dataCache.students = students;
                     }
                 }
-                
-                studentCache.clear();
-                students.forEach(student => {
-                    const nis = String(student.nis).trim();
-                    studentCache.set(nis, student);
-                    studentCache.set(nis.replace(/^0+/, ''), student);
-                });
-                
-                console.log('✅ Loaded students:', students.length);
+
+                updateStudentCache();
                 return students;
             } catch (error) {
                 console.error('❌ Gagal load siswa:', error);
@@ -1708,12 +1826,25 @@
             }
         }
 
+        function updateStudentCache() {
+            studentCache.clear();
+            students.forEach(student => {
+                const nis = String(student.nis).trim();
+                studentCache.set(nis, student);
+                studentCache.set(nis.replace(/^0+/, ''), student);
+            });
+        }
+
         async function saveStudents() {
             try {
                 const headers = ['id', 'nis', 'nama', 'kelas', 'jurusan', 'photo', 'created_at'];
                 const rows = objectsToArray(students, headers);
-                
-                return await updateSheetData('STUDENTS', rows);
+
+                const result = await updateSheetData('STUDENTS', rows);
+                if (result) {
+                    dataCache.students = students;
+                }
+                return result;
             } catch (error) {
                 console.error('❌ Gagal simpan siswa:', error);
                 return false;
@@ -1722,9 +1853,14 @@
 
         async function loadAttendance() {
             try {
+                if (dataCache.attendance) {
+                    attendanceRecords = dataCache.attendance;
+                    return attendanceRecords;
+                }
+
                 const rows = await fetchSheetData('ATTENDANCE');
                 const records = rows && rows.length > 1 ? arrayToObjects(rows) : [];
-                
+
                 attendanceRecords = records.map(record => {
                     if (record.location_lat && record.location_lng) {
                         record.location = {
@@ -1739,8 +1875,8 @@
                     }
                     return record;
                 });
-                
-                console.log('✅ Loaded attendance:', attendanceRecords.length);
+
+                dataCache.attendance = attendanceRecords;
                 updateTodayStats();
                 return attendanceRecords;
             } catch (error) {
@@ -1757,11 +1893,15 @@
                     location_lng: record.location?.lng || '',
                     location_accuracy: record.location?.accuracy || ''
                 }));
-                
+
                 const headers = ['id', 'student_id', 'student_nis', 'student_nama', 'student_kelas', 'student_jurusan', 'student_photo', 'status', 'metode', 'location_lat', 'location_lng', 'location_accuracy', 'keterangan', 'tanggal', 'timestamp'];
                 const rows = objectsToArray(recordsForSheet, headers);
-                
-                return await updateSheetData('ATTENDANCE', rows);
+
+                const result = await updateSheetData('ATTENDANCE', rows);
+                if (result) {
+                    dataCache.attendance = attendanceRecords;
+                }
+                return result;
             } catch (error) {
                 console.error('❌ Gagal simpan absensi:', error);
                 return false;
@@ -1770,12 +1910,19 @@
 
         async function loadPelanggaran() {
             try {
+                if (dataCache.pelanggaran) {
+                    pelanggaranRecords = dataCache.pelanggaran;
+                    renderPelanggaranTable();
+                    updatePelanggaranStats();
+                    return pelanggaranRecords;
+                }
+
                 const pelanggaranRows = await fetchSheetData('PELANGGARAN');
                 pelanggaranRecords = pelanggaranRows && pelanggaranRows.length > 1 ? arrayToObjects(pelanggaranRows) : [];
-                
+
                 const kategoriRows = await fetchSheetData('PELANGGARAN_KATEGORI');
                 kategoriPelanggaran = kategoriRows && kategoriRows.length > 1 ? arrayToObjects(kategoriRows) : [];
-                
+
                 if (kategoriPelanggaran.length === 0) {
                     kategoriPelanggaran = [
                         { id: "k1", nama: "Ringan", poin: 5, deskripsi: "Pelanggaran ringan seperti terlambat" },
@@ -1783,8 +1930,9 @@
                         { id: "k3", nama: "Berat", poin: 25, deskripsi: "Pelanggaran berat seperti tawuran" }
                     ];
                 }
-                
-                console.log('✅ Loaded pelanggaran:', pelanggaranRecords.length);
+
+                dataCache.pelanggaran = pelanggaranRecords;
+                dataCache.kategori = kategoriPelanggaran;
                 renderPelanggaranTable();
                 updatePelanggaranStats();
                 return pelanggaranRecords;
@@ -1800,11 +1948,12 @@
                 const pelanggaranHeaders = ['id', 'student_id', 'student_nis', 'student_nama', 'student_kelas', 'student_photo', 'tanggal', 'kategori_id', 'kategori_nama', 'poin', 'jenis', 'keterangan', 'created_at'];
                 const pelanggaranRows = objectsToArray(pelanggaranRecords, pelanggaranHeaders);
                 await updateSheetData('PELANGGARAN', pelanggaranRows);
-                
+
                 const kategoriHeaders = ['id', 'nama', 'poin', 'deskripsi'];
                 const kategoriRows = objectsToArray(kategoriPelanggaran, kategoriHeaders);
                 await updateSheetData('PELANGGARAN_KATEGORI', kategoriRows);
-                
+
+                dataCache.pelanggaran = pelanggaranRecords;
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran:', error);
@@ -1814,10 +1963,14 @@
 
         async function loadLocationRecords() {
             try {
+                if (dataCache.locations) {
+                    locationRecords = dataCache.locations;
+                    return locationRecords;
+                }
+
                 const rows = await fetchSheetData('LOCATIONS');
                 locationRecords = rows && rows.length > 1 ? arrayToObjects(rows) : [];
-                
-                console.log('✅ Loaded location records:', locationRecords.length);
+                dataCache.locations = locationRecords;
                 return locationRecords;
             } catch (error) {
                 console.error('❌ Gagal load lokasi:', error);
@@ -1828,11 +1981,15 @@
         async function saveLocationRecord(record) {
             try {
                 locationRecords.push(record);
-                
+
                 const headers = ['id', 'attendance_id', 'student_id', 'student_nis', 'student_nama', 'lat', 'lng', 'accuracy', 'within_radius', 'distance', 'timestamp'];
                 const rows = objectsToArray(locationRecords, headers);
-                
-                return await updateSheetData('LOCATIONS', rows);
+
+                const result = await updateSheetData('LOCATIONS', rows);
+                if (result) {
+                    dataCache.locations = locationRecords;
+                }
+                return result;
             } catch (error) {
                 console.error('❌ Gagal simpan lokasi:', error);
                 return false;
@@ -1841,10 +1998,14 @@
 
         async function loadStudentNotes() {
             try {
+                if (dataCache.notes) {
+                    studentNotes = dataCache.notes;
+                    return studentNotes;
+                }
+
                 const rows = await fetchSheetData('NOTES');
                 studentNotes = rows && rows.length > 1 ? arrayToObjects(rows) : [];
-                
-                console.log('✅ Loaded notes:', studentNotes.length);
+                dataCache.notes = studentNotes;
                 return studentNotes;
             } catch (error) {
                 console.error('❌ Gagal load catatan:', error);
@@ -1857,8 +2018,12 @@
             try {
                 const headers = ['id', 'student_id', 'student_nis', 'student_nama', 'note', 'created_at', 'updated_at'];
                 const rows = objectsToArray(studentNotes, headers);
-                
-                return await updateSheetData('NOTES', rows);
+
+                const result = await updateSheetData('NOTES', rows);
+                if (result) {
+                    dataCache.notes = studentNotes;
+                }
+                return result;
             } catch (error) {
                 console.error('❌ Gagal simpan catatan:', error);
                 return false;
@@ -1868,7 +2033,7 @@
         // ==================== FUNGSI GOOGLE DRIVE UNTUK FOTO ====================
         function extractGoogleDriveFileId(url) {
             if (!url) return null;
-            
+
             const patterns = [
                 /\/file\/d\/([^\/?#]+)/,
                 /\/open\?id=([^&?#]+)/,
@@ -1876,14 +2041,14 @@
                 /\/d\/([^\/?#]+)/,
                 /id=([^&?#]+)/
             ];
-            
+
             for (let pattern of patterns) {
                 const match = url.match(pattern);
                 if (match && match[1]) {
                     return match[1];
                 }
             }
-            
+
             return null;
         }
 
@@ -1893,10 +2058,8 @@
 
         function convertGoogleDriveLink(link) {
             if (!link) return '';
-            
             const fileId = extractGoogleDriveFileId(link);
             if (!fileId) return link;
-            
             return getGoogleDriveThumbnail(fileId);
         }
 
@@ -1907,23 +2070,23 @@
                     resolve(false);
                     return;
                 }
-                
+
                 const img = new Image();
                 let timeout = setTimeout(() => {
                     img.src = '';
                     resolve(false);
                 }, 5000);
-                
+
                 img.onload = () => {
                     clearTimeout(timeout);
                     resolve(true);
                 };
-                
+
                 img.onerror = () => {
                     clearTimeout(timeout);
                     resolve(false);
                 };
-                
+
                 img.src = getGoogleDriveThumbnail(fileId);
             });
         }
@@ -1934,19 +2097,19 @@
             const previewIcon = document.getElementById('previewIcon');
             const previewLoading = document.getElementById('previewLoading');
             const statusEl = document.getElementById('drivePreviewStatus');
-            
+
             previewImg.classList.add('hidden');
             previewImg.src = '';
             previewIcon.classList.remove('hidden');
             statusEl.classList.add('hidden');
-            
+
             if (!link) return;
-            
+
             previewLoading.classList.remove('hidden');
-            
+
             try {
                 const fileId = extractGoogleDriveFileId(link);
-                
+
                 if (!fileId) {
                     statusEl.className = 'mt-3 p-4 rounded-xl text-sm border border-red-200 bg-red-50';
                     statusEl.innerHTML = `
@@ -1962,15 +2125,15 @@
                     previewLoading.classList.add('hidden');
                     return;
                 }
-                
+
                 const thumbnailUrl = getGoogleDriveThumbnail(fileId);
-                
+
                 const img = new Image();
                 img.onload = async () => {
                     previewImg.src = thumbnailUrl;
                     previewImg.classList.remove('hidden');
                     previewIcon.classList.add('hidden');
-                    
+
                     statusEl.className = 'mt-3 p-4 rounded-xl text-sm border border-green-200 bg-green-50';
                     statusEl.innerHTML = `
                         <div class="flex items-start gap-3">
@@ -1984,7 +2147,7 @@
                     statusEl.classList.remove('hidden');
                     previewLoading.classList.add('hidden');
                 };
-                
+
                 img.onerror = () => {
                     statusEl.className = 'mt-3 p-4 rounded-xl text-sm border border-red-200 bg-red-50';
                     statusEl.innerHTML = `
@@ -1999,9 +2162,9 @@
                     statusEl.classList.remove('hidden');
                     previewLoading.classList.add('hidden');
                 };
-                
+
                 img.src = thumbnailUrl;
-                
+
             } catch (error) {
                 console.error('Preview error:', error);
                 statusEl.className = 'mt-3 p-4 rounded-xl text-sm border border-red-200 bg-red-50';
@@ -2019,16 +2182,16 @@
         async function testGoogleDriveLink() {
             const input = document.getElementById('studentPhoto');
             const link = input.value.trim();
-            
+
             if (!link) {
                 showToast('Masukkan link Google Drive terlebih dahulu', 'warning');
                 return;
             }
-            
+
             showLoading('Mengecek link...');
             const isValid = await testGoogleDriveLink(link);
             hideLoading();
-            
+
             if (isValid) {
                 showToast('✅ Link valid!', 'success');
                 await previewGoogleDriveLink(input);
@@ -2038,16 +2201,15 @@
             }
         }
 
-        // ==================== FUNGSI RENDER FOTO ====================
         function renderStudentPhoto(photoUrl, size = 'w-12 h-12') {
             if (!photoUrl) {
                 return `<div class="${size} rounded-full bg-gray-200 flex items-center justify-center border-2 border-indigo-200">
                     <i class="fas fa-user text-gray-400"></i>
                 </div>`;
             }
-            
+
             const imageUrl = convertGoogleDriveLink(photoUrl);
-            
+
             return `<img src="${imageUrl}" 
                 class="${size} rounded-full object-cover border-2 border-indigo-200" 
                 onerror="this.onerror=null; this.src=''; this.classList.add('hidden'); this.parentElement.innerHTML='<div class=\\'${size} rounded-full bg-gray-200 flex items-center justify-center border-2 border-indigo-200\\'><i class=\\'fas fa-user text-gray-400\\'></i></div>';"
@@ -2068,7 +2230,6 @@
             }, 2000);
         }
 
-        // ==================== FUNGSI LOADING ====================
         function showLoading(message = 'Memproses...') {
             document.getElementById('loadingMessage').textContent = message;
             document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -2078,32 +2239,31 @@
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
-        // ==================== FUNGSI LOGO ====================
         async function handleLogoUpload(input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                
+
                 if (!file.type.match('image.*')) {
                     showToast('File harus gambar', 'error');
                     return;
                 }
-                
+
                 showLoading('Mengompres logo...');
-                
+
                 try {
                     const compressedBase64 = await compressImage(file, 300, 300, 0.8);
-                    
+
                     configData.school_logo = compressedBase64;
                     await saveConfig();
-                    
+
                     document.getElementById('logoImage').src = compressedBase64;
                     document.getElementById('logoImage').classList.remove('hidden');
                     document.getElementById('logoDefault').classList.add('hidden');
-                    
+
                     document.getElementById('openingLogoImage').src = compressedBase64;
                     document.getElementById('openingLogoImage').classList.remove('hidden');
                     document.getElementById('openingLogoIcon').classList.add('hidden');
-                    
+
                     showToast('Logo berhasil diupload!', 'success');
                 } catch (error) {
                     console.error('Error:', error);
@@ -2124,7 +2284,7 @@
                     img.onload = () => {
                         let width = img.width;
                         let height = img.height;
-                        
+
                         if (width > height) {
                             if (width > maxWidth) {
                                 height *= maxWidth / width;
@@ -2136,20 +2296,20 @@
                                 height = maxHeight;
                             }
                         }
-                        
+
                         const canvas = document.createElement('canvas');
                         canvas.width = width;
                         canvas.height = height;
-                        
+
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        
+
                         canvas.toBlob((blob) => {
                             const compressedFile = new File([blob], file.name, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now()
                             });
-                            
+
                             const compressedReader = new FileReader();
                             compressedReader.readAsDataURL(compressedFile);
                             compressedReader.onload = () => {
@@ -2164,7 +2324,6 @@
             });
         }
 
-        // ==================== FUNGSI UTILITY ====================
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
         }
@@ -2202,7 +2361,6 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // ==================== FUNGSI LOKASI ====================
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const φ1 = lat1 * Math.PI/180;
@@ -2225,10 +2383,10 @@
 
         function getLocationStatus(lat, lng) {
             if (!lat || !lng) return { status: 'unknown', text: 'Tidak diketahui', class: '' };
-            
+
             const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
             const withinRadius = distance <= SCHOOL_LOCATION.radius;
-            
+
             return {
                 status: withinRadius ? 'within' : 'outside',
                 text: withinRadius ? `Dalam radius (${Math.round(distance)}m)` : `Luar radius (${Math.round(distance)}m)`,
@@ -2240,29 +2398,29 @@
         function renderLokasiTable() {
             const tbody = document.getElementById('lokasiTableBody');
             if (!tbody) return;
-            
+
             const withLocation = attendanceRecords.filter(r => r.location);
-            
+
             if (withLocation.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500">Belum ada data lokasi</td></tr>';
                 return;
             }
-            
+
             const dalamRadius = withLocation.filter(r => r.location && isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
             const luarRadius = withLocation.filter(r => r.location && !isWithinSchoolRadius(r.location.lat, r.location.lng)).length;
             const tanpaLokasi = attendanceRecords.filter(r => !r.location).length;
-            
+
             document.getElementById('statDalamRadius').textContent = dalamRadius;
             document.getElementById('statLuarRadius').textContent = luarRadius;
             document.getElementById('statTanpaLokasi').textContent = tanpaLokasi;
-            
+
             const sorted = [...withLocation].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-            
+
             tbody.innerHTML = sorted.map(record => {
                 const locStatus = record.location ? 
                     getLocationStatus(record.location.lat, record.location.lng) : 
                     { text: 'Tidak ada data', class: '' };
-                
+
                 return `
                     <tr>
                         <td class="px-4 py-4">${formatDateID(record.tanggal)}</td>
@@ -2290,19 +2448,18 @@
             }).join('');
         }
 
-        // ==================== FUNGSI MODAL & FOTO ====================
         function openTambahSiswaModal() {
             document.getElementById('modalTitle').textContent = 'Tambah Siswa Baru';
             document.getElementById('studentForm').reset();
             document.getElementById('studentId').value = '';
-            
+
             document.getElementById('previewImg').classList.add('hidden');
             document.getElementById('previewImg').src = '';
             document.getElementById('previewIcon').classList.remove('hidden');
             document.getElementById('driveGuide').classList.add('hidden');
             document.getElementById('drivePreviewStatus').classList.add('hidden');
             document.getElementById('previewLoading').classList.add('hidden');
-            
+
             document.getElementById('studentModal').classList.remove('hidden');
         }
 
@@ -2314,11 +2471,11 @@
             document.getElementById('kelas').value = student.kelas;
             document.getElementById('jurusan').value = student.jurusan;
             document.getElementById('studentPhoto').value = student.photo || '';
-            
+
             document.getElementById('driveGuide').classList.add('hidden');
             document.getElementById('previewLoading').classList.add('hidden');
             document.getElementById('drivePreviewStatus').classList.add('hidden');
-            
+
             if (student.photo) {
                 const previewImg = document.getElementById('previewImg');
                 previewImg.src = convertGoogleDriveLink(student.photo);
@@ -2329,7 +2486,7 @@
                 document.getElementById('previewIcon').classList.remove('hidden');
                 document.getElementById('drivePreviewStatus').classList.add('hidden');
             }
-            
+
             document.getElementById('studentModal').classList.remove('hidden');
         }
 
@@ -2345,24 +2502,23 @@
             document.getElementById('driveGuide').classList.add('hidden');
         }
 
-        // ==================== FUNGSI CATATAN MODAL ====================
         function openCatatanModal(studentId) {
             const student = students.find(s => s.id === studentId);
             if (!student) return;
-            
+
             currentCatatanStudent = student;
-            
+
             const fotoHtml = student.photo ? 
                 `<img src="${convertGoogleDriveLink(student.photo)}" class="w-full h-full object-cover">` : 
                 `<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-user text-2xl"></i></div>`;
-            
+
             document.getElementById('catatanFoto').innerHTML = fotoHtml;
             document.getElementById('catatanNama').textContent = student.nama;
             document.getElementById('catatanInfo').textContent = `${student.nis} | ${student.kelas} - ${student.jurusan}`;
-            
+
             const existingNote = studentNotes.find(n => n.student_id === studentId);
             document.getElementById('studentNoteInput').value = existingNote ? existingNote.note : '';
-            
+
             document.getElementById('catatanModal').classList.remove('hidden');
         }
 
@@ -2373,12 +2529,12 @@
 
         async function saveCatatan() {
             if (!currentCatatanStudent) return;
-            
+
             const note = document.getElementById('studentNoteInput').value.trim();
             const studentId = currentCatatanStudent.id;
-            
+
             const existingIndex = studentNotes.findIndex(n => n.student_id === studentId);
-            
+
             if (existingIndex >= 0) {
                 if (note) {
                     studentNotes[existingIndex].note = note;
@@ -2397,24 +2553,23 @@
                     updated_at: Date.now()
                 });
             }
-            
+
             await saveStudentNotes();
             closeCatatanModal();
             renderSiswaManagementTable();
             showToast('Catatan berhasil disimpan', 'success');
         }
 
-        // ==================== FUNGSI PELANGGARAN MODAL ====================
         function openTambahPelanggaranModal() {
             document.getElementById('pelanggaranModalTitle').textContent = 'Tambah Pelanggaran';
             document.getElementById('pelanggaranForm').reset();
             document.getElementById('pelanggaranId').value = '';
-            
+
             document.getElementById('pelanggaranTanggal').value = formatDate(new Date());
-            
+
             updateSiswaSelect();
             updateKategoriSelect();
-            
+
             document.getElementById('pelanggaranModal').classList.remove('hidden');
         }
 
@@ -2427,10 +2582,10 @@
             document.getElementById('pelanggaranPoin').value = pelanggaran.poin;
             document.getElementById('pelanggaranJenis').value = pelanggaran.jenis;
             document.getElementById('pelanggaranKeterangan').value = pelanggaran.keterangan || '';
-            
+
             updateSiswaSelect();
             updateKategoriSelect();
-            
+
             document.getElementById('pelanggaranModal').classList.remove('hidden');
         }
 
@@ -2441,31 +2596,31 @@
         function updateSiswaSelect() {
             const select = document.getElementById('pelanggaranSiswa');
             const currentValue = select.value;
-            
+
             let options = '<option value="">-- Pilih Siswa --</option>';
             students.forEach(siswa => {
                 options += `<option value="${siswa.id}" ${siswa.id === currentValue ? 'selected' : ''}>${siswa.nis} - ${siswa.nama} (${siswa.kelas})</option>`;
             });
-            
+
             select.innerHTML = options;
         }
 
         function updateKategoriSelect() {
             const select = document.getElementById('pelanggaranKategori');
             const currentValue = select.value;
-            
+
             let options = '<option value="">-- Pilih Kategori --</option>';
             kategoriPelanggaran.forEach(kat => {
                 options += `<option value="${kat.id}" ${kat.id === currentValue ? 'selected' : ''}>${kat.nama} (${kat.poin} poin)</option>`;
             });
-            
+
             select.innerHTML = options;
         }
 
         function updatePoinFromKategori() {
             const kategoriId = document.getElementById('pelanggaranKategori').value;
             const kategori = kategoriPelanggaran.find(k => k.id === kategoriId);
-            
+
             if (kategori) {
                 document.getElementById('pelanggaranPoin').value = kategori.poin;
             }
@@ -2473,7 +2628,7 @@
 
         async function handlePelanggaranSubmit(event) {
             event.preventDefault();
-            
+
             const pelanggaranId = document.getElementById('pelanggaranId').value;
             const studentId = document.getElementById('pelanggaranSiswa').value;
             const tanggal = document.getElementById('pelanggaranTanggal').value;
@@ -2481,22 +2636,22 @@
             const poin = parseInt(document.getElementById('pelanggaranPoin').value);
             const jenis = document.getElementById('pelanggaranJenis').value.trim();
             const keterangan = document.getElementById('pelanggaranKeterangan').value.trim();
-            
+
             if (!studentId || !tanggal || !kategoriId || !poin || !jenis) {
                 showToast('Semua field wajib diisi', 'error');
                 return;
             }
-            
+
             const student = students.find(s => s.id === studentId);
             if (!student) {
                 showToast('Siswa tidak ditemukan', 'error');
                 return;
             }
-            
+
             const kategori = kategoriPelanggaran.find(k => k.id === kategoriId);
-            
+
             showLoading('Menyimpan pelanggaran...');
-            
+
             const pelanggaranData = {
                 id: pelanggaranId || generateId(),
                 student_id: studentId,
@@ -2512,7 +2667,7 @@
                 keterangan: keterangan,
                 created_at: Date.now()
             };
-            
+
             if (pelanggaranId) {
                 const index = pelanggaranRecords.findIndex(p => p.id === pelanggaranId);
                 if (index !== -1) {
@@ -2521,9 +2676,9 @@
             } else {
                 pelanggaranRecords.push(pelanggaranData);
             }
-            
+
             await savePelanggaran();
-            
+
             hideLoading();
             closePelanggaranModal();
             renderPelanggaranTable();
@@ -2536,7 +2691,6 @@
             document.getElementById('deleteModal').classList.remove('hidden');
         }
 
-        // ==================== FUNGSI DELETE ====================
         function closeDeleteModal() {
             document.getElementById('deleteModal').classList.add('hidden');
             studentToDelete = null;
@@ -2546,17 +2700,24 @@
         async function confirmDelete() {
             if (studentToDelete) {
                 showLoading('Menghapus data siswa...');
-                
+
                 students = students.filter(s => s.id !== studentToDelete);
                 attendanceRecords = attendanceRecords.filter(r => r.student_id !== studentToDelete);
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.student_id !== studentToDelete);
-                
-                await saveStudents();
-                await saveAttendance();
-                await savePelanggaran();
-                
+
+                await Promise.all([
+                    saveStudents(),
+                    saveAttendance(),
+                    savePelanggaran()
+                ]);
+
+                dataCache.students = students;
+                dataCache.attendance = attendanceRecords;
+                updateStudentCache();
+
                 hideLoading();
                 closeDeleteModal();
+
                 renderStudentTable();
                 renderSiswaManagementTable();
                 renderRekapTable();
@@ -2564,30 +2725,30 @@
                 renderPelanggaranTable();
                 updateClassFilter();
                 updatePelanggaranStats();
-                showToast('Data siswa berhasil dihapus');
-                
+
+                showToast('Data siswa berhasil dihapus', 'success');
+
             } else if (pelanggaranToDelete) {
                 showLoading('Menghapus pelanggaran...');
-                
+
                 pelanggaranRecords = pelanggaranRecords.filter(p => p.id !== pelanggaranToDelete);
                 await savePelanggaran();
-                
+
                 hideLoading();
                 closeDeleteModal();
                 renderPelanggaranTable();
                 updatePelanggaranStats();
-                showToast('Pelanggaran berhasil dihapus');
+                showToast('Pelanggaran berhasil dihapus', 'success');
             }
         }
 
-        // ==================== FUNGSI HAPUS SEMUA DATA SISWA ====================
         function confirmDeleteAllStudents() {
             const totalSiswa = students.length;
             if (totalSiswa === 0) {
                 showToast('Tidak ada data siswa untuk dihapus', 'warning');
                 return;
             }
-            
+
             document.getElementById('totalSiswaDelete').textContent = totalSiswa;
             document.getElementById('deleteAllStudentsModal').classList.remove('hidden');
         }
@@ -2603,18 +2764,24 @@
                 showToast('Tidak ada data siswa untuk dihapus', 'warning');
                 return;
             }
-            
+
             showLoading(`Menghapus ${totalSiswa} data siswa...`);
-            
+
             try {
                 students = [];
                 attendanceRecords = [];
                 pelanggaranRecords = [];
-                
-                await saveStudents();
-                await saveAttendance();
-                await savePelanggaran();
-                
+
+                await Promise.all([
+                    saveStudents(),
+                    saveAttendance(),
+                    savePelanggaran()
+                ]);
+
+                dataCache.students = [];
+                dataCache.attendance = [];
+                dataCache.pelanggaran = [];
+
                 renderStudentTable();
                 renderSiswaManagementTable();
                 renderRekapTable();
@@ -2622,7 +2789,7 @@
                 renderPelanggaranTable();
                 updateClassFilter();
                 updatePelanggaranStats();
-                
+
                 showToast(`Berhasil menghapus ${totalSiswa} data siswa`, 'success');
             } catch (error) {
                 console.error('Error saat menghapus semua siswa:', error);
@@ -2633,33 +2800,32 @@
             }
         }
 
-        // ==================== RENDER FUNCTIONS ====================
         function renderStudentTable() {
             const tbody = document.getElementById('studentTableBody');
             if (!tbody) return;
-            
+
             const filteredStudents = getFilteredStudents();
-            
+
             if (filteredStudents.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-500">Tidak ada data siswa</td></tr>';
                 return;
             }
-            
+
             tbody.innerHTML = filteredStudents.map((student, index) => {
                 const attendances = attendanceRecords.filter(r => r.student_id === student.id && r.tanggal === currentDate);
-                
+
                 const hadirAttendance = attendances.find(r => r.status === 'hadir');
                 const pulangAttendance = attendances.find(r => r.status === 'pulang');
-                
+
                 const hadirStatus = hadirAttendance?.status || '';
                 const pulangStatus = pulangAttendance?.status || '';
-                
+
                 const locationText = hadirAttendance?.location ? 
                     getLocationStatus(hadirAttendance.location.lat, hadirAttendance.location.lng).text : 
                     (pulangAttendance?.location ? getLocationStatus(pulangAttendance.location.lat, pulangAttendance.location.lng).text : '-');
-                
+
                 const photoHtml = renderStudentPhoto(student.photo);
-                
+
                 return `
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
@@ -2702,16 +2868,16 @@
         function renderSiswaManagementTable() {
             const tbody = document.getElementById('siswaManagementTableBody');
             if (!tbody) return;
-            
+
             if (students.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Belum ada data siswa</td></tr>';
                 return;
             }
-            
+
             tbody.innerHTML = students.map((student, index) => {
                 const photoHtml = renderStudentPhoto(student.photo);
                 const hasNote = studentNotes.some(n => n.student_id === student.id);
-                
+
                 return `
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
@@ -2762,39 +2928,39 @@
         function renderPelanggaranTable() {
             const tbody = document.getElementById('pelanggaranTableBody');
             if (!tbody) return;
-            
+
             const filterKelas = document.getElementById('pelanggaranFilterKelas')?.value || '';
             const filterBulan = document.getElementById('pelanggaranFilterBulan')?.value || '';
             const filterTahun = document.getElementById('pelanggaranFilterTahun')?.value || '';
-            
+
             let filtered = [...pelanggaranRecords];
-            
+
             if (filterKelas) {
                 filtered = filtered.filter(p => p.student_kelas === filterKelas);
             }
-            
+
             if (filterBulan) {
                 filtered = filtered.filter(p => p.tanggal && p.tanggal.split('-')[1] === filterBulan);
             }
-            
+
             if (filterTahun) {
                 filtered = filtered.filter(p => p.tanggal && p.tanggal.split('-')[0] === filterTahun);
             }
-            
+
             filtered.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-            
+
             if (filtered.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-500">Tidak ada data pelanggaran</td></tr>';
                 return;
             }
-            
+
             tbody.innerHTML = filtered.map((p, index) => {
                 let badgeClass = 'bg-yellow-100 text-yellow-800';
                 if (p.poin >= 20) badgeClass = 'bg-red-100 text-red-800';
                 else if (p.poin >= 10) badgeClass = 'bg-orange-100 text-orange-800';
-                
+
                 const photoHtml = renderStudentPhoto(p.student_photo, 'w-8 h-8');
-                
+
                 return `
                     <tr>
                         <td class="px-4 py-4 text-center">${index + 1}</td>
@@ -2829,26 +2995,26 @@
         function renderRekapTable() {
             const tbody = document.getElementById('rekapTableBody');
             if (!tbody) return;
-            
+
             const filterKelas = document.getElementById('filterKelasRekap')?.value || '';
             const filterBulan = document.getElementById('filterBulan')?.value || '';
-            
+
             let filtered = [...attendanceRecords];
-            
+
             if (dateRangeFilter.start && dateRangeFilter.end) {
                 filtered = filtered.filter(r => r.tanggal >= dateRangeFilter.start && r.tanggal <= dateRangeFilter.end);
             }
-            
+
             if (filterBulan) {
                 filtered = filtered.filter(r => r.tanggal && r.tanggal.split('-')[1] === filterBulan);
             }
-            
+
             if (filterKelas) {
                 filtered = filtered.filter(r => r.student_kelas === filterKelas);
             }
-            
+
             filtered.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-            
+
             const stats = {
                 hadir: filtered.filter(r => r.status === 'hadir').length,
                 pulang: filtered.filter(r => r.status === 'pulang').length,
@@ -2856,25 +3022,25 @@
                 sakit: filtered.filter(r => r.status === 'sakit').length,
                 absen: filtered.filter(r => r.status === 'absen').length
             };
-            
+
             document.getElementById('totalHadirRekap').textContent = stats.hadir;
             document.getElementById('totalPulangRekap').textContent = stats.pulang;
             document.getElementById('totalIzinRekap').textContent = stats.izin;
             document.getElementById('totalSakitRekap').textContent = stats.sakit;
             document.getElementById('totalAbsenRekap').textContent = stats.absen;
-            
+
             if (filtered.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Tidak ada data kehadiran</td></tr>';
                 return;
             }
-            
+
             tbody.innerHTML = filtered.map(record => {
                 const locationStatus = record.location ? 
                     getLocationStatus(record.location.lat, record.location.lng) : 
                     { text: '-', class: '' };
-                
+
                 const photoHtml = renderStudentPhoto(record.student_photo, 'w-8 h-8');
-                
+
                 return `
                     <tr>
                         <td class="px-4 py-4">${formatDateID(record.tanggal)}</td>
@@ -2906,25 +3072,25 @@
             const filterKelas = document.getElementById('pelanggaranFilterKelas')?.value || '';
             const filterBulan = document.getElementById('pelanggaranFilterBulan')?.value || '';
             const filterTahun = document.getElementById('pelanggaranFilterTahun')?.value || '';
-            
+
             let filtered = [...pelanggaranRecords];
-            
+
             if (filterKelas) {
                 filtered = filtered.filter(p => p.student_kelas === filterKelas);
             }
-            
+
             if (filterBulan) {
                 filtered = filtered.filter(p => p.tanggal && p.tanggal.split('-')[1] === filterBulan);
             }
-            
+
             if (filterTahun) {
                 filtered = filtered.filter(p => p.tanggal && p.tanggal.split('-')[0] === filterTahun);
             }
-            
+
             const totalPelanggaran = filtered.length;
             const totalPoin = filtered.reduce((sum, p) => sum + p.poin, 0);
             const siswaTerlibat = new Set(filtered.map(p => p.student_id)).size;
-            
+
             const now = new Date();
             const bulanIni = String(now.getMonth() + 1).padStart(2, '0');
             const tahunIni = now.getFullYear().toString();
@@ -2933,12 +3099,12 @@
                 p.tanggal.split('-')[1] === bulanIni && 
                 p.tanggal.split('-')[0] === tahunIni
             ).length;
-            
+
             document.getElementById('totalPelanggaran').textContent = totalPelanggaran;
             document.getElementById('totalPoin').textContent = totalPoin;
             document.getElementById('siswaTerlibat').textContent = siswaTerlibat;
             document.getElementById('pelanggaranBulanIni').textContent = pelanggaranBulanIni;
-            
+
             updatePelanggaranYearFilter();
             updatePelanggaranKelasFilter();
         }
@@ -2946,7 +3112,7 @@
         function updatePelanggaranYearFilter() {
             const select = document.getElementById('pelanggaranFilterTahun');
             if (!select) return;
-            
+
             const years = new Set();
             pelanggaranRecords.forEach(p => {
                 if (p.tanggal) {
@@ -2954,30 +3120,30 @@
                     if (year) years.add(year);
                 }
             });
-            
+
             const sortedYears = Array.from(years).sort((a, b) => b - a);
             const currentValue = select.value;
-            
+
             let options = '<option value="">Semua Tahun</option>';
             sortedYears.forEach(year => {
                 options += `<option value="${year}" ${year === currentValue ? 'selected' : ''}>${year}</option>`;
             });
-            
+
             select.innerHTML = options;
         }
 
         function updatePelanggaranKelasFilter() {
             const select = document.getElementById('pelanggaranFilterKelas');
             if (!select) return;
-            
+
             const kelasUnik = [...new Set(students.map(s => s.kelas).filter(k => k))].sort();
             const currentValue = select.value;
-            
+
             let options = '<option value="">Semua Kelas</option>';
             kelasUnik.forEach(kelas => {
                 options += `<option value="${kelas}" ${kelas === currentValue ? 'selected' : ''}>${kelas}</option>`;
             });
-            
+
             select.innerHTML = options;
         }
 
@@ -2989,16 +3155,16 @@
         function updateClassFilter() {
             const container = document.getElementById('classFilterContainer');
             const kelasFilter = document.getElementById('filterKelasRekap');
-            
+
             const kelasUnik = [...new Set(students.map(s => s.kelas).filter(k => k))].sort();
-            
+
             let html = '<button class="class-filter-btn active px-5 py-2.5 rounded-full bg-indigo-600 text-white font-medium" data-class="all">Semua Kelas</button>';
             kelasUnik.forEach(kelas => {
                 html += `<button class="class-filter-btn px-5 py-2.5 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium transition" data-class="${kelas}">${kelas}</button>`;
             });
-            
+
             container.innerHTML = html;
-            
+
             document.querySelectorAll('.class-filter-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.class-filter-btn').forEach(b => {
@@ -3011,7 +3177,7 @@
                     renderStudentTable();
                 });
             });
-            
+
             if (kelasFilter) {
                 let options = '<option value="">Semua Kelas</option>';
                 kelasUnik.forEach(kelas => {
@@ -3019,7 +3185,7 @@
                 });
                 kelasFilter.innerHTML = options;
             }
-            
+
             updateTodayStats();
         }
 
@@ -3027,31 +3193,30 @@
             const today = currentDate;
             const hadirToday = attendanceRecords.filter(r => r.tanggal === today && r.status === 'hadir').length;
             const pulangToday = attendanceRecords.filter(r => r.tanggal === today && r.status === 'pulang').length;
-            
+
             document.getElementById('totalSiswaCount').textContent = students.length;
             document.getElementById('totalKelasCount').textContent = [...new Set(students.map(s => s.kelas))].length;
             document.getElementById('totalHadirCount').textContent = hadirToday;
             document.getElementById('totalPulangCount').textContent = pulangToday;
         }
 
-        // ==================== CRUD SISWA ====================
         async function handleStudentSubmit(event) {
             event.preventDefault();
-            
+
             const studentId = document.getElementById('studentId').value;
             const nis = document.getElementById('nis').value.trim();
             const nama = document.getElementById('nama').value.trim();
             const kelas = document.getElementById('kelas').value.trim();
             const jurusan = document.getElementById('jurusan').value.trim();
             const photoLink = document.getElementById('studentPhoto').value.trim();
-            
+
             if (!nis || !nama || !kelas || !jurusan) {
                 showToast('Semua field wajib diisi', 'error');
                 return;
             }
-            
+
             showLoading('Menyimpan data siswa...');
-            
+
             if (studentId) {
                 const index = students.findIndex(s => s.id === studentId);
                 if (index !== -1) {
@@ -3076,9 +3241,9 @@
                 };
                 students.push(newStudent);
             }
-            
+
             await saveStudents();
-            
+
             if (studentId) {
                 attendanceRecords.forEach(r => {
                     if (r.student_id === studentId) {
@@ -3089,7 +3254,7 @@
                         if (photoLink) r.student_photo = photoLink;
                     }
                 });
-                
+
                 pelanggaranRecords.forEach(p => {
                     if (p.student_id === studentId) {
                         p.student_nis = nis;
@@ -3098,11 +3263,11 @@
                         if (photoLink) p.student_photo = photoLink;
                     }
                 });
-                
+
                 await saveAttendance();
                 await savePelanggaran();
             }
-            
+
             hideLoading();
             closeStudentModal();
             renderStudentTable();
@@ -3125,7 +3290,7 @@
             if (student) {
                 student[field] = value;
                 await saveStudents();
-                
+
                 attendanceRecords.forEach(r => {
                     if (r.student_id === studentId) {
                         if (field === 'nis') r.student_nis = value;
@@ -3134,7 +3299,7 @@
                         if (field === 'jurusan') r.student_jurusan = value;
                     }
                 });
-                
+
                 pelanggaranRecords.forEach(p => {
                     if (p.student_id === studentId) {
                         if (field === 'nis') p.student_nis = value;
@@ -3142,10 +3307,10 @@
                         if (field === 'kelas') p.student_kelas = value;
                     }
                 });
-                
+
                 await saveAttendance();
                 await savePelanggaran();
-                
+
                 renderStudentTable();
                 renderSiswaManagementTable();
                 renderRekapTable();
@@ -3156,26 +3321,26 @@
             }
         }
 
-        // ==================== QR CODE FUNCTIONS ====================
         function generateQR(studentId) {
             const student = students.find(s => s.id === studentId);
             if (!student) return;
-            
+
             currentQRStudent = student;
-            document.getElementById('qrContainer').innerHTML = '';
-            
-            new QRCode(document.getElementById('qrContainer'), {
+            const qrContainer = document.getElementById('qrContainer');
+            qrContainer.innerHTML = '';
+
+            new QRCode(qrContainer, {
                 text: student.nis,
-                width: 200,
-                height: 200
+                width: 180,
+                height: 180
             });
-            
+
             document.getElementById('qrStudentInfo').innerHTML = `
                 <p class="font-semibold text-gray-800">${student.nama}</p>
                 <p class="text-sm text-gray-600">NIS: ${student.nis}</p>
                 <p class="text-sm text-gray-600">${student.kelas} - ${student.jurusan}</p>
             `;
-            
+
             document.getElementById('qrModal').classList.remove('hidden');
         }
 
@@ -3185,27 +3350,29 @@
 
         function printQR() {
             if (!currentQRStudent) return;
-            
-            const printWindow = window.open('', '_blank');
+
+            const qrImage = document.querySelector('#qrContainer img');
+            if (!qrImage) return;
+
+            const printWindow = window.open('', '_blank', 'width=400,height=600');
             printWindow.document.write(`
                 <html>
                 <head>
                     <title>QR ${currentQRStudent.nama}</title>
                     <style>
-                        body { font-family: 'Plus Jakarta Sans', sans-serif; text-align: center; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-                        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+                        .container { max-width: 350px; margin: 0 auto; }
                         .qr-img { width: 250px; height: 250px; margin: 20px auto; }
-                        .school-name { font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                        .school-name { font-size: 18px; font-weight: bold; color: #4f46e5; }
                     </style>
                 </head>
                 <body>
                     <div class="container">
                         <div class="school-name">MAS IBNU HUSAIN</div>
-                        <img src="${document.querySelector('#qrContainer img').src}" class="qr-img">
-                        <h3 style="color: #1f2937;">${currentQRStudent.nama}</h3>
-                        <p style="color: #6b7280;">NIS: ${currentQRStudent.nis}</p>
-                        <p style="color: #6b7280;">${currentQRStudent.kelas} - ${currentQRStudent.jurusan}</p>
-                        <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">QR Code untuk absen hadir & pulang</p>
+                        <img src="${qrImage.src}" class="qr-img">
+                        <h3>${currentQRStudent.nama}</h3>
+                        <p>NIS: ${currentQRStudent.nis}</p>
+                        <p>${currentQRStudent.kelas} - ${currentQRStudent.jurusan}</p>
                     </div>
                 </body>
                 </html>
@@ -3216,10 +3383,13 @@
 
         function downloadQR() {
             if (!currentQRStudent) return;
-            const canvas = document.querySelector('#qrContainer canvas');
+
+            const qrImage = document.querySelector('#qrContainer img');
+            if (!qrImage) return;
+
             const link = document.createElement('a');
             link.download = `QR_${currentQRStudent.nis}_${currentQRStudent.nama}.png`;
-            link.href = canvas.toDataURL();
+            link.href = qrImage.src;
             link.click();
         }
 
@@ -3228,18 +3398,18 @@
                 showToast('Tidak ada data siswa', 'error');
                 return;
             }
-            
+
             const printWindow = window.open('', '_blank');
             let html = `
                 <html>
                 <head>
                     <title>Semua QR Code Siswa</title>
                     <style>
-                        body { font-family: 'Plus Jakarta Sans', sans-serif; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+                        body { font-family: Arial, sans-serif; padding: 20px; }
                         .header { text-align: center; margin-bottom: 30px; }
-                        .school-name { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                        .school-name { font-size: 24px; font-weight: bold; color: #4f46e5; }
                         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-                        .card { text-align: center; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+                        .card { text-align: center; border: 1px solid #ccc; padding: 15px; border-radius: 10px; }
                         .qr-img { width: 150px; height: 150px; margin: 10px auto; }
                         @media print {
                             .grid { grid-template-columns: repeat(4, 1fr); }
@@ -3249,23 +3419,23 @@
                 <body>
                     <div class="header">
                         <div class="school-name">MAS IBNU HUSAIN</div>
-                        <p style="color: #6b7280;">Daftar QR Code Siswa (Hadir & Pulang)</p>
-                        <p style="color: #6b7280; font-size: 12px;">Total: ${students.length} siswa</p>
+                        <p>Daftar QR Code Siswa</p>
+                        <p>Total: ${students.length} siswa</p>
                     </div>
                     <div class="grid">
             `;
-            
+
             students.forEach(student => {
                 html += `
                     <div class="card">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(student.nis)}" class="qr-img">
-                        <h4 style="color: #1f2937; font-weight: 600;">${student.nama}</h4>
-                        <p style="color: #6b7280; font-size: 12px;">NIS: ${student.nis}</p>
-                        <p style="color: #6b7280; font-size: 12px;">${student.kelas} - ${student.jurusan}</p>
+                        <h4>${student.nama}</h4>
+                        <p>NIS: ${student.nis}</p>
+                        <p>${student.kelas} - ${student.jurusan}</p>
                     </div>
                 `;
             });
-            
+
             html += `</div></body></html>`;
             printWindow.document.write(html);
             printWindow.document.close();
@@ -3274,11 +3444,11 @@
 
         function printSingleQRKTP(student) {
             if (!student) return;
-            
+
             const printWindow = window.open('', '_blank', 'width=900,height=600');
-            
+
             const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
-            
+
             printWindow.document.write(`
                 <html>
                 <head>
@@ -3610,7 +3780,7 @@
                 </body>
                 </html>
             `);
-            
+
             printWindow.document.close();
             printWindow.print();
         }
@@ -3620,9 +3790,9 @@
                 showToast('Tidak ada data siswa', 'error');
                 return;
             }
-            
+
             const printWindow = window.open('', '_blank', 'width=1200,height=800');
-            
+
             let html = `
                 <html>
                 <head>
@@ -3812,10 +3982,10 @@
                     </div>
                     <div class="grid">
             `;
-            
+
             students.forEach(student => {
                 const photoUrl = student.photo ? convertGoogleDriveLink(student.photo) : '';
-                
+
                 html += `
                     <div class="ktp-card">
                         <div class="ktp-left">
@@ -3862,31 +4032,30 @@
                     </div>
                 `;
             });
-            
+
             html += `
                     </div>
                 </body>
                 </html>
             `;
-            
+
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.print();
         }
 
-        // ==================== ABSENSI FUNCTIONS ====================
         async function updateAttendanceStatus(studentId, jenis, status) {
             if (!studentId || !status) return;
-            
+
             const student = students.find(s => s.id === studentId);
             if (!student) return;
-            
+
             let existingAttendance = attendanceRecords.find(r => 
                 r.student_id === studentId && 
                 r.tanggal === currentDate && 
                 r.status === (jenis === 'hadir' ? 'hadir' : 'pulang')
             );
-            
+
             if (existingAttendance) {
                 existingAttendance.status = status;
             } else {
@@ -3906,24 +4075,24 @@
                 };
                 attendanceRecords.push(newAttendance);
             }
-            
+
             await saveAttendance();
-            
+
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
             updateTodayStats();
-            
+
             showToast(`Status ${jenis === 'hadir' ? 'kehadiran' : 'kepulangan'} diperbarui`);
         }
 
         async function updateAttendanceKeterangan(studentId, keterangan) {
             if (!studentId) return;
-            
+
             const attendances = attendanceRecords.filter(r => 
                 r.student_id === studentId && r.tanggal === currentDate
             );
-            
+
             if (attendances.length > 0) {
                 attendances.forEach(a => a.keterangan = keterangan);
             } else if (keterangan.trim()) {
@@ -3946,9 +4115,9 @@
                     attendanceRecords.push(newAttendance);
                 }
             }
-            
+
             await saveAttendance();
-            
+
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
@@ -3956,14 +4125,14 @@
 
         async function markAllPresent() {
             const filteredStudents = getFilteredStudents();
-            
+
             for (const student of filteredStudents) {
                 const existingHadir = attendanceRecords.find(r => 
                     r.student_id === student.id && 
                     r.tanggal === currentDate && 
                     r.status === 'hadir'
                 );
-                
+
                 if (!existingHadir) {
                     const newAttendance = {
                         id: generateId(),
@@ -3982,27 +4151,27 @@
                     attendanceRecords.push(newAttendance);
                 }
             }
-            
+
             await saveAttendance();
-            
+
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
             updateTodayStats();
-            
+
             showToast('Semua siswa ditandai hadir');
         }
 
         async function markAllPulang() {
             const filteredStudents = getFilteredStudents();
-            
+
             for (const student of filteredStudents) {
                 const existingPulang = attendanceRecords.find(r => 
                     r.student_id === student.id && 
                     r.tanggal === currentDate && 
                     r.status === 'pulang'
                 );
-                
+
                 if (!existingPulang) {
                     const newAttendance = {
                         id: generateId(),
@@ -4021,14 +4190,14 @@
                     attendanceRecords.push(newAttendance);
                 }
             }
-            
+
             await saveAttendance();
-            
+
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
             updateTodayStats();
-            
+
             showToast('Semua siswa ditandai pulang');
         }
 
@@ -4042,19 +4211,18 @@
 
         async function confirmDeleteStatus() {
             attendanceRecords = attendanceRecords.filter(r => r.tanggal !== currentDate);
-            
+
             await saveAttendance();
-            
+
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
             updateTodayStats();
-            
+
             closeDeleteStatusModal();
             showToast('Semua status kehadiran dihapus');
         }
 
-        // ==================== DATE FUNCTIONS ====================
         function setTanggal() {
             const selectedDate = document.getElementById('inputTanggal').value;
             if (selectedDate) {
@@ -4076,7 +4244,7 @@
         function applyDateRangeFilter() {
             const start = document.getElementById('tanggalMulai').value;
             const end = document.getElementById('tanggalSelesai').value;
-            
+
             if (start && end) {
                 dateRangeFilter.start = start;
                 dateRangeFilter.end = end;
@@ -4113,23 +4281,22 @@
             }
         }
 
-        // ==================== FUNGSI CETAK ====================
         function printReport() {
             const filterBulan = document.getElementById('filterBulan')?.value || '';
             const filterKelas = document.getElementById('filterKelasRekap')?.value || '';
-            
+
             let filteredData = [...attendanceRecords];
-            
+
             if (dateRangeFilter.start && dateRangeFilter.end) {
                 filteredData = filteredData.filter(r => r.tanggal >= dateRangeFilter.start && r.tanggal <= dateRangeFilter.end);
             } else if (filterBulan) {
                 filteredData = filteredData.filter(r => r.tanggal && r.tanggal.split('-')[1] === filterBulan);
             }
-            
+
             if (filterKelas) {
                 filteredData = filteredData.filter(r => r.student_kelas === filterKelas);
             }
-            
+
             const studentStats = {};
             filteredData.forEach(record => {
                 if (!record) return;
@@ -4148,7 +4315,7 @@
                         total: 0
                     };
                 }
-                
+
                 studentStats[studentId].total++;
                 if (record.status === 'hadir') studentStats[studentId].hadir++;
                 else if (record.status === 'pulang') studentStats[studentId].pulang++;
@@ -4156,16 +4323,16 @@
                 else if (record.status === 'sakit') studentStats[studentId].sakit++;
                 else if (record.status === 'absen') studentStats[studentId].absen++;
             });
-            
+
             const logoElement = document.querySelector('#logoImage');
             const logoSrc = logoElement && !logoElement.classList.contains('hidden') ? logoElement.src : null;
-            
+
             const printWindow = window.open('', '_blank', 'width=1200,height=800');
             if (!printWindow) {
                 showToast('Popup diblokir', 'error');
                 return;
             }
-            
+
             let periodText = 'Semua Data';
             if (dateRangeFilter.start && dateRangeFilter.end) {
                 periodText = `${new Date(dateRangeFilter.start).toLocaleDateString('id-ID')} - ${new Date(dateRangeFilter.end).toLocaleDateString('id-ID')}`;
@@ -4174,7 +4341,7 @@
                 periodText = `${monthNames[parseInt(filterBulan) - 1]} ${new Date().getFullYear()}`;
             }
             if (filterKelas) periodText += ` - Kelas ${filterKelas}`;
-            
+
             printWindow.document.write(`
                 <html>
                 <head>
@@ -4263,30 +4430,30 @@
         function printDetailedReport() {
             const filterBulan = document.getElementById('filterBulan')?.value || '';
             const filterKelas = document.getElementById('filterKelasRekap')?.value || '';
-            
+
             let filteredData = [...attendanceRecords];
-            
+
             if (dateRangeFilter.start && dateRangeFilter.end) {
                 filteredData = filteredData.filter(r => r.tanggal >= dateRangeFilter.start && r.tanggal <= dateRangeFilter.end);
             } else if (filterBulan) {
                 filteredData = filteredData.filter(r => r.tanggal && r.tanggal.split('-')[1] === filterBulan);
             }
-            
+
             if (filterKelas) {
                 filteredData = filteredData.filter(r => r.student_kelas === filterKelas);
             }
-            
+
             filteredData.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-            
+
             const byDate = {};
             filteredData.forEach(r => {
                 if (!byDate[r.tanggal]) byDate[r.tanggal] = [];
                 byDate[r.tanggal].push(r);
             });
-            
+
             const logoElement = document.querySelector('#logoImage');
             const logoSrc = logoElement && !logoElement.classList.contains('hidden') ? logoElement.src : null;
-            
+
             let periodText = 'Semua Data';
             if (dateRangeFilter.start && dateRangeFilter.end) {
                 periodText = `${new Date(dateRangeFilter.start).toLocaleDateString('id-ID')} - ${new Date(dateRangeFilter.end).toLocaleDateString('id-ID')}`;
@@ -4295,13 +4462,13 @@
                 periodText = `${monthNames[parseInt(filterBulan) - 1]} ${new Date().getFullYear()}`;
             }
             if (filterKelas) periodText += ` - Kelas ${filterKelas}`;
-            
+
             const printWindow = window.open('', '_blank', 'width=1200,height=800');
             if (!printWindow) {
                 showToast('Popup diblokir', 'error');
                 return;
             }
-            
+
             const studentStats = {};
             filteredData.forEach(r => {
                 if (!studentStats[r.student_id]) {
@@ -4319,7 +4486,7 @@
                 else if (r.status === 'sakit') studentStats[r.student_id].sakit++;
                 else if (r.status === 'absen') studentStats[r.student_id].absen++;
             });
-            
+
             let html = `
                 <html>
                 <head>
@@ -4397,13 +4564,13 @@
                     </div>
                     
                     <div class="date-section"><div class="date-header">B. RINCIAN PER TANGGAL</div>`;
-            
+
             Object.keys(byDate).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
                 const records = byDate[date];
                 const dateObj = new Date(date);
                 const dayName = dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
                 const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                
+
                 html += `
                     <div style="margin-top: 20px;">
                         <div style="background: #f3f4f6; padding: 10px; font-weight: bold; border-radius: 8px 8px 0 0;">📅 ${dayName}, ${formattedDate}</div>
@@ -4426,7 +4593,7 @@
                                     const locationText = r.location ? 
                                         `${r.location.lat.toFixed(6)}, ${r.location.lng.toFixed(6)} (${Math.round(r.location.accuracy)}m)` : 
                                         '-';
-                                    
+
                                     return `
                                         <tr>
                                             <td class="text-center">${i + 1}</td>
@@ -4445,11 +4612,11 @@
                     </div>
                 `;
             });
-            
+
             const totalHari = Object.keys(byDate).length;
             const totalSiswa = Object.keys(studentStats).length;
             const totalHadir = Object.values(studentStats).reduce((sum, s) => sum + s.hadir, 0);
-            
+
             html += `
                 <div class="date-section">
                     <div class="date-header">C. RINGKASAN STATISTIK</div>
@@ -4474,7 +4641,7 @@
                 </body>
                 </html>
             `;
-            
+
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.print();
@@ -4485,9 +4652,9 @@
                 showToast('Tidak ada data kehadiran', 'error');
                 return;
             }
-            
+
             if (!confirm('Hapus semua data kehadiran?')) return;
-            
+
             showLoading('Menghapus semua data...');
             attendanceRecords = [];
             await saveAttendance();
@@ -4499,11 +4666,10 @@
             showToast('Semua data kehadiran dihapus');
         }
 
-        // ==================== FUNGSI HAFALAN ====================
         async function testGoogleSheet() {
             showToast('Menguji koneksi ke Google Sheets...', 'info');
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_IDS.QURAN}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_IDS.QURAN}?key=AIzaSyBX70opf2IbxQ-5XD1qAj0FkXxKmJlH4Rk`;
                 const response = await fetch(url);
                 if (response.ok) showToast('Koneksi ke Google Sheets berhasil!', 'success');
                 else showToast('Gagal koneksi ke Google Sheets', 'error');
@@ -4514,7 +4680,7 @@
 
         async function fetchHafalanData(sheetId, sheetName, range) {
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!${range}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!${range}?key=AIzaSyBX70opf2IbxQ-5XD1qAj0FkXxKmJlH4Rk`;
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
@@ -4527,7 +4693,7 @@
 
         async function getSurahNames(sheetId, sheetName) {
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!A5:AQ5?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!A5:AQ5?key=AIzaSyBX70opf2IbxQ-5XD1qAj0FkXxKmJlH4Rk`;
                 const response = await fetch(url);
                 if (!response.ok) return [];
                 const data = await response.json();
@@ -4550,25 +4716,25 @@
 
         function processQuranData(row) {
             const totalHafal = parseInt(row[5]) || 0;
-            
+
             const hafal = [];
             const belum = [];
-            
+
             for (let i = 1; i <= 37; i++) {
                 const colIndex = 5 + i;
                 const status = row[colIndex]?.toString().toLowerCase() || '';
                 const isHafal = status === '☑' || status === 'true' || status === '1' || status === 'yes';
-                
+
                 if (isHafal) hafal.push(i);
                 else belum.push(i);
             }
-            
+
             const progress = (totalHafal / 37) * 100;
             const lastSurahNum = hafal.length > 0 ? Math.max(...hafal) : 0;
             const lastSurahName = (lastSurahNum > 0 && surahNames[lastSurahNum - 1]) 
                 ? `${lastSurahNum}. ${surahNames[lastSurahNum - 1]}`
                 : '-';
-            
+
             document.getElementById('quranLastSurah').textContent = lastSurahName;
             document.getElementById('quranTotalHafal').textContent = `${totalHafal} Surat`;
             document.getElementById('quranProgressPercent').textContent = `${progress.toFixed(1)}%`;
@@ -4576,7 +4742,7 @@
             document.getElementById('quranStats').textContent = `${totalHafal}/37 Surat`;
             document.getElementById('quranHafalCount').textContent = hafal.length;
             document.getElementById('quranBelumCount').textContent = belum.length;
-            
+
             const hafalList = document.getElementById('quranHafalList');
             hafalList.innerHTML = hafal.map(num => `
                 <div class="surah-item hafal">
@@ -4585,7 +4751,7 @@
                     <i class="fas fa-check-circle text-[#d4af37] text-xs ml-2"></i>
                 </div>
             `).join('');
-            
+
             const belumList = document.getElementById('quranBelumList');
             belumList.innerHTML = belum.map(num => `
                 <div class="surah-item belum">
@@ -4598,22 +4764,22 @@
 
         function processHadistData(row) {
             const totalHafal = parseInt(row[5]) || 0;
-            
+
             const hafal = [];
             const belum = [];
-            
+
             for (let i = 1; i <= 37; i++) {
                 const colIndex = 5 + i;
                 const status = row[colIndex]?.toString().toLowerCase() || '';
                 const isHafal = status === '☑' || status === 'true' || status === '1' || status === 'yes';
-                
+
                 if (isHafal) hafal.push(i);
                 else belum.push(i);
             }
-            
+
             const progress = (totalHafal / 37) * 100;
             const lastHadist = hafal.length > 0 ? Math.max(...hafal) : 0;
-            
+
             document.getElementById('hadistLast').textContent = lastHadist > 0 ? `Hadist ${lastHadist}` : '-';
             document.getElementById('hadistTotalHafal').textContent = `${totalHafal} Hadist`;
             document.getElementById('hadistProgressPercent').textContent = `${progress.toFixed(1)}%`;
@@ -4621,7 +4787,7 @@
             document.getElementById('hadistStats').textContent = `${totalHafal}/37 Hadist`;
             document.getElementById('hadistHafalCount').textContent = hafal.length;
             document.getElementById('hadistBelumCount').textContent = belum.length;
-            
+
             const hafalList = document.getElementById('hadistHafalList');
             hafalList.innerHTML = hafal.map(num => `
                 <div class="surah-item hafal">
@@ -4630,7 +4796,7 @@
                     <i class="fas fa-check-circle text-[#0f172a] text-xs ml-2"></i>
                 </div>
             `).join('');
-            
+
             const belumList = document.getElementById('hadistBelumList');
             belumList.innerHTML = belum.map(num => `
                 <div class="surah-item belum">
@@ -4667,27 +4833,27 @@
 
         async function loadHafalanProgress() {
             if (!document.getElementById('hafalanContent')) return;
-            
+
             document.getElementById('hafalanLoading').classList.remove('hidden');
             document.getElementById('hafalanError').classList.add('hidden');
             document.getElementById('hafalanContent').classList.add('hidden');
 
             try {
                 const kelasSheet = "X";
-                
+
                 if (surahNames.length === 0) {
                     surahNames = await getSurahNames(SHEET_IDS.QURAN, kelasSheet);
                 }
-                
+
                 let quranData = [];
                 let hadistData = [];
-                
+
                 try {
                     quranData = await fetchHafalanData(SHEET_IDS.QURAN, kelasSheet, "A6:AQ");
                 } catch (error) {
                     console.log('Quran data not available');
                 }
-                
+
                 try {
                     hadistData = await fetchHafalanData(SHEET_IDS.HADIST, kelasSheet, "A6:AQ");
                 } catch (error) {
@@ -4724,28 +4890,27 @@
             loadHafalanProgress();
         }
 
-        // ==================== PAGE NAVIGATION ====================
         function showPage(page, event) {
             currentPage = page;
-            
+
             document.getElementById('pageAbsensi').classList.add('hidden');
             document.getElementById('pageDataSiswa').classList.add('hidden');
             document.getElementById('pagePelanggaran').classList.add('hidden');
             document.getElementById('pageRekap').classList.add('hidden');
             document.getElementById('pageLokasi').classList.add('hidden');
-            
+
             document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`).classList.remove('hidden');
-            
+
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('active', 'bg-white', 'text-indigo-600');
                 btn.classList.add('bg-white/15', 'text-white');
             });
-            
+
             if (event && event.target) {
                 event.target.classList.add('active', 'bg-white', 'text-indigo-600');
                 event.target.classList.remove('bg-white/15', 'text-white');
             }
-            
+
             if (page === 'absensi') {
                 renderStudentTable();
             } else if (page === 'dataSiswa') {
@@ -4759,144 +4924,175 @@
             }
         }
 
-        // ==================== FUNGSI IMPORT EXCEL ====================
         function handleExcelImport(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                        
-                        if (jsonData.length < 2) {
-                            showToast('File Excel kosong', 'error');
-                            return;
-                        }
-                        
-                        const headers = jsonData[0];
-                        const nisIndex = headers.findIndex(h => h.toLowerCase().includes('nis'));
-                        const namaIndex = headers.findIndex(h => h.toLowerCase().includes('nama'));
-                        const kelasIndex = headers.findIndex(h => h.toLowerCase().includes('kelas'));
-                        const jurusanIndex = headers.findIndex(h => h.toLowerCase().includes('jurusan'));
-                        
-                        if (nisIndex === -1 || namaIndex === -1) {
-                            showToast('Format Excel tidak sesuai. Harus ada kolom NIS dan Nama', 'error');
-                            return;
-                        }
-                        
-                        showLoading('Mengimpor data...');
-                        
-                        let imported = 0;
-                        let skipped = 0;
-                        
-                        for (let i = 1; i < jsonData.length; i++) {
-                            const row = jsonData[i];
-                            if (row.length < 2) continue;
-                            
-                            const nis = row[nisIndex]?.toString().trim();
-                            const nama = row[namaIndex]?.toString().trim();
-                            const kelas = kelasIndex !== -1 ? row[kelasIndex]?.toString().trim() || '' : '';
-                            const jurusan = jurusanIndex !== -1 ? row[jurusanIndex]?.toString().trim() || '' : '';
-                            
-                            if (!nis || !nama) continue;
-                            
-                            const existing = students.find(s => s.nis === nis);
-                            
-                            if (!existing) {
-                                const newStudent = {
-                                    id: generateId(),
-                                    nis: nis,
-                                    nama: nama,
-                                    kelas: kelas,
-                                    jurusan: jurusan,
-                                    photo: '',
-                                    created_at: Date.now()
-                                };
-                                students.push(newStudent);
-                                imported++;
-                            } else {
-                                skipped++;
-                            }
-                        }
-                        
-                        saveStudents().then(() => {
-                            hideLoading();
-                            renderStudentTable();
-                            renderSiswaManagementTable();
-                            updateClassFilter();
-                            showToast(`Berhasil import ${imported} siswa (${skipped} duplikat)`, 'success');
-                        });
-                        
-                    } catch (error) {
-                        console.error('Error parsing Excel:', error);
-                        hideLoading();
-                        showToast('Gagal membaca file Excel', 'error');
-                    }
-                };
-                
-                reader.readAsArrayBuffer(file);
+            if (!input.files || !input.files[0]) {
+                showToast('Pilih file Excel terlebih dahulu', 'warning');
+                return;
             }
+
+            const file = input.files[0];
+
+            if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+                showToast('Format file harus .xlsx, .xls, atau .csv', 'error');
+                return;
+            }
+
+            showLoading('Membaca file Excel...');
+
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length < 2) {
+                        hideLoading();
+                        showToast('File Excel kosong', 'error');
+                        return;
+                    }
+
+                    const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
+
+                    const nisIndex = headers.findIndex(h => h.includes('nis'));
+                    const namaIndex = headers.findIndex(h => h.includes('nama'));
+                    const kelasIndex = headers.findIndex(h => h.includes('kelas'));
+                    const jurusanIndex = headers.findIndex(h => h.includes('jurusan'));
+
+                    if (nisIndex === -1 || namaIndex === -1) {
+                        hideLoading();
+                        showToast('Format Excel tidak sesuai. Harus ada kolom NIS dan Nama', 'error');
+                        return;
+                    }
+
+                    showLoading('Mengimpor data ke Google Sheets...');
+
+                    let imported = 0;
+                    let updated = 0;
+                    let skipped = 0;
+
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row || row.length === 0) continue;
+
+                        const nis = row[nisIndex]?.toString().trim();
+                        const nama = row[namaIndex]?.toString().trim();
+
+                        if (!nis || !nama) continue;
+
+                        const kelas = kelasIndex !== -1 && row[kelasIndex] ? row[kelasIndex].toString().trim() : '';
+                        const jurusan = jurusanIndex !== -1 && row[jurusanIndex] ? row[jurusanIndex].toString().trim() : '';
+
+                        const existingIndex = students.findIndex(s => s.nis === nis);
+
+                        if (existingIndex >= 0) {
+                            students[existingIndex] = {
+                                ...students[existingIndex],
+                                nama: nama,
+                                kelas: kelas || students[existingIndex].kelas,
+                                jurusan: jurusan || students[existingIndex].jurusan
+                            };
+                            updated++;
+                        } else {
+                            const newStudent = {
+                                id: generateId(),
+                                nis: nis,
+                                nama: nama,
+                                kelas: kelas,
+                                jurusan: jurusan,
+                                photo: '',
+                                created_at: Date.now()
+                            };
+                            students.push(newStudent);
+                            imported++;
+                        }
+                    }
+
+                    const saveResult = await saveStudents();
+
+                    if (saveResult) {
+                        dataCache.students = students;
+                        updateStudentCache();
+
+                        renderStudentTable();
+                        renderSiswaManagementTable();
+                        updateClassFilter();
+
+                        hideLoading();
+                        showToast(`✅ Berhasil: ${imported} baru, ${updated} diperbarui, ${skipped} dilewati`, 'success');
+                    } else {
+                        hideLoading();
+                        showToast('❌ Gagal menyimpan ke Google Sheets', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Error parsing Excel:', error);
+                    hideLoading();
+                    showToast('Gagal membaca file Excel: ' + error.message, 'error');
+                }
+
+                input.value = '';
+            };
+
+            reader.onerror = function() {
+                hideLoading();
+                showToast('Gagal membaca file', 'error');
+                input.value = '';
+            };
+
+            reader.readAsArrayBuffer(file);
         }
 
-        // ==================== INITIALIZATION ====================
         async function init() {
-            await loadOpeningLogo();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat konfigurasi...';
+            const startTime = performance.now();
+
             await loadConfig();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data siswa...';
-            await loadStudents();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data absensi...';
-            await loadAttendance();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data pelanggaran...';
-            await loadPelanggaran();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat data lokasi...';
-            await loadLocationRecords();
-            
-            document.getElementById('openingStatus').textContent = 'Memuat catatan siswa...';
-            await loadStudentNotes();
-            
-            setToday();
-            renderStudentTable();
-            renderSiswaManagementTable();
-            renderRekapTable();
-            renderLokasiTable();
-            renderPelanggaranTable();
-            updateClassFilter();
-            updatePelanggaranStats();
-            
-            closeOpening();
-            
+
+            document.getElementById('openingStatus').textContent = 'Memuat data...';
+
+            await loadAllData();
+
+            const endTime = performance.now();
+            console.log(`🚀 Total init time: ${(endTime - startTime).toFixed(2)}ms`);
+
+            sessionStorage.setItem('app_loaded', 'true');
+
             setTimeout(() => {
-                document.getElementById('mainApp').classList.remove('hidden');
-                showPage('absensi', { target: document.querySelector('.nav-btn') });
-            }, 2800);
-            
+                document.getElementById('openingOverlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('openingOverlay').style.display = 'none';
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    showPage('absensi', { target: document.querySelector('.nav-btn') });
+                }, 300);
+            }, 1000);
+
             setInterval(async () => {
-                await loadAttendance();
-                await loadPelanggaran();
-                await loadLocationRecords();
-                await loadStudentNotes();
+                const refreshStart = performance.now();
+
+                await Promise.allSettled([
+                    loadAttendance(),
+                    loadPelanggaran(),
+                    loadLocationRecords(),
+                    loadStudentNotes()
+                ]);
+
                 if (currentPage === 'absensi') renderStudentTable();
                 if (currentPage === 'rekap') renderRekapTable();
                 if (currentPage === 'lokasi') renderLokasiTable();
                 if (currentPage === 'dataSiswa') renderSiswaManagementTable();
                 if (currentPage === 'pelanggaran') renderPelanggaranTable();
-            }, 30000);
+
+                const refreshEnd = performance.now();
+                console.log(`🔄 Background refresh: ${(refreshEnd - refreshStart).toFixed(2)}ms`);
+            }, 60000);
         }
 
         window.onload = init;
 
-        // Export functions
         window.showPage = showPage;
         window.setTanggal = setTanggal;
         window.setToday = setToday;
@@ -4954,4 +5150,3 @@
     </script>
 </body>
 </html>
-
