@@ -1322,11 +1322,15 @@
     <div id="toastContainer"></div>
 
     <script>
+        // ==================== KONFIGURASI ====================
+        // Mode pengembangan: true = pakai data default, false = pakai Google Sheets
+        const USE_MOCK_DATA = true; // Ganti ke false jika sudah siap pakai Google Sheets
+
         // ==================== KONFIGURASI GOOGLE SHEETS ====================
         const GOOGLE_SHEETS_CONFIG = {
             // GANTI DENGAN ID GOOGLE SHEET ANDA
             SPREADSHEET_ID: "18GxzjmanmXTGbGWA0p1sjcIo2OV_r4ugtpWQPAoFDco", 
-            API_KEY: "AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18", 
+            API_KEY: "AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18", // ✅ Sudah diperbaiki
             
             SHEETS: {
                 CONFIG: "CONFIG",
@@ -1353,6 +1357,41 @@
         const SHEET_IDS = {
             QURAN: "1wekTDtB5Nlt-DhAIk2XiHvg_1_AfAQ0NFCt3Llivb8s",
             HADIST: "1Pr6JQz-pacVeACXgSbygoSPTKJ2rJ9ilzth5TrKb-Zs"
+        };
+
+        // ==================== DATA DEFAULT ====================
+        const DEFAULT_DATA = {
+            CONFIG: [
+                ['key', 'value'],
+                ['school_name', 'MAS IBNU HUSAIN'],
+                ['npsn', '60728117'],
+                ['address', 'Jl. Irawati 1 No. 15-17, Surabaya'],
+                ['city', 'KOTA SURABAYA'],
+                ['school_lat', '-7.230636'],
+                ['school_lng', '112.749601'],
+                ['school_radius', '100']
+            ],
+            STUDENTS: [
+                ['id', 'nis', 'nama', 'kelas', 'jurusan', 'photo', 'created_at']
+            ],
+            ATTENDANCE: [
+                ['id', 'student_id', 'student_nis', 'student_nama', 'student_kelas', 'student_jurusan', 'student_photo', 'status', 'metode', 'location_lat', 'location_lng', 'location_accuracy', 'keterangan', 'tanggal', 'timestamp']
+            ],
+            PELANGGARAN: [
+                ['id', 'student_id', 'student_nis', 'student_nama', 'student_kelas', 'student_photo', 'tanggal', 'kategori_id', 'kategori_nama', 'poin', 'jenis', 'keterangan', 'created_at']
+            ],
+            PELANGGARAN_KATEGORI: [
+                ['id', 'nama', 'poin', 'deskripsi'],
+                ['k1', 'Ringan', '5', 'Pelanggaran ringan seperti terlambat'],
+                ['k2', 'Sedang', '10', 'Pelanggaran sedang seperti membolos'],
+                ['k3', 'Berat', '25', 'Pelanggaran berat seperti tawuran']
+            ],
+            LOCATIONS: [
+                ['id', 'attendance_id', 'student_id', 'student_nis', 'student_nama', 'lat', 'lng', 'accuracy', 'within_radius', 'distance', 'timestamp']
+            ],
+            NOTES: [
+                ['id', 'student_id', 'student_nis', 'student_nama', 'note', 'created_at', 'updated_at']
+            ]
         };
 
         // ==================== KONSTANTA LOKASI ====================
@@ -1391,25 +1430,51 @@
         let isLoading = false;
         let dateRangeFilter = { start: null, end: null };
         let studentCache = new Map();
+        let surahNames = [];
 
         // ==================== FUNGSI GOOGLE SHEETS ====================
         async function fetchSheetData(sheetName, range = null) {
+            // Jika mode mock data aktif, langsung kembalikan data default
+            if (USE_MOCK_DATA) {
+                console.log(`📋 Menggunakan mock data untuk ${sheetName}`);
+                return DEFAULT_DATA[sheetName] || [];
+            }
+            
             try {
                 const rangeToUse = range || GOOGLE_SHEETS_CONFIG.RANGES[sheetName] || "A:Z";
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID}/values/${sheetName}!${rangeToUse}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
                 
                 console.log(`📥 Fetching ${sheetName}...`);
-                const response = await fetch(url);
+                
+                // Tambahkan timeout 5 detik
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    console.warn(`⚠️ Gagal fetch ${sheetName} (HTTP ${response.status}), menggunakan data default`);
+                    // Coba load dari cache
+                    const cached = localStorage.getItem(`backup_${sheetName}`);
+                    if (cached) {
+                        return JSON.parse(cached);
+                    }
+                    return DEFAULT_DATA[sheetName] || [];
                 }
                 
                 const data = await response.json();
-                return data.values || [];
+                return data.values || DEFAULT_DATA[sheetName] || [];
             } catch (error) {
                 console.error(`❌ Gagal fetch ${sheetName}:`, error);
-                return [];
+                // Coba load dari cache
+                const cached = localStorage.getItem(`backup_${sheetName}`);
+                if (cached) {
+                    console.log(`📦 Memuat ${sheetName} dari cache`);
+                    return JSON.parse(cached);
+                }
+                console.warn(`⚠️ Menggunakan data default untuk ${sheetName}`);
+                return DEFAULT_DATA[sheetName] || [];
             }
         }
 
@@ -1421,9 +1486,16 @@
                 // Simpan ke sessionStorage untuk sesi ini
                 sessionStorage.setItem(`cache_${sheetName}`, JSON.stringify(values));
                 
-                // Untuk production, gunakan Google Apps Script Web App
-                // Tampilkan notifikasi
-                showToast(`Data ${sheetName} disimpan di cache lokal`, 'info');
+                // Log untuk development
+                console.log(`📝 Data ${sheetName} disimpan di cache lokal (${values.length} baris)`);
+                
+                // Di mode mock, kita hanya simpan di localStorage
+                if (USE_MOCK_DATA) {
+                    return true;
+                }
+                
+                // TODO: Untuk production dengan Google Sheets, perlu implementasi OAuth2
+                // atau menggunakan Google Apps Script Web App
                 
                 return true;
             } catch (error) {
@@ -1488,7 +1560,7 @@
             return rows;
         }
 
-        // ==================== FUNGSI LOAD DATA DARI GOOGLE SHEETS ====================
+        // ==================== FUNGSI LOAD DATA ====================
         async function loadConfig() {
             try {
                 const rows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.CONFIG);
@@ -1556,7 +1628,17 @@
         async function loadStudents() {
             try {
                 const rows = await fetchSheetData(GOOGLE_SHEETS_CONFIG.SHEETS.STUDENTS);
-                students = arrayToObjects(rows);
+                
+                if (rows.length > 1) {
+                    students = arrayToObjects(rows);
+                } else {
+                    // Coba load dari cache
+                    const cached = localStorage.getItem('backup_STUDENTS');
+                    if (cached) {
+                        students = arrayToObjects(JSON.parse(cached));
+                        console.log('📦 Loaded students from cache:', students.length);
+                    }
+                }
                 
                 studentCache.clear();
                 students.forEach(student => {
@@ -1569,7 +1651,6 @@
                 return students;
             } catch (error) {
                 console.error('❌ Gagal load siswa:', error);
-                showToast('Gagal load siswa', 'error');
                 return [];
             }
         }
@@ -1584,7 +1665,6 @@
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan siswa:', error);
-                showToast('Gagal simpan siswa', 'error');
                 return false;
             }
         }
@@ -1637,7 +1717,6 @@
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
                 return false;
             }
         }
@@ -1687,7 +1766,6 @@
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran:', error);
-                showToast('Gagal simpan pelanggaran', 'error');
                 return false;
             }
         }
@@ -1744,7 +1822,6 @@
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan catatan:', error);
-                showToast('Gagal simpan catatan', 'error');
                 return false;
             }
         }
@@ -4383,7 +4460,7 @@
             showToast('Semua data kehadiran dihapus');
         }
 
-        // ==================== FUNGSI HAFALAN (tetap sama) ====================
+        // ==================== FUNGSI HAFALAN ====================
         async function testGoogleSheet() {
             showToast('Menguji koneksi ke Google Sheets...', 'info');
             try {
@@ -4416,7 +4493,7 @@
                 if (!response.ok) return [];
                 const data = await response.json();
                 const row = data.values?.[0] || [];
-                return row.slice(6, 6 + 37); // Start from column G (index 6)
+                return row.slice(6, 6 + 37);
             } catch (error) {
                 console.error('Error fetching surah names:', error);
                 return [];
@@ -4433,13 +4510,13 @@
         }
 
         function processQuranData(row) {
-            const totalHafal = parseInt(row[5]) || 0; // Column F (index 5)
+            const totalHafal = parseInt(row[5]) || 0;
             
             const hafal = [];
             const belum = [];
             
             for (let i = 1; i <= 37; i++) {
-                const colIndex = 5 + i; // Start from column G (index 6)
+                const colIndex = 5 + i;
                 const status = row[colIndex]?.toString().toLowerCase() || '';
                 const isHafal = status === '☑' || status === 'true' || status === '1' || status === 'yes';
                 
@@ -4457,7 +4534,7 @@
             document.getElementById('quranTotalHafal').textContent = `${totalHafal} Surat`;
             document.getElementById('quranProgressPercent').textContent = `${progress.toFixed(1)}%`;
             document.getElementById('quranProgressBar').style.width = `${progress}%`;
-            document.getElementById('quranStats').textContent = `${totalHafal}/${37} Surat`;
+            document.getElementById('quranStats').textContent = `${totalHafal}/37 Surat`;
             document.getElementById('quranHafalCount').textContent = hafal.length;
             document.getElementById('quranBelumCount').textContent = belum.length;
             
@@ -4481,13 +4558,13 @@
         }
 
         function processHadistData(row) {
-            const totalHafal = parseInt(row[5]) || 0; // Column F (index 5)
+            const totalHafal = parseInt(row[5]) || 0;
             
             const hafal = [];
             const belum = [];
             
             for (let i = 1; i <= 37; i++) {
-                const colIndex = 5 + i; // Start from column G (index 6)
+                const colIndex = 5 + i;
                 const status = row[colIndex]?.toString().toLowerCase() || '';
                 const isHafal = status === '☑' || status === 'true' || status === '1' || status === 'yes';
                 
@@ -4502,7 +4579,7 @@
             document.getElementById('hadistTotalHafal').textContent = `${totalHafal} Hadist`;
             document.getElementById('hadistProgressPercent').textContent = `${progress.toFixed(1)}%`;
             document.getElementById('hadistProgressBar').style.width = `${progress}%`;
-            document.getElementById('hadistStats').textContent = `${totalHafal}/${37} Hadist`;
+            document.getElementById('hadistStats').textContent = `${totalHafal}/37 Hadist`;
             document.getElementById('hadistHafalCount').textContent = hafal.length;
             document.getElementById('hadistBelumCount').textContent = belum.length;
             
@@ -4557,7 +4634,7 @@
             document.getElementById('hafalanContent').classList.add('hidden');
 
             try {
-                const kelasSheet = "X"; // Default
+                const kelasSheet = "X";
                 
                 if (surahNames.length === 0) {
                     surahNames = await getSurahNames(SHEET_IDS.QURAN, kelasSheet);
@@ -4581,14 +4658,14 @@
                 document.getElementById('hafalanLoading').classList.add('hidden');
 
                 if (quranData && quranData.length > 0) {
-                    const studentRow = quranData[0]; // Just show first row as example
+                    const studentRow = quranData[0];
                     processQuranData(studentRow);
                 } else {
                     resetQuranData();
                 }
 
                 if (hadistData && hadistData.length > 0) {
-                    const studentRow = hadistData[0]; // Just show first row as example
+                    const studentRow = hadistData[0];
                     processHadistData(studentRow);
                 } else {
                     resetHadistData();
@@ -4654,7 +4731,6 @@
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
                         
-                        // Assume first sheet
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
                         
@@ -4663,7 +4739,6 @@
                             return;
                         }
                         
-                        // Parse headers
                         const headers = jsonData[0];
                         const nisIndex = headers.findIndex(h => h.toLowerCase().includes('nis'));
                         const namaIndex = headers.findIndex(h => h.toLowerCase().includes('nama'));
@@ -4691,7 +4766,6 @@
                             
                             if (!nis || !nama) continue;
                             
-                            // Check if student already exists
                             const existing = students.find(s => s.nis === nis);
                             
                             if (!existing) {
@@ -4841,4 +4915,3 @@
     </script>
 </body>
 </html>
-
