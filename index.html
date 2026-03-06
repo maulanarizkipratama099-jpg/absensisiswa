@@ -1344,7 +1344,7 @@
     <script>
         // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
         const USE_MOCK_DATA = false;
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypADTKst7j3tNiHW8Tsm6s7j3N5z9C-8xZ22EoeGjJ_ir9BybSJYdadK2SbhSmFbJN0g/exec";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziN7kxEQ99YGvaXlqf_JvYAvfVUvkYOtA3iX7froYoDtVblvKo6UnxQfPGFEGSyCT24g/exec";
 
         // Cache untuk menyimpan data sementara
         const dataCache = {
@@ -1458,130 +1458,144 @@
             document.getElementById('mainApp').classList.remove('hidden');
         }
 
-        // Load data paralel
-        async function loadAllData() {
-            const startTime = performance.now();
+       // ==================== LOAD DATA BERTAHAP ====================
+async function loadAllData() {
+    const startTime = performance.now();
+    
+    // Load config dulu (paling penting)
+    await loadConfig();
+    
+    // Load data lainnya secara paralel tapi tidak perlu ditunggu semua
+    Promise.allSettled([
+        loadStudents().then(() => console.log('✅ Students loaded')),
+        loadAttendance().then(() => console.log('✅ Attendance loaded')),
+        loadPelanggaran().then(() => console.log('✅ Pelanggaran loaded')),
+        loadLocationRecords().then(() => console.log('✅ Locations loaded')),
+        loadStudentNotes().then(() => console.log('✅ Notes loaded'))
+    ]).then(() => {
+        const endTime = performance.now();
+        console.log(`⏱️ Total loading time: ${(endTime - startTime).toFixed(2)}ms`);
+        
+        // Render UI setelah semua data siap
+        setToday();
+        renderStudentTable();
+        renderSiswaManagementTable();
+        renderRekapTable();
+        renderLokasiTable();
+        renderPelanggaranTable();
+        updateClassFilter();
+        updatePelanggaranStats();
+    });
+}
 
-            try {
-                // Load paralel dengan Promise.all
-                const [configResult, studentsResult, attendanceResult, pelanggaranResult, locationsResult, notesResult] = await Promise.allSettled([
-                    loadConfig(),
-                    loadStudents(),
-                    loadAttendance(),
-                    loadPelanggaran(),
-                    loadLocationRecords(),
-                    loadStudentNotes()
-                ]);
+// ==================== FUNGSI JSONP YANG LEBIH STABIL ====================
+async function fetchSheetData(sheetName) {
+    if (USE_MOCK_DATA) {
+        return DEFAULT_DATA[sheetName] || [];
+    }
 
-                // Proses hasil
-                if (configResult.status === 'fulfilled') console.log('✅ Config loaded');
-                if (studentsResult.status === 'fulfilled') console.log('✅ Students loaded');
-                if (attendanceResult.status === 'fulfilled') console.log('✅ Attendance loaded');
-                if (pelanggaranResult.status === 'fulfilled') console.log('✅ Pelanggaran loaded');
-                if (locationsResult.status === 'fulfilled') console.log('✅ Locations loaded');
-                if (notesResult.status === 'fulfilled') console.log('✅ Notes loaded');
+    // Cek cache
+    if (dataCache[sheetName.toLowerCase()]) {
+        console.log(`📦 Cache hit for ${sheetName}`);
+        return dataCache[sheetName.toLowerCase()];
+    }
 
-                const endTime = performance.now();
-                console.log(`⏱️ Total loading time: ${(endTime - startTime).toFixed(2)}ms`);
-
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
-
-            // Render UI setelah semua data siap
-            setToday();
-            renderStudentTable();
-            renderSiswaManagementTable();
-            renderRekapTable();
-            renderLokasiTable();
-            renderPelanggaranTable();
-            updateClassFilter();
-            updatePelanggaranStats();
-        }
-
-        // ==================== FUNGSI JSONP YANG DIPERCEPAT ====================
-        async function fetchSheetData(sheetName) {
-            if (USE_MOCK_DATA) {
-                return DEFAULT_DATA[sheetName] || [];
-            }
-
-            // Cek cache
-            if (dataCache[sheetName.toLowerCase()]) {
-                return dataCache[sheetName.toLowerCase()];
-            }
-
-            return new Promise((resolve) => {
-                const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                const timeout = setTimeout(() => {
-                    cleanup();
-                    const cached = localStorage.getItem(`backup_${sheetName}`);
-                    if (cached) {
-                        const data = JSON.parse(cached);
-                        dataCache[sheetName.toLowerCase()] = data;
-                        resolve(data);
-                    } else {
-                        resolve(DEFAULT_DATA[sheetName] || []);
-                    }
-                }, 5000);
-
-                function cleanup() {
-                    delete window[callbackName];
-                    clearTimeout(timeout);
-                    const script = document.getElementById(callbackName);
-                    if (script) script.remove();
-                }
-
-                window[callbackName] = function(response) {
-                    cleanup();
-                    if (response && response.success) {
-                        dataCache[sheetName.toLowerCase()] = response.data || [];
-                        resolve(response.data || []);
-                    } else {
-                        const cached = localStorage.getItem(`backup_${sheetName}`);
-                        if (cached) {
-                            const data = JSON.parse(cached);
-                            dataCache[sheetName.toLowerCase()] = data;
-                            resolve(data);
-                        } else {
-                            resolve(DEFAULT_DATA[sheetName] || []);
-                        }
-                    }
-                };
-
-                const actionMap = {
-                    'CONFIG': 'getConfig',
-                    'STUDENTS': 'getStudents',
-                    'ATTENDANCE': 'getAttendance',
-                    'PELANGGARAN': 'getPelanggaran',
-                    'PELANGGARAN_KATEGORI': 'getKategori',
-                    'LOCATIONS': 'getLocations',
-                    'NOTES': 'getNotes'
-                };
-
-                const action = actionMap[sheetName];
-                if (!action) {
-                    cleanup();
+    return new Promise((resolve) => {
+        // Buat callback name yang lebih sederhana dan predictable
+        const callbackName = `cb_${sheetName.toLowerCase()}_${Date.now()}`;
+        
+        // Timeout lebih panjang (10 detik)
+        const timeout = setTimeout(() => {
+            cleanup();
+            console.warn(`⏱️ Timeout fetch ${sheetName}, pakai cache/default`);
+            const cached = localStorage.getItem(`backup_${sheetName}`);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    dataCache[sheetName.toLowerCase()] = data;
+                    resolve(data);
+                } catch (e) {
                     resolve(DEFAULT_DATA[sheetName] || []);
-                    return;
                 }
+            } else {
+                resolve(DEFAULT_DATA[sheetName] || []);
+            }
+        }, 10000);
 
-                const script = document.createElement('script');
-                script.id = callbackName;
-                script.src = `${APPS_SCRIPT_URL}?action=${action}&callback=${callbackName}&_=${Date.now()}`;
-                script.onerror = () => {
-                    cleanup();
-                    const cached = localStorage.getItem(`backup_${sheetName}`);
-                    if (cached) {
+        function cleanup() {
+            clearTimeout(timeout);
+            if (window[callbackName]) {
+                delete window[callbackName];
+            }
+            const script = document.getElementById(callbackName);
+            if (script) script.remove();
+        }
+
+        // Definisikan callback GLOBAL dengan nama yang sama
+        window[callbackName] = function(response) {
+            cleanup();
+            if (response && response.success) {
+                dataCache[sheetName.toLowerCase()] = response.data || [];
+                resolve(response.data || []);
+            } else {
+                console.error(`❌ Error from Apps Script (${sheetName}):`, response?.error);
+                const cached = localStorage.getItem(`backup_${sheetName}`);
+                if (cached) {
+                    try {
                         const data = JSON.parse(cached);
                         dataCache[sheetName.toLowerCase()] = data;
                         resolve(data);
-                    } else {
+                    } catch (e) {
                         resolve(DEFAULT_DATA[sheetName] || []);
                     }
-                };
-                document.body.appendChild(script);
-            });
+                } else {
+                    resolve(DEFAULT_DATA[sheetName] || []);
+                }
+            }
+        };
+
+        const actionMap = {
+            'CONFIG': 'getConfig',
+            'STUDENTS': 'getStudents',
+            'ATTENDANCE': 'getAttendance',
+            'PELANGGARAN': 'getPelanggaran',
+            'PELANGGARAN_KATEGORI': 'getKategori',
+            'LOCATIONS': 'getLocations',
+            'NOTES': 'getNotes'
+        };
+
+        const action = actionMap[sheetName];
+        if (!action) {
+            cleanup();
+            resolve(DEFAULT_DATA[sheetName] || []);
+            return;
         }
+
+        // Buat script tag
+        const script = document.createElement('script');
+        script.id = callbackName;
+        script.src = `${APPS_SCRIPT_URL}?action=${action}&callback=${callbackName}&_=${Date.now()}`;
+        
+        script.onerror = () => {
+            cleanup();
+            console.error(`❌ Script error fetch ${sheetName}`);
+            const cached = localStorage.getItem(`backup_${sheetName}`);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    dataCache[sheetName.toLowerCase()] = data;
+                    resolve(data);
+                } catch (e) {
+                    resolve(DEFAULT_DATA[sheetName] || []);
+                }
+            } else {
+                resolve(DEFAULT_DATA[sheetName] || []);
+            }
+        };
+        
+        document.body.appendChild(script);
+    });
+}
 
         // Queue system untuk update data
         async function processQueue() {
@@ -5061,14 +5075,15 @@
 
             sessionStorage.setItem('app_loaded', 'true');
 
-            setTimeout(() => {
-                document.getElementById('openingOverlay').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('openingOverlay').style.display = 'none';
-                    document.getElementById('mainApp').classList.remove('hidden');
-                    showPage('absensi', { target: document.querySelector('.nav-btn') });
-                }, 300);
-            }, 1000);
+// Di fungsi init(), ganti timeout opening
+setTimeout(() => {
+    document.getElementById('openingOverlay').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('openingOverlay').style.display = 'none';
+        document.getElementById('mainApp').classList.remove('hidden');
+        showPage('absensi', { target: document.querySelector('.nav-btn') });
+    }, 300);
+}, 1500); // Naikkan dari 1000ms ke 1500ms untuk memberi waktu load data
 
             setInterval(async () => {
                 const refreshStart = performance.now();
