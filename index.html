@@ -12,7 +12,6 @@
     <!-- Google Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18&libraries=places"></script>
     <style>
-        /* [CSS SAMA SEPERTI SEBELUMNYA - TIDAK BERUBAH] */
         * {
             margin: 0;
             padding: 0;
@@ -1324,7 +1323,8 @@
 
     <script>
         // ==================== KONFIGURASI GOOGLE SHEETS API ====================
-        const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwDPI-Wbw7bsfOmpXkvxXAsPEMLWJcbbpUgEkKt2qmho7of_wsDga7DsW3CLLJvh6M8/exec'; // GANTI DENGAN URL WEB APP ANDA
+        // GANTI DENGAN URL WEB APP ANDA SETELAH DEPLOY
+        const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxSjpSKbnMqWnIADCLeCxJAYa4tjlZDE30GWJbCEnciYrgZ03rrCCoMUHpkqxLy2KK1/exec'; 
         
         const GOOGLE_MAPS_KEY = 'AIzaSyDTKZRcAp-b7p0js0obNooW83DLFRXNl18';
         const GOOGLE_SHEETS_KEY = 'AIzaSyC5haP1J9FuIDWoABt4ISIW6uMANh4L-gc';
@@ -1367,14 +1367,18 @@
             Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
             
             try {
+                showLoading(`Memuat data...`);
                 const response = await fetch(url.toString());
                 const result = await response.json();
-                if (result.code === 200) {
+                hideLoading();
+                
+                if (result && result.code === 200) {
                     return result.data;
                 } else {
-                    throw new Error(result.data || 'API Error');
+                    throw new Error(result?.data || 'API Error');
                 }
             } catch (error) {
+                hideLoading();
                 console.error(`API Get Error (${action}):`, error);
                 showToast(`Gagal memuat data: ${error.message}`, 'error');
                 return null;
@@ -1383,23 +1387,29 @@
 
         async function apiPost(action, data) {
             try {
+                showLoading(`Menyimpan data...`);
                 const response = await fetch(API_BASE_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Penting untuk Apps Script
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ action, data })
                 });
                 
-                // Karena mode no-cors, kita tidak bisa membaca response
-                // Tapi kita asumsikan berhasil
-                console.log(`API Post Success (${action}):`, data);
-                return true;
+                const result = await response.json();
+                hideLoading();
+                
+                if (result && result.code === 200) {
+                    showToast(result.data.message || 'Data berhasil disimpan', 'success');
+                    return result.data;
+                } else {
+                    throw new Error(result?.data || 'API Error');
+                }
             } catch (error) {
+                hideLoading();
                 console.error(`API Post Error (${action}):`, error);
                 showToast(`Gagal menyimpan data: ${error.message}`, 'error');
-                return false;
+                return null;
             }
         }
 
@@ -1744,75 +1754,176 @@
             });
         }
 
-        // ==================== FUNGSI DATABASE ====================
-        async function loadStudents() {
+        // ==================== FUNGSI IMPORT EXCEL ====================
+        async function handleExcelImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            if (!['xlsx', 'xls', 'csv'].includes(fileExt)) {
+                showToast('Format file tidak didukung. Gunakan .xlsx, .xls, atau .csv', 'error');
+                input.value = '';
+                return;
+            }
+            
+            showLoading('Membaca file Excel...');
+            
             try {
-                const data = await apiGet('getSiswa');
-                students = Array.isArray(data) ? data : [];
+                const data = await readExcelFile(file);
+                console.log('Data dari Excel:', data);
                 
-                studentCache.clear();
-                students.forEach(student => {
-                    const nis = String(student.nis).trim();
-                    studentCache.set(nis, student);
-                    studentCache.set(nis.replace(/^0+/, ''), student);
-                });
-                
-                console.log('✅ Loaded students:', students.length);
-                return students;
-            } catch (error) {
-                console.error('❌ Gagal load siswa:', error);
-                showToast('Gagal load siswa', 'error');
-                return [];
-            }
-        }
-
-        async function loadAttendance() {
-            try {
-                const data = await apiGet('getAbsensi');
-                attendanceRecords = Array.isArray(data) ? data : [];
-                console.log('✅ Loaded attendance:', attendanceRecords.length);
-                
-                updateTodayStats();
-                return attendanceRecords;
-            } catch (error) {
-                console.error('❌ Gagal load absensi:', error);
-                return [];
-            }
-        }
-
-        async function loadLocationRecords() {
-            try {
-                const data = await apiGet('getLokasi');
-                locationRecords = Array.isArray(data) ? data : [];
-                console.log('✅ Loaded location records:', locationRecords.length);
-                return locationRecords;
-            } catch (error) {
-                console.error('❌ Gagal load lokasi:', error);
-                return [];
-            }
-        }
-
-        async function loadStudentNotes() {
-            try {
-                const data = await apiGet('getNote');
-                studentNotes = Array.isArray(data) ? data : [];
-                console.log('✅ Loaded notes:', studentNotes.length);
-            } catch (error) {
-                console.error('Gagal load catatan:', error);
-                studentNotes = [];
-            }
-        }
-
-        async function saveStudentNotes() {
-            try {
-                for (const note of studentNotes) {
-                    await apiPost('saveNote', note);
+                if (data.length === 0) {
+                    showToast('File Excel kosong atau format tidak sesuai', 'error');
+                    return;
                 }
-                console.log('✅ Notes saved');
+                
+                // Validasi header
+                const requiredColumns = ['nis', 'nama', 'kelas', 'jurusan'];
+                const firstRow = data[0];
+                const missingColumns = requiredColumns.filter(col => !firstRow.hasOwnProperty(col));
+                
+                if (missingColumns.length > 0) {
+                    showToast(`Kolom wajib tidak ditemukan: ${missingColumns.join(', ')}`, 'error');
+                    return;
+                }
+                
+                // Tampilkan modal progress
+                showImportProgress(data.length);
+                
+                // Kirim data import ke server
+                const result = await apiPost('importSiswa', data);
+                
+                if (result) {
+                    updateImportProgress(result.total, result.success);
+                    
+                    // Reload data dari server
+                    await loadStudents();
+                    await loadAttendance();
+                    await loadPelanggaran();
+                    await loadLocationRecords();
+                    await loadStudentNotes();
+                    
+                    // Render ulang tabel
+                    renderStudentTable();
+                    renderSiswaManagementTable();
+                    renderRekapTable();
+                    renderLokasiTable();
+                    renderPelanggaranTable();
+                    updateClassFilter();
+                    updatePelanggaranStats();
+                    
+                    showToast(`Import selesai! ${result.success} berhasil, ${result.failed} gagal`, 
+                              result.failed > 0 ? 'warning' : 'success');
+                }
+                
             } catch (error) {
-                console.error('Gagal simpan catatan:', error);
-                showToast('Gagal simpan catatan', 'error');
+                console.error('Error import Excel:', error);
+                showToast('Gagal membaca file Excel: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+                hideImportProgress();
+                input.value = '';
             }
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Ambil sheet pertama
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // Konversi ke JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            resolve([]);
+                            return;
+                        }
+                        
+                        // Ambil header (baris pertama)
+                        const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
+                        
+                        // Mapping kolom yang diharapkan
+                        const columnMap = {
+                            'nis': headers.findIndex(h => h.includes('nis') || h === 'no induk'),
+                            'nama': headers.findIndex(h => h.includes('nama') || h === 'nama lengkap'),
+                            'kelas': headers.findIndex(h => h.includes('kelas')),
+                            'jurusan': headers.findIndex(h => h.includes('jurusan') || h.includes('program')),
+                            'photo': headers.findIndex(h => h.includes('foto') || h.includes('photo') || h.includes('gambar'))
+                        };
+                        
+                        // Validasi kolom wajib
+                        if (columnMap.nis === -1 || columnMap.nama === -1 || columnMap.kelas === -1 || columnMap.jurusan === -1) {
+                            reject(new Error('Format Excel tidak sesuai. Pastikan ada kolom: nis, nama, kelas, jurusan'));
+                            return;
+                        }
+                        
+                        // Konversi ke array of objects
+                        const result = [];
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            
+                            // Skip jika baris kosong
+                            if (row.every(cell => !cell)) continue;
+                            
+                            const siswa = {
+                                nis: row[columnMap.nis] ? String(row[columnMap.nis]).trim() : '',
+                                nama: row[columnMap.nama] ? String(row[columnMap.nama]).trim() : '',
+                                kelas: row[columnMap.kelas] ? String(row[columnMap.kelas]).trim() : '',
+                                jurusan: row[columnMap.jurusan] ? String(row[columnMap.jurusan]).trim() : '',
+                                photo: columnMap.photo !== -1 && row[columnMap.photo] ? String(row[columnMap.photo]).trim() : ''
+                            };
+                            
+                            // Validasi data
+                            if (siswa.nis && siswa.nama && siswa.kelas && siswa.jurusan) {
+                                result.push(siswa);
+                            }
+                        }
+                        
+                        resolve(result);
+                        
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = (error) => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function showImportProgress(total) {
+            const progressEl = document.getElementById('importProgress');
+            const statusEl = document.getElementById('importStatus');
+            const counterEl = document.getElementById('importCounter');
+            const barEl = document.getElementById('importProgressBar');
+            
+            statusEl.textContent = `Mengimpor ${total} data...`;
+            counterEl.textContent = `0/${total} diproses`;
+            barEl.style.width = '0%';
+            progressEl.classList.remove('hidden');
+        }
+
+        function updateImportProgress(total, completed) {
+            const counterEl = document.getElementById('importCounter');
+            const barEl = document.getElementById('importProgressBar');
+            const percent = (completed / total) * 100;
+            
+            counterEl.textContent = `${completed}/${total} diproses`;
+            barEl.style.width = `${percent}%`;
+        }
+
+        function hideImportProgress() {
+            document.getElementById('importProgress').classList.add('hidden');
         }
 
         // ==================== FUNGSI QR CODE MODEL KTP ====================
@@ -2165,7 +2276,6 @@
                 return;
             }
             
-            // Buat HTML untuk semua kartu dalam satu halaman (grid 2x2)
             const printWindow = window.open('', '_blank', 'width=1200,height=800');
             
             let html = `
@@ -2419,7 +2529,55 @@
             printWindow.print();
         }
 
-        // ==================== FUNGSI PELANGGARAN ====================
+        // ==================== FUNGSI DATABASE ====================
+        async function loadStudents() {
+            try {
+                const data = await apiGet('getSiswa');
+                students = Array.isArray(data) ? data : [];
+                
+                // Update cache
+                studentCache.clear();
+                students.forEach(student => {
+                    const nis = String(student.nis).trim();
+                    studentCache.set(nis, student);
+                    studentCache.set(nis.replace(/^0+/, ''), student);
+                });
+                
+                console.log('✅ Loaded students:', students.length);
+                return students;
+            } catch (error) {
+                console.error('❌ Gagal load siswa:', error);
+                showToast('Gagal load siswa', 'error');
+                return [];
+            }
+        }
+
+        async function loadAttendance() {
+            try {
+                const data = await apiGet('getAbsensi');
+                attendanceRecords = Array.isArray(data) ? data : [];
+                console.log('✅ Loaded attendance:', attendanceRecords.length);
+                
+                updateTodayStats();
+                return attendanceRecords;
+            } catch (error) {
+                console.error('❌ Gagal load absensi:', error);
+                return [];
+            }
+        }
+
+        async function loadLocationRecords() {
+            try {
+                const data = await apiGet('getLokasi');
+                locationRecords = Array.isArray(data) ? data : [];
+                console.log('✅ Loaded location records:', locationRecords.length);
+                return locationRecords;
+            } catch (error) {
+                console.error('❌ Gagal load lokasi:', error);
+                return [];
+            }
+        }
+
         async function loadPelanggaran() {
             try {
                 const data = await apiGet('getPelanggaran');
@@ -2436,16 +2594,77 @@
             }
         }
 
+        async function loadStudentNotes() {
+            try {
+                const data = await apiGet('getNote');
+                studentNotes = Array.isArray(data) ? data : [];
+                console.log('✅ Loaded notes:', studentNotes.length);
+            } catch (error) {
+                console.error('Gagal load catatan:', error);
+                studentNotes = [];
+            }
+        }
+
+        async function saveStudents() {
+            try {
+                let successCount = 0;
+                for (const student of students) {
+                    const result = await apiPost('saveSiswa', student);
+                    if (result) successCount++;
+                }
+                console.log(`✅ ${successCount}/${students.length} students saved`);
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan siswa:', error);
+                showToast('Gagal simpan siswa', 'error');
+                return false;
+            }
+        }
+
+        async function saveAttendance() {
+            try {
+                let successCount = 0;
+                for (const record of attendanceRecords) {
+                    const result = await apiPost('saveAbsensi', record);
+                    if (result) successCount++;
+                }
+                console.log(`✅ ${successCount}/${attendanceRecords.length} attendance saved`);
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan absensi:', error);
+                showToast('Gagal simpan absensi', 'error');
+                return false;
+            }
+        }
+
         async function savePelanggaran() {
             try {
+                let successCount = 0;
                 for (const pelanggaran of pelanggaranRecords) {
-                    await apiPost('savePelanggaran', pelanggaran);
+                    const result = await apiPost('savePelanggaran', pelanggaran);
+                    if (result) successCount++;
                 }
-                console.log('✅ Pelanggaran saved');
+                console.log(`✅ ${successCount}/${pelanggaranRecords.length} pelanggaran saved`);
                 return true;
             } catch (error) {
                 console.error('❌ Gagal simpan pelanggaran:', error);
                 showToast('Gagal simpan pelanggaran', 'error');
+                return false;
+            }
+        }
+
+        async function saveStudentNotes() {
+            try {
+                let successCount = 0;
+                for (const note of studentNotes) {
+                    const result = await apiPost('saveNote', note);
+                    if (result) successCount++;
+                }
+                console.log(`✅ ${successCount}/${studentNotes.length} notes saved`);
+                return true;
+            } catch (error) {
+                console.error('❌ Gagal simpan catatan:', error);
+                showToast('Gagal simpan catatan', 'error');
                 return false;
             }
         }
@@ -2663,28 +2882,33 @@
             const note = document.getElementById('studentNoteInput').value.trim();
             const studentId = currentCatatanStudent.id;
             
-            const existingIndex = studentNotes.findIndex(n => n.student_id === studentId);
+            const existingNote = studentNotes.find(n => n.student_id === studentId);
             
-            if (existingIndex >= 0) {
+            if (existingNote) {
                 if (note) {
-                    studentNotes[existingIndex].note = note;
-                    studentNotes[existingIndex].updated_at = Date.now();
+                    existingNote.note = note;
+                    existingNote.updated_at = Date.now();
+                    await apiPost('saveNote', existingNote);
                 } else {
-                    studentNotes.splice(existingIndex, 1);
+                    await apiPost('deleteNote', { id: existingNote.id });
+                    studentNotes = studentNotes.filter(n => n.id !== existingNote.id);
                 }
             } else if (note) {
-                studentNotes.push({
-                    id: generateId(),
+                const newNote = {
                     student_id: studentId,
                     student_nis: currentCatatanStudent.nis,
                     student_nama: currentCatatanStudent.nama,
                     note: note,
                     created_at: Date.now(),
                     updated_at: Date.now()
-                });
+                };
+                const result = await apiPost('saveNote', newNote);
+                if (result) {
+                    studentNotes.push(result);
+                }
             }
             
-            await saveStudentNotes();
+            await loadStudentNotes();
             closeCatatanModal();
             renderSiswaManagementTable();
             showToast('Catatan berhasil disimpan', 'success');
@@ -2781,10 +3005,8 @@
             
             const kategori = kategoriPelanggaran.find(k => k.id === kategoriId);
             
-            showLoading('Menyimpan pelanggaran...');
-            
             const pelanggaranData = {
-                id: pelanggaranId || generateId(),
+                id: pelanggaranId || undefined,
                 student_id: studentId,
                 student_nis: student.nis,
                 student_nama: student.nama,
@@ -2795,26 +3017,17 @@
                 kategori_nama: kategori ? kategori.nama : '',
                 poin: poin,
                 jenis: jenis,
-                keterangan: keterangan,
-                created_at: Date.now()
+                keterangan: keterangan
             };
             
-            if (pelanggaranId) {
-                const index = pelanggaranRecords.findIndex(p => p.id === pelanggaranId);
-                if (index !== -1) {
-                    pelanggaranRecords[index] = pelanggaranData;
-                }
-            } else {
-                pelanggaranRecords.push(pelanggaranData);
+            const result = await apiPost('savePelanggaran', pelanggaranData);
+            
+            if (result) {
+                await loadPelanggaran();
+                closePelanggaranModal();
+                renderPelanggaranTable();
+                updatePelanggaranStats();
             }
-            
-            await savePelanggaran();
-            
-            hideLoading();
-            closePelanggaranModal();
-            renderPelanggaranTable();
-            updatePelanggaranStats();
-            showToast('Data pelanggaran berhasil disimpan');
         }
 
         function deletePelanggaran(id) {
@@ -2833,36 +3046,41 @@
             if (studentToDelete) {
                 showLoading('Menghapus data siswa...');
                 
-                // Hapus dari array lokal
-                students = students.filter(s => s.id !== studentToDelete);
-                attendanceRecords = attendanceRecords.filter(r => r.student_id !== studentToDelete);
-                pelanggaranRecords = pelanggaranRecords.filter(p => p.student_id !== studentToDelete);
+                const result = await apiPost('deleteSiswa', { id: studentToDelete });
                 
-                // Simpan ke server
-                await apiPost('deleteSiswa', { id: studentToDelete });
+                if (result) {
+                    // Reload data dari server
+                    await loadStudents();
+                    await loadAttendance();
+                    await loadPelanggaran();
+                    await loadLocationRecords();
+                    await loadStudentNotes();
+                    
+                    renderStudentTable();
+                    renderSiswaManagementTable();
+                    renderRekapTable();
+                    renderLokasiTable();
+                    renderPelanggaranTable();
+                    updateClassFilter();
+                    updatePelanggaranStats();
+                }
                 
                 hideLoading();
                 closeDeleteModal();
-                renderStudentTable();
-                renderSiswaManagementTable();
-                renderRekapTable();
-                renderLokasiTable();
-                renderPelanggaranTable();
-                updateClassFilter();
-                updatePelanggaranStats();
-                showToast('Data siswa berhasil dihapus');
                 
             } else if (pelanggaranToDelete) {
                 showLoading('Menghapus pelanggaran...');
                 
-                pelanggaranRecords = pelanggaranRecords.filter(p => p.id !== pelanggaranToDelete);
-                await apiPost('deletePelanggaran', { id: pelanggaranToDelete });
+                const result = await apiPost('deletePelanggaran', { id: pelanggaranToDelete });
+                
+                if (result) {
+                    await loadPelanggaran();
+                    renderPelanggaranTable();
+                    updatePelanggaranStats();
+                }
                 
                 hideLoading();
                 closeDeleteModal();
-                renderPelanggaranTable();
-                updatePelanggaranStats();
-                showToast('Pelanggaran berhasil dihapus');
             }
         }
 
@@ -2892,13 +3110,15 @@
             
             showLoading(`Menghapus ${totalSiswa} data siswa...`);
             
-            try {
-                students = [];
-                attendanceRecords = [];
-                pelanggaranRecords = [];
-                
-                await apiPost('deleteAllSiswa', {});
-                await apiPost('deleteAllAbsensi', {});
+            const result = await apiPost('deleteAllSiswa', {});
+            
+            if (result) {
+                // Reload semua data
+                await loadStudents();
+                await loadAttendance();
+                await loadPelanggaran();
+                await loadLocationRecords();
+                await loadStudentNotes();
                 
                 renderStudentTable();
                 renderSiswaManagementTable();
@@ -2907,15 +3127,36 @@
                 renderPelanggaranTable();
                 updateClassFilter();
                 updatePelanggaranStats();
-                
-                showToast(`Berhasil menghapus ${totalSiswa} data siswa`, 'success');
-            } catch (error) {
-                console.error('Error saat menghapus semua siswa:', error);
-                showToast('Gagal menghapus data siswa', 'error');
-            } finally {
-                hideLoading();
-                closeDeleteAllStudentsModal();
             }
+            
+            hideLoading();
+            closeDeleteAllStudentsModal();
+        }
+
+        async function confirmDeleteStatus() {
+            showLoading('Menghapus status kehadiran...');
+            
+            // Filter attendance untuk hari ini
+            const todayAttendance = attendanceRecords.filter(r => r.tanggal === currentDate);
+            
+            // Hapus satu per satu
+            let successCount = 0;
+            for (const record of todayAttendance) {
+                const result = await apiPost('deleteAbsensi', { id: record.id });
+                if (result) successCount++;
+            }
+            
+            if (successCount > 0) {
+                await loadAttendance();
+                renderStudentTable();
+                renderRekapTable();
+                renderLokasiTable();
+                updateTodayStats();
+                showToast(`${successCount} data kehadiran dihapus`, 'success');
+            }
+            
+            hideLoading();
+            closeDeleteStatusModal();
         }
 
         // ==================== RENDER FUNCTIONS ====================
@@ -3335,68 +3576,32 @@
                 return;
             }
             
-            showLoading('Menyimpan data siswa...');
+            const studentData = {
+                id: studentId || undefined,
+                nis,
+                nama,
+                kelas,
+                jurusan,
+                photo: photoLink
+            };
             
-            if (studentId) {
-                const index = students.findIndex(s => s.id === studentId);
-                if (index !== -1) {
-                    students[index] = {
-                        ...students[index],
-                        nis,
-                        nama,
-                        kelas,
-                        jurusan,
-                        photo: photoLink || students[index].photo
-                    };
-                    await apiPost('saveSiswa', students[index]);
-                    
-                    // Update data terkait
-                    attendanceRecords.forEach(r => {
-                        if (r.student_id === studentId) {
-                            r.student_nis = nis;
-                            r.student_nama = nama;
-                            r.student_kelas = kelas;
-                            r.student_jurusan = jurusan;
-                            if (photoLink) r.student_photo = photoLink;
-                        }
-                    });
-                    
-                    pelanggaranRecords.forEach(p => {
-                        if (p.student_id === studentId) {
-                            p.student_nis = nis;
-                            p.student_nama = nama;
-                            p.student_kelas = kelas;
-                            if (photoLink) p.student_photo = photoLink;
-                        }
-                    });
-                    
-                    await saveAttendance();
-                    await savePelanggaran();
-                }
-            } else {
-                const newStudent = {
-                    id: generateId(),
-                    nis,
-                    nama,
-                    kelas,
-                    jurusan,
-                    photo: photoLink,
-                    created_at: Date.now()
-                };
-                students.push(newStudent);
-                await apiPost('saveSiswa', newStudent);
+            const result = await apiPost('saveSiswa', studentData);
+            
+            if (result) {
+                // Reload data dari server
+                await loadStudents();
+                await loadAttendance();
+                await loadPelanggaran();
+                
+                closeStudentModal();
+                renderStudentTable();
+                renderSiswaManagementTable();
+                renderRekapTable();
+                renderLokasiTable();
+                renderPelanggaranTable();
+                updateClassFilter();
+                updatePelanggaranStats();
             }
-            
-            hideLoading();
-            closeStudentModal();
-            renderStudentTable();
-            renderSiswaManagementTable();
-            renderRekapTable();
-            renderLokasiTable();
-            renderPelanggaranTable();
-            updateClassFilter();
-            updatePelanggaranStats();
-            showToast('Data siswa berhasil disimpan');
         }
 
         function deleteStudent(id) {
@@ -3408,35 +3613,39 @@
             const student = students.find(s => s.id === studentId);
             if (student) {
                 student[field] = value;
-                await apiPost('saveSiswa', student);
                 
-                attendanceRecords.forEach(r => {
-                    if (r.student_id === studentId) {
-                        if (field === 'nis') r.student_nis = value;
-                        if (field === 'nama') r.student_nama = value;
-                        if (field === 'kelas') r.student_kelas = value;
-                        if (field === 'jurusan') r.student_jurusan = value;
-                    }
-                });
+                const result = await apiPost('saveSiswa', student);
                 
-                pelanggaranRecords.forEach(p => {
-                    if (p.student_id === studentId) {
-                        if (field === 'nis') p.student_nis = value;
-                        if (field === 'nama') p.student_nama = value;
-                        if (field === 'kelas') p.student_kelas = value;
-                    }
-                });
-                
-                await saveAttendance();
-                await savePelanggaran();
-                
-                renderStudentTable();
-                renderSiswaManagementTable();
-                renderRekapTable();
-                renderLokasiTable();
-                renderPelanggaranTable();
-                updateClassFilter();
-                showToast('Data diperbarui');
+                if (result) {
+                    // Update data terkait di attendance dan pelanggaran
+                    attendanceRecords.forEach(r => {
+                        if (r.student_id === studentId) {
+                            if (field === 'nis') r.student_nis = value;
+                            if (field === 'nama') r.student_nama = value;
+                            if (field === 'kelas') r.student_kelas = value;
+                            if (field === 'jurusan') r.student_jurusan = value;
+                        }
+                    });
+                    
+                    pelanggaranRecords.forEach(p => {
+                        if (p.student_id === studentId) {
+                            if (field === 'nis') p.student_nis = value;
+                            if (field === 'nama') p.student_nama = value;
+                            if (field === 'kelas') p.student_kelas = value;
+                        }
+                    });
+                    
+                    // Simpan perubahan
+                    await saveAttendance();
+                    await savePelanggaran();
+                    
+                    renderStudentTable();
+                    renderSiswaManagementTable();
+                    renderRekapTable();
+                    renderLokasiTable();
+                    renderPelanggaranTable();
+                    updateClassFilter();
+                }
             }
         }
 
@@ -3563,17 +3772,23 @@
             const student = students.find(s => s.id === studentId);
             if (!student) return;
             
+            showLoading('Menyimpan absensi...');
+            
+            // Cek apakah sudah ada absensi untuk hari ini
             let existingAttendance = attendanceRecords.find(r => 
                 r.student_id === studentId && 
                 r.tanggal === currentDate && 
                 r.status === (jenis === 'hadir' ? 'hadir' : 'pulang')
             );
             
+            let result;
             if (existingAttendance) {
+                // Update existing
                 existingAttendance.status = status;
+                result = await apiPost('saveAbsensi', existingAttendance);
             } else {
+                // Buat baru
                 const newAttendance = {
-                    id: generateId(),
                     student_id: student.id,
                     student_nis: student.nis,
                     student_nama: student.nama,
@@ -3586,33 +3801,38 @@
                     tanggal: currentDate,
                     timestamp: Date.now()
                 };
-                attendanceRecords.push(newAttendance);
+                result = await apiPost('saveAbsensi', newAttendance);
             }
             
-            await saveAttendance();
+            if (result) {
+                await loadAttendance();
+                renderStudentTable();
+                renderRekapTable();
+                renderLokasiTable();
+                updateTodayStats();
+            }
             
-            renderStudentTable();
-            renderRekapTable();
-            renderLokasiTable();
-            updateTodayStats();
-            
-            showToast(`Status ${jenis === 'hadir' ? 'kehadiran' : 'kepulangan'} diperbarui`);
+            hideLoading();
         }
 
         async function updateAttendanceKeterangan(studentId, keterangan) {
             if (!studentId) return;
+            
+            showLoading('Menyimpan keterangan...');
             
             const attendances = attendanceRecords.filter(r => 
                 r.student_id === studentId && r.tanggal === currentDate
             );
             
             if (attendances.length > 0) {
-                attendances.forEach(a => a.keterangan = keterangan);
+                for (const attendance of attendances) {
+                    attendance.keterangan = keterangan;
+                    await apiPost('saveAbsensi', attendance);
+                }
             } else if (keterangan.trim()) {
                 const student = students.find(s => s.id === studentId);
                 if (student) {
                     const newAttendance = {
-                        id: generateId(),
                         student_id: student.id,
                         student_nis: student.nis,
                         student_nama: student.nama,
@@ -3625,20 +3845,24 @@
                         tanggal: currentDate,
                         timestamp: Date.now()
                     };
-                    attendanceRecords.push(newAttendance);
+                    await apiPost('saveAbsensi', newAttendance);
                 }
             }
             
-            await saveAttendance();
-            
+            await loadAttendance();
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
+            hideLoading();
         }
 
         async function markAllPresent() {
             const filteredStudents = getFilteredStudents();
+            if (filteredStudents.length === 0) return;
             
+            showLoading(`Menandai ${filteredStudents.length} siswa hadir...`);
+            
+            let successCount = 0;
             for (const student of filteredStudents) {
                 const existingHadir = attendanceRecords.find(r => 
                     r.student_id === student.id && 
@@ -3648,7 +3872,6 @@
                 
                 if (!existingHadir) {
                     const newAttendance = {
-                        id: generateId(),
                         student_id: student.id,
                         student_nis: student.nis,
                         student_nama: student.nama,
@@ -3661,23 +3884,30 @@
                         tanggal: currentDate,
                         timestamp: Date.now()
                     };
-                    attendanceRecords.push(newAttendance);
+                    const result = await apiPost('saveAbsensi', newAttendance);
+                    if (result) successCount++;
+                } else {
+                    successCount++;
                 }
             }
             
-            await saveAttendance();
-            
+            await loadAttendance();
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
             updateTodayStats();
             
-            showToast('Semua siswa ditandai hadir');
+            hideLoading();
+            showToast(`${successCount} siswa ditandai hadir`, 'success');
         }
 
         async function markAllPulang() {
             const filteredStudents = getFilteredStudents();
+            if (filteredStudents.length === 0) return;
             
+            showLoading(`Menandai ${filteredStudents.length} siswa pulang...`);
+            
+            let successCount = 0;
             for (const student of filteredStudents) {
                 const existingPulang = attendanceRecords.find(r => 
                     r.student_id === student.id && 
@@ -3687,7 +3917,6 @@
                 
                 if (!existingPulang) {
                     const newAttendance = {
-                        id: generateId(),
                         student_id: student.id,
                         student_nis: student.nis,
                         student_nama: student.nama,
@@ -3700,18 +3929,21 @@
                         tanggal: currentDate,
                         timestamp: Date.now()
                     };
-                    attendanceRecords.push(newAttendance);
+                    const result = await apiPost('saveAbsensi', newAttendance);
+                    if (result) successCount++;
+                } else {
+                    successCount++;
                 }
             }
             
-            await saveAttendance();
-            
+            await loadAttendance();
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
             updateTodayStats();
             
-            showToast('Semua siswa ditandai pulang');
+            hideLoading();
+            showToast(`${successCount} siswa ditandai pulang`, 'success');
         }
 
         function showDeleteStatusModal() {
@@ -3723,17 +3955,29 @@
         }
 
         async function confirmDeleteStatus() {
-            attendanceRecords = attendanceRecords.filter(r => r.tanggal !== currentDate);
+            showLoading('Menghapus status kehadiran...');
             
-            await saveAttendance();
+            // Filter attendance untuk hari ini
+            const todayAttendance = attendanceRecords.filter(r => r.tanggal === currentDate);
             
-            renderStudentTable();
-            renderRekapTable();
-            renderLokasiTable();
-            updateTodayStats();
+            // Hapus satu per satu
+            let successCount = 0;
+            for (const record of todayAttendance) {
+                const result = await apiPost('deleteAbsensi', { id: record.id });
+                if (result) successCount++;
+            }
             
+            if (successCount > 0) {
+                await loadAttendance();
+                renderStudentTable();
+                renderRekapTable();
+                renderLokasiTable();
+                updateTodayStats();
+                showToast(`${successCount} data kehadiran dihapus`, 'success');
+            }
+            
+            hideLoading();
             closeDeleteStatusModal();
-            showToast('Semua status kehadiran dihapus');
         }
 
         // ==================== DATE FUNCTIONS ====================
@@ -4171,39 +4415,18 @@
             if (!confirm('Hapus semua data kehadiran?')) return;
             
             showLoading('Menghapus semua data...');
-            attendanceRecords = [];
-            await apiPost('deleteAllAbsensi', {});
-            renderRekapTable();
-            renderLokasiTable();
-            renderStudentTable();
-            updateTodayStats();
+            
+            const result = await apiPost('deleteAllAbsensi', {});
+            
+            if (result) {
+                await loadAttendance();
+                renderRekapTable();
+                renderLokasiTable();
+                renderStudentTable();
+                updateTodayStats();
+            }
+            
             hideLoading();
-            showToast('Semua data kehadiran dihapus');
-        }
-
-        // ==================== SAVE FUNCTIONS ====================
-        async function saveStudents() {
-            try {
-                for (const student of students) {
-                    await apiPost('saveSiswa', student);
-                }
-                console.log('✅ Students saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan siswa:', error);
-                showToast('Gagal simpan siswa', 'error');
-            }
-        }
-
-        async function saveAttendance() {
-            try {
-                for (const record of attendanceRecords) {
-                    await apiPost('saveAbsensi', record);
-                }
-                console.log('✅ Attendance saved');
-            } catch (error) {
-                console.error('❌ Gagal simpan absensi:', error);
-                showToast('Gagal simpan absensi', 'error');
-            }
         }
 
         // ==================== PAGE NAVIGATION ====================
@@ -4277,6 +4500,7 @@
                 showPage('absensi', { target: document.querySelector('.nav-btn') });
             }, 2800);
             
+            // Auto refresh setiap 30 detik
             setInterval(async () => {
                 await loadAttendance();
                 await loadPelanggaran();
@@ -4343,6 +4567,7 @@
         window.openCatatanModal = openCatatanModal;
         window.closeCatatanModal = closeCatatanModal;
         window.saveCatatan = saveCatatan;
+        window.handleExcelImport = handleExcelImport;
     </script>
 </body>
 </html>
