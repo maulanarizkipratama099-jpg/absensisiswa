@@ -4938,6 +4938,142 @@ async function fetchSheetData(sheetName) {
             }
         }
 
+        // ==================== FUNGSI IMPORT EXCEL YANG DIPERBAIKI ====================
+async function handleExcelImport(input) {
+    if (!input.files || !input.files[0]) {
+        showToast('Pilih file Excel terlebih dahulu', 'warning');
+        return;
+    }
+
+    const file = input.files[0];
+
+    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+        showToast('Format file harus .xlsx, .xls, atau .csv', 'error');
+        return;
+    }
+
+    showLoading('Membaca file Excel...');
+
+    const reader = new FileReader();
+
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (jsonData.length < 2) {
+                hideLoading();
+                showToast('File Excel kosong', 'error');
+                return;
+            }
+
+            const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
+
+            const nisIndex = headers.findIndex(h => h.includes('nis') || h.includes('nis'));
+            const namaIndex = headers.findIndex(h => h.includes('nama') || h.includes('name'));
+            const kelasIndex = headers.findIndex(h => h.includes('kelas') || h.includes('class'));
+            const jurusanIndex = headers.findIndex(h => h.includes('jurusan') || h.includes('major'));
+
+            if (nisIndex === -1 || namaIndex === -1) {
+                hideLoading();
+                showToast('Format Excel tidak sesuai. Harus ada kolom NIS dan Nama', 'error');
+                return;
+            }
+
+            showLoading('Mengimpor data ke Google Sheets...');
+
+            let imported = 0;
+            let updated = 0;
+
+            // Proses setiap baris
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
+
+                const nis = row[nisIndex]?.toString().trim();
+                const nama = row[namaIndex]?.toString().trim();
+
+                if (!nis || !nama) continue;
+
+                const kelas = kelasIndex !== -1 && row[kelasIndex] ? row[kelasIndex].toString().trim() : '';
+                const jurusan = jurusanIndex !== -1 && row[jurusanIndex] ? row[jurusanIndex].toString().trim() : '';
+
+                // Cek apakah siswa sudah ada
+                const existingIndex = students.findIndex(s => s.nis === nis);
+
+                if (existingIndex >= 0) {
+                    // Update data yang ada
+                    students[existingIndex] = {
+                        ...students[existingIndex],
+                        nama: nama,
+                        kelas: kelas || students[existingIndex].kelas,
+                        jurusan: jurusan || students[existingIndex].jurusan
+                    };
+                    updated++;
+                } else {
+                    // Tambah siswa baru
+                    const newStudent = {
+                        id: generateId(),
+                        nis: nis,
+                        nama: nama,
+                        kelas: kelas,
+                        jurusan: jurusan,
+                        photo: '',
+                        created_at: Date.now()
+                    };
+                    students.push(newStudent);
+                    imported++;
+                }
+            }
+
+            // ** PENTING: Simpan ke Google Sheets via Apps Script **
+            showLoading(`Menyimpan ${imported + updated} data ke Google Sheets...`);
+            
+            const saveResult = await saveStudents(); // Fungsi ini sudah mengirim ke Google Sheets
+
+            if (saveResult) {
+                // Update cache
+                dataCache.students = students;
+                updateStudentCache();
+
+                // Render ulang tabel
+                renderStudentTable();
+                renderSiswaManagementTable();
+                updateClassFilter();
+
+                hideLoading();
+                showToast(`✅ Berhasil: ${imported} baru, ${updated} diperbarui`, 'success');
+                
+                // Log untuk verifikasi
+                console.log('📤 Data siswa telah dikirim ke Google Sheets:', students.length, 'siswa');
+            } else {
+                hideLoading();
+                showToast('❌ Gagal menyimpan ke Google Sheets. Data hanya di cache lokal.', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error parsing Excel:', error);
+            hideLoading();
+            showToast('Gagal membaca file Excel: ' + error.message, 'error');
+        }
+
+        // Reset input file
+        input.value = '';
+    };
+
+    reader.onerror = function() {
+        hideLoading();
+        showToast('Gagal membaca file', 'error');
+        input.value = '';
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
         function handleExcelImport(input) {
             if (!input.files || !input.files[0]) {
                 showToast('Pilih file Excel terlebih dahulu', 'warning');
