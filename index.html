@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="id" class="h-full">
 <head>
@@ -1344,7 +1345,7 @@
     <script>
         // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
         const USE_MOCK_DATA = false;
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziN7kxEQ99YGvaXlqf_JvYAvfVUvkYOtA3iX7froYoDtVblvKo6UnxQfPGFEGSyCT24g/exec";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHbFAb_33gpo1LSDenaHEmWXBC5v9bxU4wNDP4XEdZRv-jp2c6qYH8kKJJFWW9vPcaeg/exec";
 
         // Cache untuk menyimpan data sementara
         const dataCache = {
@@ -1728,23 +1729,36 @@
         }
 
         function objectsToArray(objects, headers) {
-            const rows = [headers];
-
-            objects.forEach(obj => {
-                const row = headers.map(header => {
-                    let value = obj[header] !== undefined ? obj[header] : '';
-
-                    if (header === 'location_lat' && obj.location) value = obj.location.lat || '';
-                    if (header === 'location_lng' && obj.location) value = obj.location.lng || '';
-                    if (header === 'location_accuracy' && obj.location) value = obj.location.accuracy || '';
-
-                    return value;
-                });
-                rows.push(row);
-            });
-
-            return rows;
+    // Pastikan headers adalah array
+    if (!headers || !Array.isArray(headers)) {
+        console.error('❌ Headers tidak valid:', headers);
+        return [];
+    }
+    
+    const rows = [headers]; // Baris pertama adalah header
+    
+    objects.forEach((obj, index) => {
+        const row = headers.map(header => {
+            let value = obj[header] !== undefined ? obj[header] : '';
+            
+            // Handle special cases
+            if (header === 'location_lat' && obj.location) value = obj.location.lat || '';
+            if (header === 'location_lng' && obj.location) value = obj.location.lng || '';
+            if (header === 'location_accuracy' && obj.location) value = obj.location.accuracy || '';
+            
+            return value;
+        });
+        rows.push(row);
+        
+        // Log untuk verifikasi (5 baris pertama)
+        if (index < 5) {
+            console.log(`📋 Baris ${index + 1}:`, row);
         }
+    });
+    
+    console.log(`📊 Total baris yang akan dikirim: ${rows.length} (termasuk header)`);
+    return rows;
+}
 
         // ==================== FUNGSI LOAD DATA DENGAN CACHE ====================
         async function loadConfig() {
@@ -1847,32 +1861,56 @@
         }
 
         async function saveStudents() {
-            try {
-                console.log('📤 Mengirim data siswa ke Google Sheets...', students.length, 'siswa');
-                
-                const headers = ['id', 'nis', 'nama', 'kelas', 'jurusan', 'photo', 'created_at'];
-                const rows = objectsToArray(students, headers);
-                
-                console.log('📦 Data yang akan dikirim:', rows);
-                
-                const result = await updateSheetData('STUDENTS', rows);
-                
-                console.log('📥 Hasil dari updateSheetData:', result);
-                
-                if (result) {
-                    console.log('✅ Data siswa berhasil disimpan ke Google Sheets');
-                    dataCache.students = students;
-                } else {
-                    console.error('❌ Gagal menyimpan ke Google Sheets');
-                }
-                
-                return result;
-            } catch (error) {
-                console.error('❌ Gagal simpan siswa:', error);
-                return false;
-            }
+    try {
+        console.log('📤 Mengirim data siswa ke Google Sheets...', students.length, 'siswa');
+        
+        // Validasi data siswa
+        if (!students || students.length === 0) {
+            console.warn('⚠️ Tidak ada data siswa untuk disimpan');
+            return true;
         }
-
+        
+        const headers = ['id', 'nis', 'nama', 'kelas', 'jurusan', 'photo', 'created_at'];
+        const rows = objectsToArray(students, headers);
+        
+        // Validasi rows
+        if (!rows || rows.length < 2) {
+            console.error('❌ Tidak ada data yang valid untuk dikirim');
+            return false;
+        }
+        
+        console.log('📦 Header yang dikirim:', rows[0]);
+        console.log('📦 Contoh data pertama:', rows[1]);
+        
+        const result = await updateSheetData('STUDENTS', rows);
+        
+        console.log('📥 Hasil dari updateSheetData:', result);
+        
+        if (result) {
+            console.log('✅ Data siswa berhasil disimpan ke Google Sheets');
+            dataCache.students = students;
+            
+            // Verifikasi dengan membaca ulang setelah 2 detik
+            setTimeout(async () => {
+                const verifyRows = await fetchSheetData('STUDENTS');
+                console.log('🔍 Verifikasi setelah simpan:', verifyRows.length, 'baris');
+                if (verifyRows.length > 1) {
+                    console.log('✅ Data terverifikasi di Google Sheets!');
+                } else {
+                    console.warn('⚠️ Data tidak ditemukan di Google Sheets setelah simpan');
+                }
+            }, 2000);
+            
+            return true;
+        } else {
+            console.error('❌ Gagal menyimpan ke Google Sheets');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Gagal simpan siswa:', error);
+        return false;
+    }
+}
         async function loadAttendance() {
             try {
                 if (dataCache.attendance) {
