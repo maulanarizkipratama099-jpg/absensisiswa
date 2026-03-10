@@ -1729,33 +1729,33 @@
                 return new Promise((resolve) => {
                     const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
                     
-                    window[callbackName] = function(response) {
-                        cleanup();
-                        console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
-                        
-                        if (response && response.success) {
-                            console.log(`✅ ${sheetName} saved to Google Sheets`);
-                            if (sheetName === 'STUDENTS') {
-                                dataCache.students = values;
-                            } else if (sheetName === 'ATTENDANCE') {
-                                dataCache.attendance = values;
-                            } else if (sheetName === 'PELANGGARAN') {
-                                dataCache.pelanggaran = values;
-                            } else if (sheetName === 'PELANGGARAN_KATEGORI') {
-                                dataCache.kategori = values;
-                            } else if (sheetName === 'LOCATIONS') {
-                                dataCache.locations = values;
-                            } else if (sheetName === 'NOTES') {
-                                dataCache.notes = values;
-                            } else if (sheetName === 'CONFIG') {
-                                dataCache.config = values;
-                            }
-                            resolve(true);
-                        } else {
-                            console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
-                            resolve(false);
-                        }
-                    };
+window[callbackName] = function(response) {
+    cleanup();
+    console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
+    
+    if (response && response.success) {
+        console.log(`✅ ${sheetName} saved to Google Sheets`);
+        if (sheetName === 'STUDENTS') {
+            dataCache.students = values;
+        } else if (sheetName === 'ATTENDANCE') {
+            dataCache.attendance = values;
+        } else if (sheetName === 'PELANGGARAN') {
+            dataCache.pelanggaran = values;
+        } else if (sheetName === 'PELANGGARAN_KATEGORI') {
+            dataCache.kategori = values;
+        } else if (sheetName === 'LOCATIONS') {
+            dataCache.locations = values;
+        } else if (sheetName === 'NOTES') {
+            dataCache.notes = values;
+        } else if (sheetName === 'CONFIG') {  // <-- PASTIKAN INI ADA
+            dataCache.config = values;
+        }
+        resolve(true);
+    } else {
+        console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
+        resolve(false);
+    }
+};
 
                     const timeout = setTimeout(() => {
                         cleanup();
@@ -1907,19 +1907,35 @@
             document.getElementById('schoolNameHeader').textContent = configData.school_name || 'MAS IBNU HUSAIN';
         }
 
-        async function saveConfig() {
-            try {
-                const configArray = [['key', 'value']];
-                Object.entries(configData).forEach(([key, value]) => {
-                    configArray.push([key, String(value)]);
-                });
-
-                return await updateSheetData('CONFIG', configArray);
-            } catch (error) {
-                console.error('❌ Gagal simpan config:', error);
-                return false;
-            }
+   async function saveConfig() {
+    try {
+        console.log('📤 Menyimpan config ke Google Sheets...');
+        console.log('📦 Data config:', configData);
+        
+        // Konversi object config ke array untuk sheet
+        const configArray = [['key', 'value']];
+        Object.entries(configData).forEach(([key, value]) => {
+            configArray.push([key, String(value)]);
+        });
+        
+        console.log('📋 Data yang akan dikirim:', configArray);
+        
+        const result = await updateSheetData('CONFIG', configArray);
+        
+        console.log('📥 Hasil saveConfig:', result);
+        
+        if (result) {
+            console.log('✅ Config berhasil disimpan ke Google Sheets');
+            return true;
+        } else {
+            console.error('❌ Gagal menyimpan config ke Google Sheets');
+            return false;
         }
+    } catch (error) {
+        console.error('❌ Gagal simpan config:', error);
+        return false;
+    }
+}
 
         async function loadStudents() {
             try {
@@ -2396,40 +2412,50 @@
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
-        async function handleLogoUpload(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-
-                if (!file.type.match('image.*')) {
-                    showToast('File harus gambar', 'error');
-                    return;
-                }
-
-                showLoading('Mengompres logo...');
-
-                try {
-                    const compressedBase64 = await compressImage(file, 300, 300, 0.8);
-
-                    configData.school_logo = compressedBase64;
-                    await saveConfig();
-
-                    document.getElementById('logoImage').src = compressedBase64;
-                    document.getElementById('logoImage').classList.remove('hidden');
-                    document.getElementById('logoDefault').classList.add('hidden');
-
-                    document.getElementById('openingLogoImage').src = compressedBase64;
-                    document.getElementById('openingLogoImage').classList.remove('hidden');
-                    document.getElementById('openingLogoIcon').classList.add('hidden');
-
-                    showToast('Logo berhasil diupload!', 'success');
-                } catch (error) {
-                    console.error('Error:', error);
-                    showToast('Gagal upload logo', 'error');
-                } finally {
-                    hideLoading();
-                }
-            }
+async function handleLogoUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        console.log('📁 File yang dipilih:', file.name, file.type, (file.size/1024).toFixed(2) + 'KB');
+        
+        if (!file.type.match('image.*')) {
+            showToast('File harus gambar', 'error');
+            return;
         }
+        
+        showLoading('Mengompres logo...');
+        
+        try {
+            const compressedBase64 = await compressImage(file, 300, 300, 0.8);
+            
+            console.log('📦 Hasil kompresi base64 (awal):', compressedBase64.substring(0, 100) + '...');
+            
+            configData.school_logo = compressedBase64;
+            
+            console.log('📤 Mengirim ke saveConfig...');
+            const result = await saveConfig();
+            
+            if (result) {
+                document.getElementById('logoImage').src = compressedBase64;
+                document.getElementById('logoImage').classList.remove('hidden');
+                document.getElementById('logoDefault').classList.add('hidden');
+                
+                document.getElementById('openingLogoImage').src = compressedBase64;
+                document.getElementById('openingLogoImage').classList.remove('hidden');
+                document.getElementById('openingLogoIcon').classList.add('hidden');
+                
+                showToast('Logo berhasil diupload!', 'success');
+            } else {
+                showToast('Gagal menyimpan ke Google Sheets', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Gagal upload logo', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+}
 
         function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
             return new Promise((resolve, reject) => {
