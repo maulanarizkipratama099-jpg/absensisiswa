@@ -1729,12 +1729,15 @@
                 return new Promise((resolve) => {
                     const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
                     
+// Cari bagian ini di fungsi updateSheetDataDirect
 window[callbackName] = function(response) {
     cleanup();
     console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
     
     if (response && response.success) {
         console.log(`✅ ${sheetName} saved to Google Sheets`);
+        
+        // PERBAIKI BAGIAN INI - TAMBAHKAN UNTUK CONFIG
         if (sheetName === 'STUDENTS') {
             dataCache.students = values;
         } else if (sheetName === 'ATTENDANCE') {
@@ -1748,8 +1751,10 @@ window[callbackName] = function(response) {
         } else if (sheetName === 'NOTES') {
             dataCache.notes = values;
         } else if (sheetName === 'CONFIG') {  // <-- PASTIKAN INI ADA
-            dataCache.config = values;
+            dataCache.config = values;  // Simpan ke cache
+            console.log('💾 CONFIG tersimpan di cache:', values);
         }
+        
         resolve(true);
     } else {
         console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
@@ -1907,7 +1912,7 @@ window[callbackName] = function(response) {
             document.getElementById('schoolNameHeader').textContent = configData.school_name || 'MAS IBNU HUSAIN';
         }
 
-   async function saveConfig() {
+async function saveConfig() {
     try {
         console.log('📤 Menyimpan config ke Google Sheets...');
         console.log('📦 Data config:', configData);
@@ -1920,12 +1925,17 @@ window[callbackName] = function(response) {
         
         console.log('📋 Data yang akan dikirim:', configArray);
         
+        // KIRIM KE GOOGLE SHEETS
         const result = await updateSheetData('CONFIG', configArray);
         
         console.log('📥 Hasil saveConfig:', result);
         
         if (result) {
             console.log('✅ Config berhasil disimpan ke Google Sheets');
+            
+            // Update cache
+            dataCache.config = configData;
+            
             return true;
         } else {
             console.error('❌ Gagal menyimpan config ke Google Sheets');
@@ -2428,14 +2438,17 @@ async function handleLogoUpload(input) {
         try {
             const compressedBase64 = await compressImage(file, 300, 300, 0.8);
             
+            console.log('📦 Hasil kompresi base64 (panjang):', compressedBase64.length, 'karakter');
             console.log('📦 Hasil kompresi base64 (awal):', compressedBase64.substring(0, 100) + '...');
             
+            // Simpan ke configData
             configData.school_logo = compressedBase64;
             
             console.log('📤 Mengirim ke saveConfig...');
             const result = await saveConfig();
             
             if (result) {
+                // Update tampilan
                 document.getElementById('logoImage').src = compressedBase64;
                 document.getElementById('logoImage').classList.remove('hidden');
                 document.getElementById('logoDefault').classList.add('hidden');
@@ -2445,8 +2458,16 @@ async function handleLogoUpload(input) {
                 document.getElementById('openingLogoIcon').classList.add('hidden');
                 
                 showToast('Logo berhasil diupload!', 'success');
+                console.log('✅ Logo berhasil disimpan ke Google Sheets');
+                
+                // Verifikasi dengan membaca ulang config
+                setTimeout(async () => {
+                    await loadConfig();
+                    console.log('🔍 Verifikasi config setelah simpan:', configData);
+                }, 2000);
             } else {
                 showToast('Gagal menyimpan ke Google Sheets', 'error');
+                console.error('❌ saveConfig() mengembalikan false');
             }
         } catch (error) {
             console.error('Error:', error);
