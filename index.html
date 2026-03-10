@@ -1381,7 +1381,7 @@
     <script>
         // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
         const USE_MOCK_DATA = false;
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxcojKlI6UipJ1_WaqhpijI-O7E6sP813GoZgPgJ8TPHt1etCPeN_O7MrRhhqQ14kHw/exec";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhrMK7esCETPxnd1BOh9xq27q-mC0w2_YK3JXCTedbTpB5RmzxSFpAJYo06X1dUTA/exec";
 
         // Cache untuk menyimpan data sementara
         const dataCache = {
@@ -1703,98 +1703,114 @@
                 processQueue();
             });
         }
+async function updateSheetDataDirect(sheetName, values) {
+    try {
+        // Simpan ke localStorage sebagai backup
+        localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
 
-        async function updateSheetDataDirect(sheetName, values) {
-            try {
-                // Simpan ke localStorage sebagai backup
-                localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
-
-                if (USE_MOCK_DATA) {
-                    return true;
-                }
-
-                const actionMap = {
-                    'CONFIG': 'saveConfig',
-                    'STUDENTS': 'saveStudents',
-                    'ATTENDANCE': 'saveAttendance',
-                    'PELANGGARAN': 'savePelanggaran',
-                    'PELANGGARAN_KATEGORI': 'saveKategori',
-                    'LOCATIONS': 'saveLocations',
-                    'NOTES': 'saveNotes'
-                };
-
-                const action = actionMap[sheetName];
-                if (!action) return false;
-
-                return new Promise((resolve) => {
-                    const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-                    
-// Cari bagian ini di fungsi updateSheetDataDirect
-window[callbackName] = function(response) {
-    cleanup();
-    console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
-    
-    if (response && response.success) {
-        console.log(`✅ ${sheetName} saved to Google Sheets`);
-        
-        // PERBAIKI BAGIAN INI - TAMBAHKAN UNTUK CONFIG
-        if (sheetName === 'STUDENTS') {
-            dataCache.students = values;
-        } else if (sheetName === 'ATTENDANCE') {
-            dataCache.attendance = values;
-        } else if (sheetName === 'PELANGGARAN') {
-            dataCache.pelanggaran = values;
-        } else if (sheetName === 'PELANGGARAN_KATEGORI') {
-            dataCache.kategori = values;
-        } else if (sheetName === 'LOCATIONS') {
-            dataCache.locations = values;
-        } else if (sheetName === 'NOTES') {
-            dataCache.notes = values;
-        } else if (sheetName === 'CONFIG') {  // <-- PASTIKAN INI ADA
-            dataCache.config = values;  // Simpan ke cache
-            console.log('💾 CONFIG tersimpan di cache:', values);
+        if (USE_MOCK_DATA) {
+            return true;
         }
-        
-        resolve(true);
-    } else {
-        console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
-        resolve(false);
-    }
-};
 
-                    const timeout = setTimeout(() => {
-                        cleanup();
-                        console.log(`⏱️ Timeout update ${sheetName}, data hanya di cache`);
-                        resolve(false);
-                    }, 10000);
+        const actionMap = {
+            'CONFIG': 'saveConfig',
+            'STUDENTS': 'saveStudents',
+            'ATTENDANCE': 'saveAttendance',
+            'PELANGGARAN': 'savePelanggaran',
+            'PELANGGARAN_KATEGORI': 'saveKategori',
+            'LOCATIONS': 'saveLocations',
+            'NOTES': 'saveNotes'
+        };
 
-                    function cleanup() {
-                        delete window[callbackName];
-                        clearTimeout(timeout);
-                        const script = document.getElementById(callbackName);
-                        if (script) script.remove();
+        const action = actionMap[sheetName];
+        if (!action) return false;
+
+        return new Promise((resolve) => {
+            const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+            
+            window[callbackName] = function(response) {
+                cleanup();
+                console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
+                
+                if (response && response.success) {
+                    console.log(`✅ ${sheetName} saved to Google Sheets`);
+                    
+                    // Update cache berdasarkan sheetName
+                    if (sheetName === 'STUDENTS') {
+                        dataCache.students = values;
+                    } else if (sheetName === 'ATTENDANCE') {
+                        dataCache.attendance = values;
+                    } else if (sheetName === 'PELANGGARAN') {
+                        dataCache.pelanggaran = values;
+                    } else if (sheetName === 'PELANGGARAN_KATEGORI') {
+                        dataCache.kategori = values;
+                    } else if (sheetName === 'LOCATIONS') {
+                        dataCache.locations = values;
+                    } else if (sheetName === 'NOTES') {
+                        dataCache.notes = values;
+                    } else if (sheetName === 'CONFIG') {
+                        // Konversi array kembali ke object untuk cache
+                        const configObj = {};
+                        for (let i = 1; i < values.length; i++) {
+                            if (values[i] && values[i][0]) {
+                                configObj[values[i][0]] = values[i][1];
+                            }
+                        }
+                        dataCache.config = configObj;
+                        console.log('💾 CONFIG tersimpan di cache:', configObj);
                     }
-
-                    const encodedData = encodeURIComponent(JSON.stringify(values));
-                    const script = document.createElement('script');
-                    script.id = callbackName;
-                    script.src = `${APPS_SCRIPT_URL}?action=${action}&data=${encodedData}&callback=${callbackName}&_=${Date.now()}`;
                     
-                    script.onerror = (error) => {
-                        cleanup();
-                        console.error(`❌ Script error update ${sheetName}:`, error);
-                        resolve(false);
-                    };
-                    
-                    document.body.appendChild(script);
-                    console.log(`📤 Mengirim request ke: ${APPS_SCRIPT_URL}?action=${action}&data=...&callback=${callbackName}`);
-                });
+                    resolve(true);
+                } else {
+                    console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
+                    resolve(false);
+                }
+            };
 
-            } catch (error) {
-                console.error(`❌ Gagal update ${sheetName}:`, error);
-                return false;
+            const timeout = setTimeout(() => {
+                cleanup();
+                console.log(`⏱️ Timeout update ${sheetName}, data hanya di cache`);
+                resolve(false);
+            }, 15000); // Naikkan timeout jadi 15 detik untuk logo besar
+
+            function cleanup() {
+                delete window[callbackName];
+                clearTimeout(timeout);
+                const script = document.getElementById(callbackName);
+                if (script) script.remove();
             }
-        }
+
+            // Untuk data besar (seperti logo base64), gunakan POST via FormData
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('data', JSON.stringify(values));
+            formData.append('callback', callbackName);
+
+            // Gunakan fetch dengan POST untuk data besar
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'cors',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(text => {
+                // Response dari POST adalah JSONP, kita perlu eval
+                eval(text); // Ini akan memanggil window[callbackName]
+            })
+            .catch(error => {
+                console.error(`❌ Fetch error for ${sheetName}:`, error);
+                cleanup();
+                resolve(false);
+            });
+
+            console.log(`📤 Mengirim POST request ke: ${APPS_SCRIPT_URL} untuk ${action}`);
+        });
+
+    } catch (error) {
+        console.error(`❌ Gagal update ${sheetName}:`, error);
+        return false;
+    }
+}
 
         async function updateSheetData(sheetName, values) {
             return queueUpdate(sheetName, values);
@@ -1924,8 +1940,8 @@ async function saveConfig() {
         });
         
         console.log('📋 Data yang akan dikirim:', configArray);
+        console.log('📋 Ukuran data:', JSON.stringify(configArray).length, 'karakter');
         
-        // KIRIM KE GOOGLE SHEETS
         const result = await updateSheetData('CONFIG', configArray);
         
         console.log('📥 Hasil saveConfig:', result);
