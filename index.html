@@ -558,24 +558,6 @@
             flex: 1;
             margin-left: 12px;
         }
-        
-        /* Location Status in Table */
-        .location-status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            background: #ecfdf5;
-            color: #059669;
-            border: 1px solid #a7f3d0;
-        }
-        
-        .location-status-badge.outside {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
     </style>
 </head>
 <body>
@@ -1398,7 +1380,7 @@
 
     <script>
         // ==================== KONFIGURASI GOOGLE APPS SCRIPT ====================
-        // GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA
+        const USE_MOCK_DATA = false;
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhrMK7esCETPxnd1BOh9xq27q-mC0w2_YK3JXCTedbTpB5RmzxSFpAJYo06X1dUTA/exec";
 
         // Cache untuk menyimpan data sementara
@@ -1546,44 +1528,6 @@
             console.log('📊 Counter updated - Next ID: MAS' + String(nextId).padStart(5, '0'), 'Next Created At:', nextCreatedAt);
         }
 
-        // ==================== FUNGSI LOKASI YANG DIPERBAIKI ====================
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
-            
-            const R = 6371e3; // meters
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2 - lat1) * Math.PI/180;
-            const Δλ = (lon2 - lon1) * Math.PI/180;
-
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                    Math.cos(φ1) * Math.cos(φ2) *
-                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-            return R * c;
-        }
-
-        function isWithinSchoolRadius(lat, lng) {
-            if (!lat || !lng || !SCHOOL_LOCATION.lat || !SCHOOL_LOCATION.lng) return false;
-            const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
-            return distance <= SCHOOL_LOCATION.radius;
-        }
-
-        function getLocationStatus(lat, lng) {
-            if (!lat || !lng) return { status: 'unknown', text: 'Tidak diketahui', class: '', distance: null };
-
-            const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
-            const withinRadius = distance <= SCHOOL_LOCATION.radius;
-
-            return {
-                status: withinRadius ? 'within' : 'outside',
-                text: withinRadius ? `Dalam radius (${Math.round(distance)}m)` : `Luar radius (${Math.round(distance)}m)`,
-                class: withinRadius ? 'location-badge' : 'location-badge outside',
-                distance: Math.round(distance)
-            };
-        }
-
         // ==================== OPTIMASI LOADING ====================
         // Skip opening animation jika sudah pernah load
         if (sessionStorage.getItem('app_loaded')) {
@@ -1591,28 +1535,11 @@
             document.getElementById('mainApp').classList.remove('hidden');
         }
 
-        // ==================== FUNGSI LOAD DATA DENGAN LOCALSTORAGE ====================
-        async function loadAllData(useCache = true) {
+        // Load data paralel
+        async function loadAllData() {
             const startTime = performance.now();
 
             try {
-                // Cek localStorage dulu untuk quick load
-                if (useCache) {
-                    const cachedStudents = localStorage.getItem('cached_students');
-                    const cachedAttendance = localStorage.getItem('cached_attendance');
-                    
-                    if (cachedStudents) {
-                        students = JSON.parse(cachedStudents);
-                        updateStudentCache();
-                        console.log('📦 Load students dari cache:', students.length);
-                    }
-                    
-                    if (cachedAttendance) {
-                        attendanceRecords = JSON.parse(cachedAttendance);
-                        console.log('📦 Load attendance dari cache:', attendanceRecords.length);
-                    }
-                }
-
                 // Load paralel dengan Promise.all
                 const [configResult, studentsResult, attendanceResult, pelanggaranResult, locationsResult, notesResult] = await Promise.allSettled([
                     loadConfig(),
@@ -1623,24 +1550,16 @@
                     loadStudentNotes()
                 ]);
 
-                // Simpan ke localStorage untuk next load
-                if (studentsResult.status === 'fulfilled' && students.length > 0) {
-                    localStorage.setItem('cached_students', JSON.stringify(students));
-                }
-                if (attendanceResult.status === 'fulfilled' && attendanceRecords.length > 0) {
-                    localStorage.setItem('cached_attendance', JSON.stringify(attendanceRecords));
-                }
-
                 // Proses hasil
                 if (configResult.status === 'fulfilled') console.log('✅ Config loaded');
                 if (studentsResult.status === 'fulfilled') {
-                    console.log('✅ Students loaded:', students.length);
+                    console.log('✅ Students loaded');
                     updateCountersFromData();
                 }
-                if (attendanceResult.status === 'fulfilled') console.log('✅ Attendance loaded:', attendanceRecords.length);
-                if (pelanggaranResult.status === 'fulfilled') console.log('✅ Pelanggaran loaded:', pelanggaranRecords.length);
-                if (locationsResult.status === 'fulfilled') console.log('✅ Locations loaded:', locationRecords.length);
-                if (notesResult.status === 'fulfilled') console.log('✅ Notes loaded:', studentNotes.length);
+                if (attendanceResult.status === 'fulfilled') console.log('✅ Attendance loaded');
+                if (pelanggaranResult.status === 'fulfilled') console.log('✅ Pelanggaran loaded');
+                if (locationsResult.status === 'fulfilled') console.log('✅ Locations loaded');
+                if (notesResult.status === 'fulfilled') console.log('✅ Notes loaded');
 
                 const endTime = performance.now();
                 console.log(`⏱️ Total loading time: ${(endTime - startTime).toFixed(2)}ms`);
@@ -1784,115 +1703,114 @@
                 processQueue();
             });
         }
+async function updateSheetDataDirect(sheetName, values) {
+    try {
+        // Simpan ke localStorage sebagai backup
+        localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
 
-        async function updateSheetDataDirect(sheetName, values) {
-            try {
-                // Simpan ke localStorage sebagai backup
-                localStorage.setItem(`backup_${sheetName}`, JSON.stringify(values));
-
-                if (USE_MOCK_DATA) {
-                    return true;
-                }
-
-                const actionMap = {
-                    'CONFIG': 'saveConfig',
-                    'STUDENTS': 'saveStudents',
-                    'ATTENDANCE': 'saveAttendance',
-                    'PELANGGARAN': 'savePelanggaran',
-                    'PELANGGARAN_KATEGORI': 'saveKategori',
-                    'LOCATIONS': 'saveLocations',
-                    'NOTES': 'saveNotes'
-                };
-
-                const action = actionMap[sheetName];
-                if (!action) return false;
-
-                return new Promise((resolve) => {
-                    const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-                    
-                    window[callbackName] = function(response) {
-                        cleanup();
-                        console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
-                        
-                        if (response && response.success) {
-                            console.log(`✅ ${sheetName} saved to Google Sheets`);
-                            
-                            // Update cache berdasarkan sheetName
-                            if (sheetName === 'STUDENTS') {
-                                dataCache.students = values;
-                            } else if (sheetName === 'ATTENDANCE') {
-                                dataCache.attendance = values;
-                            } else if (sheetName === 'PELANGGARAN') {
-                                dataCache.pelanggaran = values;
-                            } else if (sheetName === 'PELANGGARAN_KATEGORI') {
-                                dataCache.kategori = values;
-                            } else if (sheetName === 'LOCATIONS') {
-                                dataCache.locations = values;
-                            } else if (sheetName === 'NOTES') {
-                                dataCache.notes = values;
-                            } else if (sheetName === 'CONFIG') {
-                                // Konversi array kembali ke object untuk cache
-                                const configObj = {};
-                                for (let i = 1; i < values.length; i++) {
-                                    if (values[i] && values[i][0]) {
-                                        configObj[values[i][0]] = values[i][1];
-                                    }
-                                }
-                                dataCache.config = configObj;
-                                console.log('💾 CONFIG tersimpan di cache:', configObj);
-                            }
-                            
-                            resolve(true);
-                        } else {
-                            console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
-                            resolve(false);
-                        }
-                    };
-
-                    const timeout = setTimeout(() => {
-                        cleanup();
-                        console.log(`⏱️ Timeout update ${sheetName}, data hanya di cache`);
-                        resolve(false);
-                    }, 15000);
-
-                    function cleanup() {
-                        delete window[callbackName];
-                        clearTimeout(timeout);
-                        const script = document.getElementById(callbackName);
-                        if (script) script.remove();
-                    }
-
-                    // Untuk data besar (seperti logo base64), gunakan POST via FormData
-                    const formData = new FormData();
-                    formData.append('action', action);
-                    formData.append('data', JSON.stringify(values));
-                    formData.append('callback', callbackName);
-
-                    // Gunakan fetch dengan POST untuk data besar
-                    fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        body: formData
-                    })
-                    .then(response => response.text())
-                    .then(text => {
-                        // Response dari POST adalah JSONP, kita perlu eval
-                        eval(text); // Ini akan memanggil window[callbackName]
-                    })
-                    .catch(error => {
-                        console.error(`❌ Fetch error for ${sheetName}:`, error);
-                        cleanup();
-                        resolve(false);
-                    });
-
-                    console.log(`📤 Mengirim POST request ke: ${APPS_SCRIPT_URL} untuk ${action}`);
-                });
-
-            } catch (error) {
-                console.error(`❌ Gagal update ${sheetName}:`, error);
-                return false;
-            }
+        if (USE_MOCK_DATA) {
+            return true;
         }
+
+        const actionMap = {
+            'CONFIG': 'saveConfig',
+            'STUDENTS': 'saveStudents',
+            'ATTENDANCE': 'saveAttendance',
+            'PELANGGARAN': 'savePelanggaran',
+            'PELANGGARAN_KATEGORI': 'saveKategori',
+            'LOCATIONS': 'saveLocations',
+            'NOTES': 'saveNotes'
+        };
+
+        const action = actionMap[sheetName];
+        if (!action) return false;
+
+        return new Promise((resolve) => {
+            const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+            
+            window[callbackName] = function(response) {
+                cleanup();
+                console.log(`📥 Response dari Apps Script untuk ${sheetName}:`, response);
+                
+                if (response && response.success) {
+                    console.log(`✅ ${sheetName} saved to Google Sheets`);
+                    
+                    // Update cache berdasarkan sheetName
+                    if (sheetName === 'STUDENTS') {
+                        dataCache.students = values;
+                    } else if (sheetName === 'ATTENDANCE') {
+                        dataCache.attendance = values;
+                    } else if (sheetName === 'PELANGGARAN') {
+                        dataCache.pelanggaran = values;
+                    } else if (sheetName === 'PELANGGARAN_KATEGORI') {
+                        dataCache.kategori = values;
+                    } else if (sheetName === 'LOCATIONS') {
+                        dataCache.locations = values;
+                    } else if (sheetName === 'NOTES') {
+                        dataCache.notes = values;
+                    } else if (sheetName === 'CONFIG') {
+                        // Konversi array kembali ke object untuk cache
+                        const configObj = {};
+                        for (let i = 1; i < values.length; i++) {
+                            if (values[i] && values[i][0]) {
+                                configObj[values[i][0]] = values[i][1];
+                            }
+                        }
+                        dataCache.config = configObj;
+                        console.log('💾 CONFIG tersimpan di cache:', configObj);
+                    }
+                    
+                    resolve(true);
+                } else {
+                    console.error(`❌ Gagal simpan ${sheetName}:`, response?.error);
+                    resolve(false);
+                }
+            };
+
+            const timeout = setTimeout(() => {
+                cleanup();
+                console.log(`⏱️ Timeout update ${sheetName}, data hanya di cache`);
+                resolve(false);
+            }, 15000); // Naikkan timeout jadi 15 detik untuk logo besar
+
+            function cleanup() {
+                delete window[callbackName];
+                clearTimeout(timeout);
+                const script = document.getElementById(callbackName);
+                if (script) script.remove();
+            }
+
+            // Untuk data besar (seperti logo base64), gunakan POST via FormData
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('data', JSON.stringify(values));
+            formData.append('callback', callbackName);
+
+            // Gunakan fetch dengan POST untuk data besar
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'cors',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(text => {
+                // Response dari POST adalah JSONP, kita perlu eval
+                eval(text); // Ini akan memanggil window[callbackName]
+            })
+            .catch(error => {
+                console.error(`❌ Fetch error for ${sheetName}:`, error);
+                cleanup();
+                resolve(false);
+            });
+
+            console.log(`📤 Mengirim POST request ke: ${APPS_SCRIPT_URL} untuk ${action}`);
+        });
+
+    } catch (error) {
+        console.error(`❌ Gagal update ${sheetName}:`, error);
+        return false;
+    }
+}
 
         async function updateSheetData(sheetName, values) {
             return queueUpdate(sheetName, values);
@@ -2010,40 +1928,40 @@
             document.getElementById('schoolNameHeader').textContent = configData.school_name || 'MAS IBNU HUSAIN';
         }
 
-        async function saveConfig() {
-            try {
-                console.log('📤 Menyimpan config ke Google Sheets...');
-                console.log('📦 Data config:', configData);
-                
-                // Konversi object config ke array untuk sheet
-                const configArray = [['key', 'value']];
-                Object.entries(configData).forEach(([key, value]) => {
-                    configArray.push([key, String(value)]);
-                });
-                
-                console.log('📋 Data yang akan dikirim:', configArray);
-                console.log('📋 Ukuran data:', JSON.stringify(configArray).length, 'karakter');
-                
-                const result = await updateSheetData('CONFIG', configArray);
-                
-                console.log('📥 Hasil saveConfig:', result);
-                
-                if (result) {
-                    console.log('✅ Config berhasil disimpan ke Google Sheets');
-                    
-                    // Update cache
-                    dataCache.config = configData;
-                    
-                    return true;
-                } else {
-                    console.error('❌ Gagal menyimpan config ke Google Sheets');
-                    return false;
-                }
-            } catch (error) {
-                console.error('❌ Gagal simpan config:', error);
-                return false;
-            }
+async function saveConfig() {
+    try {
+        console.log('📤 Menyimpan config ke Google Sheets...');
+        console.log('📦 Data config:', configData);
+        
+        // Konversi object config ke array untuk sheet
+        const configArray = [['key', 'value']];
+        Object.entries(configData).forEach(([key, value]) => {
+            configArray.push([key, String(value)]);
+        });
+        
+        console.log('📋 Data yang akan dikirim:', configArray);
+        console.log('📋 Ukuran data:', JSON.stringify(configArray).length, 'karakter');
+        
+        const result = await updateSheetData('CONFIG', configArray);
+        
+        console.log('📥 Hasil saveConfig:', result);
+        
+        if (result) {
+            console.log('✅ Config berhasil disimpan ke Google Sheets');
+            
+            // Update cache
+            dataCache.config = configData;
+            
+            return true;
+        } else {
+            console.error('❌ Gagal menyimpan config ke Google Sheets');
+            return false;
         }
+    } catch (error) {
+        console.error('❌ Gagal simpan config:', error);
+        return false;
+    }
+}
 
         async function loadStudents() {
             try {
@@ -2110,9 +2028,6 @@
                 if (result) {
                     console.log('✅ Data siswa berhasil disimpan ke Google Sheets');
                     dataCache.students = students;
-                    
-                    // Update localStorage
-                    localStorage.setItem('cached_students', JSON.stringify(students));
                     
                     setTimeout(async () => {
                         const verifyRows = await fetchSheetData('STUDENTS');
@@ -2184,8 +2099,6 @@
                 const result = await updateSheetData('ATTENDANCE', rows);
                 if (result) {
                     dataCache.attendance = attendanceRecords;
-                    // Update localStorage
-                    localStorage.setItem('cached_attendance', JSON.stringify(attendanceRecords));
                 }
                 return result;
             } catch (error) {
@@ -2525,61 +2438,61 @@
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
-        async function handleLogoUpload(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                
-                console.log('📁 File yang dipilih:', file.name, file.type, (file.size/1024).toFixed(2) + 'KB');
-                
-                if (!file.type.match('image.*')) {
-                    showToast('File harus gambar', 'error');
-                    return;
-                }
-                
-                showLoading('Mengompres logo...');
-                
-                try {
-                    const compressedBase64 = await compressImage(file, 300, 300, 0.8);
-                    
-                    console.log('📦 Hasil kompresi base64 (panjang):', compressedBase64.length, 'karakter');
-                    console.log('📦 Hasil kompresi base64 (awal):', compressedBase64.substring(0, 100) + '...');
-                    
-                    // Simpan ke configData
-                    configData.school_logo = compressedBase64;
-                    
-                    console.log('📤 Mengirim ke saveConfig...');
-                    const result = await saveConfig();
-                    
-                    if (result) {
-                        // Update tampilan
-                        document.getElementById('logoImage').src = compressedBase64;
-                        document.getElementById('logoImage').classList.remove('hidden');
-                        document.getElementById('logoDefault').classList.add('hidden');
-                        
-                        document.getElementById('openingLogoImage').src = compressedBase64;
-                        document.getElementById('openingLogoImage').classList.remove('hidden');
-                        document.getElementById('openingLogoIcon').classList.add('hidden');
-                        
-                        showToast('Logo berhasil diupload!', 'success');
-                        console.log('✅ Logo berhasil disimpan ke Google Sheets');
-                        
-                        // Verifikasi dengan membaca ulang config
-                        setTimeout(async () => {
-                            await loadConfig();
-                            console.log('🔍 Verifikasi config setelah simpan:', configData);
-                        }, 2000);
-                    } else {
-                        showToast('Gagal menyimpan ke Google Sheets', 'error');
-                        console.error('❌ saveConfig() mengembalikan false');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    showToast('Gagal upload logo', 'error');
-                } finally {
-                    hideLoading();
-                }
-            }
+async function handleLogoUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        console.log('📁 File yang dipilih:', file.name, file.type, (file.size/1024).toFixed(2) + 'KB');
+        
+        if (!file.type.match('image.*')) {
+            showToast('File harus gambar', 'error');
+            return;
         }
+        
+        showLoading('Mengompres logo...');
+        
+        try {
+            const compressedBase64 = await compressImage(file, 300, 300, 0.8);
+            
+            console.log('📦 Hasil kompresi base64 (panjang):', compressedBase64.length, 'karakter');
+            console.log('📦 Hasil kompresi base64 (awal):', compressedBase64.substring(0, 100) + '...');
+            
+            // Simpan ke configData
+            configData.school_logo = compressedBase64;
+            
+            console.log('📤 Mengirim ke saveConfig...');
+            const result = await saveConfig();
+            
+            if (result) {
+                // Update tampilan
+                document.getElementById('logoImage').src = compressedBase64;
+                document.getElementById('logoImage').classList.remove('hidden');
+                document.getElementById('logoDefault').classList.add('hidden');
+                
+                document.getElementById('openingLogoImage').src = compressedBase64;
+                document.getElementById('openingLogoImage').classList.remove('hidden');
+                document.getElementById('openingLogoIcon').classList.add('hidden');
+                
+                showToast('Logo berhasil diupload!', 'success');
+                console.log('✅ Logo berhasil disimpan ke Google Sheets');
+                
+                // Verifikasi dengan membaca ulang config
+                setTimeout(async () => {
+                    await loadConfig();
+                    console.log('🔍 Verifikasi config setelah simpan:', configData);
+                }, 2000);
+            } else {
+                showToast('Gagal menyimpan ke Google Sheets', 'error');
+                console.error('❌ saveConfig() mengembalikan false');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Gagal upload logo', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+}
 
         function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
             return new Promise((resolve, reject) => {
@@ -2662,6 +2575,40 @@
             toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>${message}`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c;
+        }
+
+        function isWithinSchoolRadius(lat, lng) {
+            const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
+            return distance <= SCHOOL_LOCATION.radius;
+        }
+
+        function getLocationStatus(lat, lng) {
+            if (!lat || !lng) return { status: 'unknown', text: 'Tidak diketahui', class: '' };
+
+            const distance = calculateDistance(lat, lng, SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng);
+            const withinRadius = distance <= SCHOOL_LOCATION.radius;
+
+            return {
+                status: withinRadius ? 'within' : 'outside',
+                text: withinRadius ? `Dalam radius (${Math.round(distance)}m)` : `Luar radius (${Math.round(distance)}m)`,
+                class: withinRadius ? 'location-badge' : 'location-badge outside',
+                distance: Math.round(distance)
+            };
         }
 
         function renderLokasiTable() {
@@ -3184,10 +3131,6 @@
                 nextId = 1;
                 nextCreatedAt = Date.now();
 
-                // Clear localStorage
-                localStorage.removeItem('cached_students');
-                localStorage.removeItem('cached_attendance');
-
                 renderStudentTable();
                 renderSiswaManagementTable();
                 renderRekapTable();
@@ -3219,7 +3162,6 @@
             }
 
             tbody.innerHTML = filteredStudents.map((student, index) => {
-                // Cari attendance untuk hari ini
                 const attendances = attendanceRecords.filter(r => r.student_id === student.id && r.tanggal === currentDate);
 
                 const hadirAttendance = attendances.find(r => r.status === 'hadir');
@@ -3228,19 +3170,9 @@
                 const hadirStatus = hadirAttendance?.status || '';
                 const pulangStatus = pulangAttendance?.status || '';
 
-                // Hitung lokasi dengan akurat
-                let locationText = '-';
-                let locationClass = '';
-                
-                if (hadirAttendance?.location) {
-                    const locStatus = getLocationStatus(hadirAttendance.location.lat, hadirAttendance.location.lng);
-                    locationText = locStatus.text;
-                    locationClass = locStatus.class;
-                } else if (pulangAttendance?.location) {
-                    const locStatus = getLocationStatus(pulangAttendance.location.lat, pulangAttendance.location.lng);
-                    locationText = locStatus.text;
-                    locationClass = locStatus.class;
-                }
+                const locationText = hadirAttendance?.location ? 
+                    getLocationStatus(hadirAttendance.location.lat, hadirAttendance.location.lng).text : 
+                    (pulangAttendance?.location ? getLocationStatus(pulangAttendance.location.lat, pulangAttendance.location.lng).text : '-');
 
                 const photoHtml = renderStudentPhoto(student.photo);
 
@@ -3270,7 +3202,7 @@
                             </select>
                         </td>
                         <td class="px-4 py-4">
-                            <div class="text-xs ${locationClass} p-2 rounded-lg">${locationText}</div>
+                            <div class="text-xs">${locationText}</div>
                         </td>
                         <td class="px-4 py-4">
                             <input type="text" value="${hadirAttendance?.keterangan || pulangAttendance?.keterangan || ''}" 
@@ -4506,7 +4438,6 @@
 
             await saveAttendance();
 
-            // Render ulang semua tampilan yang terkait
             renderStudentTable();
             renderRekapTable();
             renderLokasiTable();
@@ -5358,25 +5289,11 @@
         async function init() {
             const startTime = performance.now();
 
-            // Cek apakah sudah pernah load sebelumnya
-            const isFirstLoad = !sessionStorage.getItem('app_loaded');
-            
-            // Load config dulu untuk logo
             await loadConfig();
 
             document.getElementById('openingStatus').textContent = 'Memuat data...';
 
-            // Jika bukan pertama load, skip opening animation
-            if (!isFirstLoad) {
-                document.getElementById('openingOverlay').style.display = 'none';
-                document.getElementById('mainApp').classList.remove('hidden');
-                await loadAllData(true); // Load dari cache dulu
-                showPage('absensi', { target: document.querySelector('.nav-btn') });
-                return;
-            }
-
-            // Pertama load, jalankan opening animation
-            await loadAllData(false); // Load fresh dari server
+            await loadAllData();
 
             const endTime = performance.now();
             console.log(`🚀 Total init time: ${(endTime - startTime).toFixed(2)}ms`);
@@ -5392,7 +5309,6 @@
                 }, 300);
             }, 1000);
 
-            // Refresh data setiap 30 detik
             setInterval(async () => {
                 const refreshStart = performance.now();
 
@@ -5403,10 +5319,6 @@
                     loadStudentNotes()
                 ]);
 
-                // Update cache
-                localStorage.setItem('cached_attendance', JSON.stringify(attendanceRecords));
-
-                // Render ulang berdasarkan page yang aktif
                 if (currentPage === 'absensi') renderStudentTable();
                 if (currentPage === 'rekap') renderRekapTable();
                 if (currentPage === 'lokasi') renderLokasiTable();
@@ -5415,7 +5327,7 @@
 
                 const refreshEnd = performance.now();
                 console.log(`🔄 Background refresh: ${(refreshEnd - refreshStart).toFixed(2)}ms`);
-            }, 30000); // Refresh setiap 30 detik
+            }, 60000);
         }
 
         window.onload = init;
